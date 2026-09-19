@@ -135,6 +135,8 @@ jobs:
             qt6-base-dev \
             qt6-tools-dev \
             qt6-tools-dev-tools \
+            qt6-l10n-tools \
+            libgl1-mesa-dev \
             libmad0-dev \
             libvorbis-dev \
             libogg-dev \
@@ -244,6 +246,8 @@ jobs:
             qt6-base-private-dev \
             qt6-tools-dev \
             qt6-tools-dev-tools \
+            qt6-l10n-tools \
+            libgl1-mesa-dev \
             libmad0-dev \
             libvorbis-dev \
             libogg-dev \
