@@ -277,6 +277,7 @@ void SkinnedDisplay::setPL(SkinnedPlayList *w)
     connect(m_plButton, &SkinnedToggleButton::clicked, m_playlist, &QWidget::setVisible);
     connect(m_playlist, &SkinnedPlayList::closed, m_plButton, [this] {
         m_plButton->setChecked(false);
+        ACTION(SkinnedActionManager::SHOW_PLAYLIST)->setChecked(false);
         m_playlist->setVisible(false);
     });
 }
