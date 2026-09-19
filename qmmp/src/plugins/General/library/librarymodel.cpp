@@ -176,12 +176,13 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
         QSqlQuery query(db);
         if(m_filter.isEmpty())
         {
-            query.prepare(u"SELECT ID, Title from track_library WHERE Artist = :artist AND Album = :album"_s);
+            query.prepare(u"SELECT ID, Title from track_library WHERE Artist = :artist AND Album = :album "
+                          "ORDER BY DiscNumber, Track, ID"_s);
         }
         else
         {
             query.prepare(u"SELECT ID, Title from track_library WHERE Artist = :artist AND Album = :album "
-                          "AND SearchString LIKE :filter"_s);
+                          "AND SearchString LIKE :filter ORDER BY DiscNumber, Track, ID"_s);
             query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
         }
         query.bindValue(u":artist"_s, parentItem->artist.isEmpty() ? parentItem->parent->name : parentItem->artist);
@@ -530,7 +531,8 @@ QList<PlayListTrack *> LibraryModel::getTracks(const QModelIndex &index) const
     else if(item->type == Qmmp::ALBUM)
     {
         QSqlQuery query(db);
-        query.prepare(u"SELECT * from track_library WHERE Artist = :artist AND Album = :album"_s);
+        query.prepare(u"SELECT * from track_library WHERE Artist = :artist AND Album = :album "
+                  "ORDER BY DiscNumber, Track, ID"_s);
         query.bindValue(u":artist"_s, item->artist.isEmpty() ? item->parent->name : item->artist);
         query.bindValue(u":album"_s, item->name);
 
