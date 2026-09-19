@@ -354,7 +354,7 @@ jobs:
             -DUSE_MPG123=TRUE \
             -DUSE_FLAC=TRUE \
             -DUSE_AAC=TRUE \
-            -DQMMP_DEFAULT_UI=qsui \
+            -DQMMP_DEFAULT_UI=skinned \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=FALSE \
             -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib:$ORIGIN/../..'
 
@@ -410,7 +410,7 @@ jobs:
           [Desktop Entry]
           Name=Qmmp
           Comment=Qt-based Multimedia Player
-          Exec=qmmp
+          Exec=qmmp --ui skinned %F
           Icon=qmmp
           Type=Application
           Categories=AudioVideo;Audio;Player;

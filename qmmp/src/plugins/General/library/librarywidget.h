@@ -22,6 +22,7 @@
 #define LIBRARYWIDGET_H
 
 #include <QWidget>
+#include <QPixmap>
 
 namespace Ui {
 class LibraryWidget;
@@ -32,6 +33,8 @@ class QAction;
 class QContextMenuEvent;
 class QCloseEvent;
 class QEvent;
+class QPaintEvent;
+class QMouseEvent;
 class QLabel;
 class LibraryModel;
 class QStandardItemModel;
@@ -69,7 +72,12 @@ private slots:
 
 private:
     void changeEvent(QEvent *event) override;
+    void paintEvent(QPaintEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void applyPalette();
+    bool loadSkinChrome();
     Ui::LibraryWidget *m_ui;
     LibraryModel *m_model;
     QMenu *m_menu;
@@ -79,6 +87,10 @@ private:
     QStandardItemModel *m_albumsModel;
     QString m_selectedArtist;
     QString m_selectedAlbum;
+    QPixmap m_skinPlaylist;
+    QPoint m_dragOffset;
+    bool m_dragging = false;
+    bool m_resizing = false;
 };
 
 #endif // LIBRARYWIDGET_H

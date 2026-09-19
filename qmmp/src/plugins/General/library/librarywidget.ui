@@ -23,6 +23,9 @@
    <property name="bottomMargin">
     <number>6</number>
    </property>
+   <property name="topMargin">
+    <number>26</number>
+   </property>
    <item>
       <widget class="QSplitter" name="summarySplitter">
        <property name="orientation">

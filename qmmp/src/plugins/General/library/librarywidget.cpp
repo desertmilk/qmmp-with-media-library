@@ -27,11 +27,16 @@
 #include <QLabel>
 #include <QHeaderView>
 #include <QPalette>
+#include <QPainter>
+#include <QMouseEvent>
+#include <QGuiApplication>
+#include <QScreen>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QStandardItemModel>
 #include <QItemSelectionModel>
 #include <qmmp/qmmp.h>
+#include <qmmpui/qmmpuiskin.h>
 #include "librarymodel.h"
 #include "librarysettingsdialog.h"
 #include "ui_librarywidget.h"
@@ -66,7 +71,10 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
 
     if(dialog)
     {
-        setWindowFlags(Qt::Dialog);
+        if(loadSkinChrome())
+            setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+        else
+            setWindowFlags(Qt::Dialog);
         setAttribute(Qt::WA_DeleteOnClose);
         setAttribute(Qt::WA_QuitOnClose, false);
     }
@@ -133,6 +141,109 @@ void LibraryWidget::applyPalette()
     m_ui->artistsTableView->setPalette(applicationPalette);
     m_ui->albumsTableView->setPalette(applicationPalette);
     m_ui->treeView->setPalette(applicationPalette);
+}
+
+bool LibraryWidget::loadSkinChrome()
+{
+    if(!QmmpUiSkin::isSkinnedUi())
+        return false;
+
+    m_skinPlaylist = QPixmap(QmmpUiSkin::filePath(u"pledit.png"_s));
+    if(!m_skinPlaylist.isNull())
+    {
+        setMinimumSize(640, 420);
+        setSizeIncrement(25, 29);
+    }
+    return !m_skinPlaylist.isNull();
+}
+
+void LibraryWidget::paintEvent(QPaintEvent *event)
+{
+    QWidget::paintEvent(event);
+    if(m_skinPlaylist.isNull())
+        return;
+
+    QPainter painter(this);
+    const int width = qMax(275, this->width());
+    painter.drawTiledPixmap(0, 0, width, 20, m_skinPlaylist.copy(127, 0, 25, 20));
+    painter.drawPixmap(0, 0, m_skinPlaylist.copy(26, 0, 100, 20));
+    painter.drawPixmap(width - 100, 0, m_skinPlaylist.copy(26, 0, 100, 20));
+    painter.drawPixmap(width - 13, 6, m_skinPlaylist.copy(167, 3, 9, 9));
+    painter.setPen(Qt::white);
+    painter.drawText(8, 14, tr("Media Library"));
+}
+
+void LibraryWidget::mousePressEvent(QMouseEvent *event)
+{
+    if(m_skinPlaylist.isNull() || event->button() != Qt::LeftButton)
+    {
+        QWidget::mousePressEvent(event);
+        return;
+    }
+
+    if(event->position().y() < 20)
+    {
+        if(event->position().x() >= width() - 20)
+        {
+            close();
+            return;
+        }
+        m_dragging = true;
+        m_dragOffset = event->globalPosition().toPoint() - frameGeometry().topLeft();
+        event->accept();
+    }
+    else if(event->position().x() >= width() - 12 && event->position().y() >= height() - 12)
+    {
+        m_resizing = true;
+        event->accept();
+    }
+    else
+    {
+        QWidget::mousePressEvent(event);
+    }
+}
+
+void LibraryWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    if(m_dragging)
+    {
+        QPoint position = event->globalPosition().toPoint() - m_dragOffset;
+        QScreen *screen = QGuiApplication::screenAt(event->globalPosition().toPoint());
+        if(screen)
+        {
+            const QRect available = screen->availableGeometry();
+            constexpr int snapDistance = 13;
+            if(qAbs(position.x() - available.left()) < snapDistance)
+                position.setX(available.left());
+            if(qAbs(position.y() - available.top()) < snapDistance)
+                position.setY(available.top());
+            if(qAbs(position.x() + width() - available.right() - 1) < snapDistance)
+                position.setX(available.right() - width() + 1);
+            if(qAbs(position.y() + height() - available.bottom() - 1) < snapDistance)
+                position.setY(available.bottom() - height() + 1);
+        }
+        move(position);
+        event->accept();
+    }
+    else if(m_resizing)
+    {
+        const QPoint delta = event->globalPosition().toPoint() - frameGeometry().topLeft();
+        const int width = qMax(minimumWidth(), ((delta.x() - minimumWidth() + 12) / 25) * 25 + minimumWidth());
+        const int height = qMax(minimumHeight(), ((delta.y() - minimumHeight() + 14) / 29) * 29 + minimumHeight());
+        resize(width, height);
+        event->accept();
+    }
+    else
+    {
+        QWidget::mouseMoveEvent(event);
+    }
+}
+
+void LibraryWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    m_dragging = false;
+    m_resizing = false;
+    QWidget::mouseReleaseEvent(event);
 }
 
 void LibraryWidget::refresh()

@@ -39,6 +39,7 @@ set(libqmmpui_SRCS
     pluginitem.cpp
     aboutdialog.cpp
     qmmpuisettings.cpp
+    qmmpuiskin.cpp
     radioitemdelegate.cpp
     playlistdownloader.cpp
     addurldialog.cpp
@@ -97,6 +98,7 @@ SET(libqmmpui_DEVEL_HDRS
     playlisttrack.h
     qmmpui_export.h
     qmmpuisettings.h
+    qmmpuiskin.h
     shortcutdialog.h
     templateeditor.h
     uifactory.h

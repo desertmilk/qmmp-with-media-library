@@ -57,6 +57,7 @@ HEADERS += general.h \
     pluginitem_p.h \
     aboutdialog_p.h \
     qmmpuisettings.h \
+    qmmpuiskin.h \
     radioitemdelegate_p.h \
     playlistdownloader.h \
     addurldialog_p.h \
@@ -106,6 +107,7 @@ SOURCES += general.cpp \
     pluginitem.cpp \
     aboutdialog.cpp \
     qmmpuisettings.cpp \
+    qmmpuiskin.cpp \
     radioitemdelegate.cpp \
     playlistdownloader.cpp \
     addurldialog.cpp \
@@ -188,6 +190,7 @@ unix {
     playlisttrack.h \
     qmmpui_export.h \
     qmmpuisettings.h \
+    qmmpuiskin.h \
     shortcutdialog.h \
     templateeditor.h \
     uifactory.h \
