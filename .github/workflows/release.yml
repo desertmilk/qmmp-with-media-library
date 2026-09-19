@@ -15,8 +15,14 @@ on:
         default: false
         type: boolean
 
+# Never stack nightly builds: a newer run cancels a still-running one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Jobs use read-only access by default; the release job grants write access below.
 permissions:
-  contents: write
+  contents: read
   actions: read
 
 env:
@@ -28,7 +34,9 @@ jobs:
   # ==========================================================================
   check-for-updates:
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     outputs:
+      last_sha: ${{ steps.check.outputs.last_sha }}
       should_build: ${{ steps.check.outputs.should_build }}
       commit_sha: ${{ steps.check.outputs.commit_sha }}
       short_sha: ${{ steps.check.outputs.short_sha }}
@@ -38,39 +46,38 @@ jobs:
       commit_date: ${{ steps.check.outputs.commit_date }}
       commits_count: ${{ steps.check.outputs.commits_count }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref }}
-
       - name: Check for new commits
         id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_BUILD: ${{ inputs.force_build }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref }}
         run: |
-          # Get current commit info
-          CURRENT_SHA=$(git rev-parse HEAD)
-          SHORT_SHA=$(echo "${CURRENT_SHA}" | cut -c1-8)
+          set -euo pipefail
+          BRANCH="${REF#refs/heads/}"
           BUILD_DATE=$(date -u +'%Y-%m-%d')
-          
-          COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s")
-          COMMIT_AUTHOR=$(git log -1 --pretty=format:"%an <%ae>")
-          COMMIT_DATE=$(git log -1 --pretty=format:"%ai")
-          
-          # Count commits since last nightly (if exists)
-          LAST_NIGHTLY_SHA=""
-          if gh release view nightly --json body -q '.body' 2>/dev/null; then
-            LAST_NIGHTLY_SHA=$(gh release view nightly --json body -q '.body' | grep -oP 'Commit SHA: \K[a-f0-9]{40}' || echo "")
+
+          JSON=$(gh api "repos/$REPO/commits/$BRANCH")
+          CURRENT_SHA=$(jq -r '.sha' <<<"$JSON")
+          SHORT_SHA="${CURRENT_SHA:0:8}"
+          COMMIT_MESSAGE=$(jq -r '.commit.message | split("\n")[0]' <<<"$JSON")
+          COMMIT_AUTHOR=$(jq -r '"\(.commit.author.name) <\(.commit.author.email)>"' <<<"$JSON")
+          COMMIT_DATE=$(jq -r '.commit.author.date' <<<"$JSON")
+
+          LAST_NIGHTLY_SHA=$(gh api "repos/$REPO/commits/nightly" --jq '.sha' 2>/dev/null || true)
+          if [ -z "$LAST_NIGHTLY_SHA" ]; then
+            LAST_NIGHTLY_SHA=$(gh release view nightly --repo "$REPO" --json body -q .body 2>/dev/null \
+              | grep -oP 'Commit SHA: \K[a-f0-9]{40}' || true)
           fi
-          
           if [ -n "${LAST_NIGHTLY_SHA}" ]; then
-            COMMITS_COUNT=$(git rev-list "${LAST_NIGHTLY_SHA}..HEAD" --count)
+            COMMITS_COUNT=$(gh api "repos/$REPO/compare/${LAST_NIGHTLY_SHA}...${CURRENT_SHA}" \
+              --jq '.total_commits' 2>/dev/null || echo "unknown")
           else
             COMMITS_COUNT="N/A (first nightly)"
           fi
           
           # Determine if we should build
-          FORCE_BUILD="${{ github.event.inputs.force_build }}"
-          
           if [ "${FORCE_BUILD}" = "true" ]; then
             SHOULD_BUILD="true"
             REASON="Manual force build triggered"
@@ -87,6 +94,7 @@ jobs:
           
           # Set outputs
           echo "should_build=${SHOULD_BUILD}" >> $GITHUB_OUTPUT
+          echo "last_sha=${LAST_NIGHTLY_SHA}" >> $GITHUB_OUTPUT
           echo "commit_sha=${CURRENT_SHA}" >> $GITHUB_OUTPUT
           echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "build_date=${BUILD_DATE}" >> $GITHUB_OUTPUT
@@ -104,9 +112,6 @@ jobs:
           echo "Last Nightly SHA: ${LAST_NIGHTLY_SHA:-None}"
           echo "Commits Since Last: ${COMMITS_COUNT}"
           echo "========================================"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   # ==========================================================================
   # Job 2: Build on Linux (Ubuntu) - Binary Tarball
   # ==========================================================================
@@ -114,11 +119,15 @@ jobs:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    env:
+      VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.check-for-updates.outputs.commit_sha }}
+          fetch-depth: 1
           path: qmmp-src
 
       - name: Install required dependencies
@@ -128,6 +137,7 @@ jobs:
             build-essential \
             cmake \
             ninja-build \
+            ccache \
             tar \
             unzip \
             bzip2 \
@@ -182,6 +192,13 @@ jobs:
             librcd0-dev \
             libmms-dev || true
 
+      - name: Set up ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-linux-binary-${{ github.run_id }}
+          restore-keys: ccache-linux-binary-
+
       - name: Configure with CMake
         run: |
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
@@ -189,6 +206,8 @@ jobs:
             -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DUSE_QTMULTIMEDIA=TRUE \
             -DUSE_PIPEWIRE=TRUE \
             -DUSE_PROJECTM=TRUE \
@@ -208,7 +227,7 @@ jobs:
       - name: Create binary tarball
         run: |
           cd ${{ github.workspace }}
-          tar -czf qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64-binary.tar.gz -C staging-binary .
+          tar -czf qmmp-${VERSION}-linux-x86_64-binary.tar.gz -C staging-binary .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -216,6 +235,7 @@ jobs:
           name: qmmp-linux-binary
           path: qmmp-*-linux-x86_64-binary.tar.gz
           retention-days: 7
+          if-no-files-found: error
 
   # ==========================================================================
   # Job 3: Build on Linux (Ubuntu) - AppImage
@@ -224,11 +244,15 @@ jobs:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    env:
+      VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.check-for-updates.outputs.commit_sha }}
+          fetch-depth: 1
           path: qmmp-src
 
       - name: Install required dependencies
@@ -238,6 +262,7 @@ jobs:
             build-essential \
             cmake \
             ninja-build \
+            ccache \
             tar \
             unzip \
             bzip2 \
@@ -298,6 +323,13 @@ jobs:
             libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev || true
 
+      - name: Set up ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-linux-appimage-${{ github.run_id }}
+          restore-keys: ccache-linux-appimage-
+
       - name: Configure with CMake for AppImage
         run: |
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
@@ -306,6 +338,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DCMAKE_INSTALL_PREFIX=/usr \
             -DCMAKE_INSTALL_LIBDIR=lib \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DUSE_QTMULTIMEDIA=TRUE \
             -DUSE_PIPEWIRE=TRUE \
             -DUSE_PROJECTM=TRUE \
@@ -400,11 +434,11 @@ jobs:
           ./appimagetool-x86_64.AppImage --no-appstream \
             --runtime-file ${{ github.workspace }}/runtime-x86_64 \
             ${{ github.workspace }}/AppDir \
-            ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage
+            ${{ github.workspace }}/qmmp-${VERSION}-linux-x86_64.AppImage
 
-          test -s ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage
+          test -s ${{ github.workspace }}/qmmp-${VERSION}-linux-x86_64.AppImage
           runtime_version=$(./runtime-x86_64 --appimage-version)
-          appimage_version=$(./qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage --appimage-version)
+          appimage_version=$(./qmmp-${VERSION}-linux-x86_64.AppImage --appimage-version)
           test "$runtime_version" = "$appimage_version"
         env:
           QMAKE: /usr/lib/qt6/bin/qmake
@@ -423,7 +457,7 @@ jobs:
           name: qmmp-linux-appimage
           path: qmmp-*-linux-x86_64.AppImage
           retention-days: 7
-          if-no-files-found: warn
+          if-no-files-found: error
 
   # ==========================================================================
   # Job 4: Build on macOS
@@ -432,11 +466,17 @@ jobs:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
     runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: '1'
+      HOMEBREW_NO_INSTALL_CLEANUP: '1'
+      VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.check-for-updates.outputs.commit_sha }}
+          fetch-depth: 1
           path: qmmp-src
 
       - name: Install Homebrew dependencies
@@ -444,7 +484,7 @@ jobs:
           brew update
           
           # Required dependencies
-          brew install cmake ninja qt@6 libmad libvorbis libogg taglib libiconv curl
+          brew install cmake ninja ccache qt@6 libmad libvorbis libogg taglib libiconv curl
           
           # Optional dependencies (install what's available)
           brew install \
@@ -471,6 +511,13 @@ jobs:
             enca \
             pkg-config || true
 
+      - name: Set up ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/ccache
+          key: ccache-macos-${{ github.run_id }}
+          restore-keys: ccache-macos-
+
       - name: Configure with CMake
         run: |
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
@@ -481,6 +528,8 @@ jobs:
             -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DUSE_ALSA=FALSE \
             -DUSE_OSS=FALSE \
             -DUSE_OSS4=FALSE \
@@ -506,7 +555,7 @@ jobs:
       - name: Create tarball
         run: |
           cd ${{ github.workspace }}
-          tar -czf qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.tar.gz -C staging-macos .
+          tar -czf qmmp-${VERSION}-macos-arm64.tar.gz -C staging-macos .
 
       - name: Create macOS app bundle and DMG
         run: |
@@ -552,11 +601,11 @@ jobs:
           test -x "$MACDEPLOYQT"
           "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -dmg
 
-          mv Qmmp.dmg qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.dmg
+          mv Qmmp.dmg qmmp-${VERSION}-macos-arm64.dmg
           ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" \
-            qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.app.zip
-          test -s qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.dmg
-          test -s qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.app.zip
+            qmmp-${VERSION}-macos-arm64.app.zip
+          test -s qmmp-${VERSION}-macos-arm64.dmg
+          test -s qmmp-${VERSION}-macos-arm64.app.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -567,6 +616,7 @@ jobs:
             qmmp-*-macos-arm64.dmg
             qmmp-*-macos-arm64.app.zip
           retention-days: 7
+          if-no-files-found: error
 
   # ==========================================================================
   # Job 5: Build on Windows (MSYS2/UCRT64)
@@ -575,6 +625,10 @@ jobs:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
     runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
     defaults:
       run:
         shell: msys2 {0}
@@ -582,7 +636,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.check-for-updates.outputs.commit_sha }}
+          fetch-depth: 1
           path: qmmp-src
 
       - name: Setup MSYS2 with UCRT64
@@ -594,6 +649,7 @@ jobs:
             mingw-w64-ucrt-x86_64-toolchain
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-ccache
             mingw-w64-ucrt-x86_64-pkgconf
             mingw-w64-ucrt-x86_64-qt6-base
             mingw-w64-ucrt-x86_64-qt6-tools
@@ -623,6 +679,13 @@ jobs:
             mingw-w64-ucrt-x86_64-libarchive
             mingw-w64-ucrt-x86_64-libshout
             mingw-w64-ucrt-x86_64-7zip
+
+      - name: Set up ccache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ccache-windows-${{ github.run_id }}
+          restore-keys: ccache-windows-
 
       - name: Configure with CMake
         run: |
@@ -659,7 +722,7 @@ jobs:
 
       - name: Create 7z archive
         run: |
-          7z a -mx=9 qmmp-${{ needs.check-for-updates.outputs.build_date }}-windows-x86_64.7z ./staging-windows/*
+          7z a -mx=9 qmmp-${VERSION}-windows-x86_64.7z ./staging-windows/*
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -667,6 +730,7 @@ jobs:
           name: qmmp-windows
           path: qmmp-*.7z
           retention-days: 7
+          if-no-files-found: error
 
   # ==========================================================================
   # Job 6: Create GitHub Release with all artifacts
@@ -680,11 +744,14 @@ jobs:
       - build-windows
     if: needs.check-for-updates.outputs.should_build == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.check-for-updates.outputs.commit_sha }}
           fetch-depth: 0
 
       - name: Download all artifacts
@@ -737,16 +804,17 @@ jobs:
       - name: Create GitHub release
         run: |
           # Collect all archive files
-          ARCHIVES=""
+          ARCHIVES=()
+          shopt -s nullglob
           for artifact_dir in artifacts/*/; do
             for file in "${artifact_dir}"*.tar.gz "${artifact_dir}"*.7z "${artifact_dir}"*.AppImage "${artifact_dir}"*.dmg "${artifact_dir}"*.app.zip; do
               if [ -f "$file" ]; then
-                ARCHIVES="${ARCHIVES} ${file}"
+                ARCHIVES+=("$file")
               fi
             done
           done
           
-          if [ -z "${ARCHIVES}" ]; then
+          if [ ${#ARCHIVES[@]} -eq 0 ]; then
             echo "ERROR: No archives found!"
             find artifacts -type f | head -20
             exit 1
@@ -877,7 +945,7 @@ jobs:
             --title "🌙 Nightly Build - ${{ needs.check-for-updates.outputs.build_date }}" \
             --notes-file release_body.md \
             --prerelease \
-            ${ARCHIVES}
+            "${ARCHIVES[@]}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
