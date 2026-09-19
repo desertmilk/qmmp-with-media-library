@@ -19,11 +19,14 @@
  ***************************************************************************/
 
 #include <QSettings>
+#include <QApplication>
+#include <QEvent>
 #include <QMenu>
 #include <QContextMenuEvent>
 #include <QIcon>
 #include <QLabel>
 #include <QHeaderView>
+#include <QPalette>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QStandardItemModel>
@@ -52,6 +55,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         connect(m_ui->albumsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &LibraryWidget::updateTrackFilter);
         refreshSummaryViews();
+    applyPalette();
     m_ui->treeView->header()->setSectionResizeMode(QHeaderView::Interactive);
     m_ui->treeView->header()->setStretchLastSection(false);
     m_ui->treeView->setColumnWidth(0, 60);
@@ -102,6 +106,33 @@ LibraryWidget::~LibraryWidget()
     settings.setValue(u"Library/quick_search_visible"_s, m_filterAction->isChecked());
 
     delete m_ui;
+}
+
+void LibraryWidget::changeEvent(QEvent *event)
+{
+    QWidget::changeEvent(event);
+    if(event->type() == QEvent::PaletteChange)
+        applyPalette();
+}
+
+void LibraryWidget::applyPalette()
+{
+    const QPalette applicationPalette = qApp->palette();
+    QPalette panelPalette = applicationPalette;
+    panelPalette.setColor(QPalette::Window,
+                          applicationPalette.color(QPalette::Base));
+    panelPalette.setColor(QPalette::WindowText,
+                          applicationPalette.color(QPalette::Text));
+
+    setPalette(panelPalette);
+    m_ui->artistsPanel->setPalette(panelPalette);
+    m_ui->albumsPanel->setPalette(panelPalette);
+    m_ui->artistsLabel->setPalette(panelPalette);
+    m_ui->albumsLabel->setPalette(panelPalette);
+    m_ui->filterLineEdit->setPalette(applicationPalette);
+    m_ui->artistsTableView->setPalette(applicationPalette);
+    m_ui->albumsTableView->setPalette(applicationPalette);
+    m_ui->treeView->setPalette(applicationPalette);
 }
 
 void LibraryWidget::refresh()
@@ -226,11 +257,15 @@ void LibraryWidget::refreshAlbums()
 
     QSqlQuery query(db);
     QString filter = m_ui->filterLineEdit->text();
-    query.prepare(u"SELECT Album, MAX(Year), COUNT(*) FROM track_library "
-                  "WHERE SearchString LIKE :filter AND (:artist = '' OR Artist = :artist) "
-                  "GROUP BY Album ORDER BY Album"_s);
+    QString sql = u"SELECT Album, MAX(Year), COUNT(*) FROM track_library "
+                  "WHERE SearchString LIKE :filter"_s;
+    if(!m_selectedArtist.isEmpty())
+        sql += u" AND Artist = :artist"_s;
+    sql += u" GROUP BY Album ORDER BY Album"_s;
+    query.prepare(sql);
     query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(filter.toLower()));
-    query.bindValue(u":artist"_s, m_selectedArtist);
+    if(!m_selectedArtist.isEmpty())
+        query.bindValue(u":artist"_s, m_selectedArtist);
     if(!query.exec())
         return;
 

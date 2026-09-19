@@ -520,8 +520,10 @@ void LibraryModel::refresh()
             item->year = query.value(u"Year"_s).toInt();
             item->type = Qmmp::ALBUM;
         }
-        item->playCount = query.value(u"PlayCount"_s).toInt();
-        item->lastPlayed = query.value(u"LastPlayed"_s).toLongLong();
+        if(m_viewMode == MostPlayedView)
+            item->playCount = query.value(u"PlayCount"_s).toInt();
+        else if(m_viewMode == RecentlyPlayedView)
+            item->lastPlayed = query.value(u"LastPlayed"_s).toLongLong();
         if(item->type == Qmmp::UNKNOWN)
             item->type = Qmmp::ARTIST;
         item->parent = m_rootItem;

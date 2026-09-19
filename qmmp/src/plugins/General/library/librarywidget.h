@@ -31,6 +31,7 @@ class QMenu;
 class QAction;
 class QContextMenuEvent;
 class QCloseEvent;
+class QEvent;
 class QLabel;
 class LibraryModel;
 class QStandardItemModel;
@@ -67,6 +68,8 @@ private slots:
     void updateTrackFilter();
 
 private:
+    void changeEvent(QEvent *event) override;
+    void applyPalette();
     Ui::LibraryWidget *m_ui;
     LibraryModel *m_model;
     QMenu *m_menu;
