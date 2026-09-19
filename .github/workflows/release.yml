@@ -437,7 +437,7 @@ jobs:
           
           # Set QT_PLUGIN_PATH for linuxdeploy
           export QT_PLUGIN_PATH=/usr/lib/qt6/plugins
-          export EXTRA_QT_PLUGINS="multimedia,multimediawidgets"
+          export EXTRA_QT_MODULES="multimedia,multimediawidgets"
           export DEPLOY_GSTREAMER_PLUGINS="1"
           QMMP_LIB=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libqmmp.so.2' -print -quit)
           QMMPUI_LIB=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libqmmpui.so.2' -print -quit)
@@ -448,12 +448,7 @@ jobs:
             PLUGIN_LIBS+=(--library "$plugin")
           done < <(find ${{ github.workspace }}/AppDir/usr -type f,l -name '*.so' -print)
           test "${#PLUGIN_LIBS[@]}" -gt 0
-          QT_LIBS=()
-          while IFS= read -r qtlib; do
-            QT_LIBS+=(--library "$qtlib")
-          done < <(find /usr/lib -type f,l -name 'libQt6*.so.6' -print)
-          test "${#QT_LIBS[@]}" -gt 0
-          printf 'Qmmp libraries: %s %s; plugin roots: %s; Qt6 roots: %s\n' "$QMMP_LIB" "$QMMPUI_LIB" "$(( ${#PLUGIN_LIBS[@]} / 2 ))" "$(( ${#QT_LIBS[@]} / 2 ))"
+          printf 'Qmmp libraries: %s %s; plugin roots: %s\n' "$QMMP_LIB" "$QMMPUI_LIB" "$(( ${#PLUGIN_LIBS[@]} / 2 ))"
           QMMP_LIB_DIR=$(dirname "$QMMP_LIB")
           QMMPUI_LIB_DIR=$(dirname "$QMMPUI_LIB")
           export LD_LIBRARY_PATH="$QMMP_LIB_DIR:$QMMPUI_LIB_DIR:${LD_LIBRARY_PATH:-}"
@@ -465,7 +460,6 @@ jobs:
             --library "$QMMP_LIB" \
             --library "$QMMPUI_LIB" \
             "${PLUGIN_LIBS[@]}" \
-            "${QT_LIBS[@]}" \
             -e ${{ github.workspace }}/AppDir/usr/bin/qmmp \
             -d ${{ github.workspace }}/AppDir/qmmp.desktop \
             -i ${{ github.workspace }}/AppDir/qmmp.png \
