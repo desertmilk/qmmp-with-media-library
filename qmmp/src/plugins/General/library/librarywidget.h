@@ -89,6 +89,7 @@ private:
     bool eventFilter(QObject *watched, QEvent *event) override;
     void applyPalette();
     void distributeSummaryColumnSpace(QTableView *tableView);
+    void redistributeSummaryColumn(QTableView *tableView, int column, int oldSize, int newSize);
     bool loadSkinChrome();
     void toggleShade();
     Ui::LibraryWidget *m_ui;

@@ -63,6 +63,11 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
         m_ui->artistsTableView->horizontalHeader()->setStretchLastSection(false);
         m_ui->artistsTableView->installEventFilter(this);
+        connect(m_ui->artistsTableView->horizontalHeader(), &QHeaderView::sectionResized,
+            this, [this](int column, int oldSize, int newSize)
+            {
+                redistributeSummaryColumn(m_ui->artistsTableView, column, oldSize, newSize);
+            });
             m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
         m_albumsModel->setHorizontalHeaderLabels({tr("Album"), tr("Year"), tr("Tracks")});
@@ -70,6 +75,11 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
         m_ui->albumsTableView->horizontalHeader()->setStretchLastSection(false);
         m_ui->albumsTableView->installEventFilter(this);
+        connect(m_ui->albumsTableView->horizontalHeader(), &QHeaderView::sectionResized,
+            this, [this](int column, int oldSize, int newSize)
+            {
+                redistributeSummaryColumn(m_ui->albumsTableView, column, oldSize, newSize);
+            });
         m_ui->albumsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &LibraryWidget::refreshAlbums);
@@ -432,7 +442,7 @@ void LibraryWidget::distributeSummaryColumnSpace(QTableView *tableView)
 
     QHeaderView *header = tableView->horizontalHeader();
     const int extra = tableView->viewport()->width() - header->length();
-    if(extra <= 0 || header->count() == 0)
+    if(extra == 0 || header->count() == 0)
         return;
 
     int totalWidth = 0;
@@ -447,8 +457,40 @@ void LibraryWidget::distributeSummaryColumnSpace(QTableView *tableView)
     {
         const int share = column == header->count() - 1 ? extra - distributed :
                     extra * header->sectionSize(column) / totalWidth;
-        header->resizeSection(column, header->sectionSize(column) + share);
+        header->resizeSection(column, qMax(0, header->sectionSize(column) + share));
         distributed += share;
+    }
+    m_distributingColumnSpace = false;
+}
+
+void LibraryWidget::redistributeSummaryColumn(QTableView *tableView, int column,
+                                               int oldSize, int newSize)
+{
+    if(m_distributingColumnSpace || oldSize == newSize)
+        return;
+
+    QHeaderView *header = tableView->horizontalHeader();
+    const int delta = newSize - oldSize;
+    int otherWidth = 0;
+    for(int other = 0; other < header->count(); ++other)
+    {
+        if(other != column)
+            otherWidth += header->sectionSize(other);
+    }
+    if(otherWidth <= 0)
+        return;
+
+    m_distributingColumnSpace = true;
+    int redistributed = 0;
+    for(int other = 0; other < header->count(); ++other)
+    {
+        if(other == column)
+            continue;
+        const int available = header->sectionSize(other);
+        const int share = other == header->count() - 1 ? delta - redistributed :
+                    delta * available / otherWidth;
+        header->resizeSection(other, qMax(0, available - share));
+        redistributed += share;
     }
     m_distributingColumnSpace = false;
 }
@@ -512,6 +554,8 @@ void LibraryWidget::closeEvent(QCloseEvent *)
     {
         QSettings settings;
         settings.setValue(u"Library/geometry"_s, saveGeometry());
+        if(!qApp->closingDown())
+            settings.setValue(u"Library/visible"_s, false);
         emit closed();
     }
 }

@@ -25,6 +25,7 @@
 #include <QVariant>
 #include <QAction>
 #include <QApplication>
+#include <QTimer>
 #include <QFileInfo>
 #include <QDateTime>
 #include <QJsonDocument>
@@ -66,6 +67,12 @@ Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
     m_showAction->setShortcut(tr("Alt+L"));
     UiHelper::instance()->addAction(m_showAction, UiHelper::TOOLS_MENU);
     connect(m_showAction, &QAction::triggered, this, &Library::showLibraryWindow);
+    connect(qApp, &QApplication::aboutToQuit, this, [this] {
+        QSettings settings;
+        settings.setValue(u"Library/visible"_s,
+                          !m_libraryWidget->isNull() && m_libraryWidget->data()->isWindow() &&
+                          m_libraryWidget->data()->isVisible());
+    });
     if(!m_libraryWidget->isNull() && !m_libraryWidget->data()->isWindow())
         m_showAction->setVisible(false);
 
@@ -101,6 +108,9 @@ Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
         QSqlDatabase::removeDatabase(CONNECTION_NAME);
         startDirectoryScanning();
     }
+
+    if(settings.value(u"Library/visible"_s, false).toBool())
+        QTimer::singleShot(0, this, &Library::showLibraryWindow);
 }
 
 Library::~Library()
@@ -128,6 +138,8 @@ void Library::showLibraryWindow()
     if(!m_libraryWidget->isNull() && m_libraryWidget->data()->isWindow() &&
             m_libraryWidget->data()->isVisible())
     {
+        QSettings settings;
+        settings.setValue(u"Library/visible"_s, false);
         m_libraryWidget->data()->close();
         return;
     }
@@ -144,6 +156,8 @@ void Library::showLibraryWindow()
     {
         m_libraryWidget->data()->show();
         m_showAction->setChecked(true);
+        QSettings settings;
+        settings.setValue(u"Library/visible"_s, true);
     }
 
     if(isRunning())
