@@ -460,7 +460,7 @@ jobs:
             wildmidi \
             libsidplayfp \
             libbs2b \
-            libprojectm \
+            projectm \
             libarchive \
             libshout \
             enca \
@@ -486,8 +486,7 @@ jobs:
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
-            -DICONV_LIBRARY="$(brew --prefix libiconv)/lib/libiconv.dylib" \
-            -DCMAKE_SHARED_LINKER_FLAGS="-L$(brew --prefix libiconv)/lib -liconv"
+            -DICONV_LIBRARY:FILEPATH="$(brew --prefix libiconv)/lib/libiconv.dylib"
       - name: Build
         run: |
           cd qmmp-src/qmmp/build
