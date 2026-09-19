@@ -89,7 +89,9 @@ private:
     void mouseReleaseEvent(QMouseEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
     void applyPalette();
-    void adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn = -1);
+    void adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn = -1,
+                                  int sectionDelta = 0);
+    void initializeSummaryColumnWidths(QTableView *tableView);
     bool loadSkinChrome();
     void toggleShade();
     Ui::LibraryWidget *m_ui;
@@ -113,6 +115,8 @@ private:
     bool m_shadePressed = false;
     bool m_shaded = false;
     bool m_distributingColumnSpace = false;
+    bool m_artistsColumnsInitialized = false;
+    bool m_albumsColumnsInitialized = false;
     int m_unshadedHeight = 0;
 };
 

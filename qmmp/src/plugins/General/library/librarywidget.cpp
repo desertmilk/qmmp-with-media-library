@@ -52,19 +52,32 @@ class LibrarySummarySortModel : public QSortFilterProxyModel
 public:
     using QSortFilterProxyModel::QSortFilterProxyModel;
 
+    void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override
+    {
+        m_sortOrder = order;
+        QSortFilterProxyModel::sort(column, Qt::AscendingOrder);
+    }
+
 protected:
     bool lessThan(const QModelIndex &left, const QModelIndex &right) const override
     {
-        const bool leftIsAll = left.row() == 0;
-        const bool rightIsAll = right.row() == 0;
+        const bool leftIsAll = left.siblingAtColumn(0).data(Qt::UserRole).toBool();
+        const bool rightIsAll = right.siblingAtColumn(0).data(Qt::UserRole).toBool();
         if(leftIsAll != rightIsAll)
             return leftIsAll;
 
         if(left.column() == 1 || left.column() == 2)
-            return left.data().toInt() < right.data().toInt();
+        {
+            const int result = left.data().toInt() - right.data().toInt();
+            return m_sortOrder == Qt::AscendingOrder ? result < 0 : result > 0;
+        }
 
-        return QString::localeAwareCompare(left.data().toString(), right.data().toString()) < 0;
+        const int result = QString::localeAwareCompare(left.data().toString(), right.data().toString());
+        return m_sortOrder == Qt::AscendingOrder ? result < 0 : result > 0;
     }
+
+private:
+    Qt::SortOrder m_sortOrder = Qt::AscendingOrder;
 };
 
 LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
@@ -85,14 +98,14 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_ui->artistsTableView->setModel(m_artistsProxy);
         m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
         m_ui->artistsTableView->horizontalHeader()->setStretchLastSection(false);
+        m_ui->artistsTableView->horizontalHeader()->setMinimumSectionSize(
+            QFontMetrics(m_ui->artistsTableView->font()).horizontalAdvance(tr("Tracks")) + 16);
         m_ui->artistsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         m_ui->artistsTableView->installEventFilter(this);
         connect(m_ui->artistsTableView->horizontalHeader(), &QHeaderView::sectionResized,
             this, [this](int column, int oldSize, int newSize)
             {
-                Q_UNUSED(oldSize);
-                Q_UNUSED(newSize);
-                adjustSummaryColumnSpace(m_ui->artistsTableView, column);
+                adjustSummaryColumnSpace(m_ui->artistsTableView, column, newSize - oldSize);
             });
             m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
@@ -102,14 +115,14 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_ui->albumsTableView->setModel(m_albumsProxy);
         m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
         m_ui->albumsTableView->horizontalHeader()->setStretchLastSection(false);
+        m_ui->albumsTableView->horizontalHeader()->setMinimumSectionSize(
+            QFontMetrics(m_ui->albumsTableView->font()).horizontalAdvance(tr("Album")) + 16);
         m_ui->albumsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         m_ui->albumsTableView->installEventFilter(this);
         connect(m_ui->albumsTableView->horizontalHeader(), &QHeaderView::sectionResized,
             this, [this](int column, int oldSize, int newSize)
             {
-                Q_UNUSED(oldSize);
-                Q_UNUSED(newSize);
-                adjustSummaryColumnSpace(m_ui->albumsTableView, column);
+                adjustSummaryColumnSpace(m_ui->albumsTableView, column, newSize - oldSize);
             });
         m_ui->albumsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
@@ -440,6 +453,10 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
     if((watched == m_ui->artistsTableView || watched == m_ui->albumsTableView) &&
             event->type() == QEvent::Resize)
     {
+        if(watched == m_ui->artistsTableView && !m_artistsColumnsInitialized)
+            initializeSummaryColumnWidths(m_ui->artistsTableView);
+        else if(watched == m_ui->albumsTableView && !m_albumsColumnsInitialized)
+            initializeSummaryColumnWidths(m_ui->albumsTableView);
         adjustSummaryColumnSpace(static_cast<QTableView *>(watched));
     }
     if(watched == m_resizeWidget && event->type() == QEvent::MouseButtonPress)
@@ -466,26 +483,81 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
     return QWidget::eventFilter(watched, event);
 }
 
-void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn)
+void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn,
+                                              int sectionDelta)
 {
     if(m_distributingColumnSpace)
         return;
 
     QHeaderView *header = tableView->horizontalHeader();
     const int difference = tableView->viewport()->width() - header->length();
-    if(difference == 0 || header->count() == 0)
+    if((difference == 0 && sectionDelta == 0) || header->count() == 0)
         return;
 
     m_distributingColumnSpace = true;
     if(difference > 0)
     {
-        int widestColumn = 0;
-        for(int column = 1; column < header->count(); ++column)
+        int targetColumn = -1;
+        int largestDeficit = 0;
+        for(int column = 0; column < header->count(); ++column)
         {
-            if(header->sectionSize(column) > header->sectionSize(widestColumn))
-                widestColumn = column;
+            const int deficit = header->sectionSizeHint(column) - header->sectionSize(column);
+            if(deficit > largestDeficit)
+            {
+                largestDeficit = deficit;
+                targetColumn = column;
+            }
         }
-        header->resizeSection(widestColumn, header->sectionSize(widestColumn) + difference);
+        if(targetColumn < 0)
+        {
+            targetColumn = 0;
+            for(int column = 1; column < header->count(); ++column)
+            {
+                if(header->sectionSize(column) > header->sectionSize(targetColumn))
+                    targetColumn = column;
+            }
+        }
+        header->resizeSection(targetColumn, header->sectionSize(targetColumn) + difference);
+    }
+    else if(difference == 0 && sectionDelta != 0)
+    {
+        int remaining = qAbs(sectionDelta);
+        while(remaining > 0)
+        {
+            int targetColumn = -1;
+            int largestDeficit = 0;
+            for(int column = 0; column < header->count(); ++column)
+            {
+                if(column == excludedColumn)
+                    continue;
+                const int deficit = header->sectionSizeHint(column) - header->sectionSize(column);
+                if(deficit > largestDeficit)
+                {
+                    largestDeficit = deficit;
+                    targetColumn = column;
+                }
+            }
+            if(targetColumn < 0)
+            {
+                for(int column = 0; column < header->count(); ++column)
+                {
+                    if(column != excludedColumn &&
+                            (targetColumn < 0 || header->sectionSize(column) > header->sectionSize(targetColumn)))
+                        targetColumn = column;
+                }
+            }
+            if(targetColumn < 0)
+                break;
+            const int available = header->sectionSize(targetColumn);
+            const int amount = sectionDelta > 0 ?
+                        qMin(remaining, available - header->minimumSectionSize()) : remaining;
+            header->resizeSection(targetColumn, sectionDelta > 0 ?
+                                  qMax(header->minimumSectionSize(), available - amount) :
+                                  available + amount);
+            remaining -= amount;
+            if(amount == 0)
+                break;
+        }
     }
     else
     {
@@ -509,6 +581,27 @@ void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excluded
         }
     }
     m_distributingColumnSpace = false;
+}
+
+void LibraryWidget::initializeSummaryColumnWidths(QTableView *tableView)
+{
+    const int width = tableView->viewport()->width();
+    if(width <= 0)
+        return;
+
+    m_distributingColumnSpace = true;
+    QHeaderView *header = tableView->horizontalHeader();
+    const int first = qMax(header->minimumSectionSize(), width * 3 / 5);
+    const int second = qMax(header->minimumSectionSize(), (width - first) / 2);
+    header->resizeSection(0, first);
+    header->resizeSection(1, second);
+    header->resizeSection(2, width - first - second);
+    m_distributingColumnSpace = false;
+
+    if(tableView == m_ui->artistsTableView)
+        m_artistsColumnsInitialized = true;
+    else
+        m_albumsColumnsInitialized = true;
 }
 
 void LibraryWidget::toggleShade()
@@ -630,6 +723,7 @@ void LibraryWidget::refreshArtists()
     allRow << new QStandardItem(tr("All (%n artists)", "", artists));
     allRow << new QStandardItem(QString::number(albums));
     allRow << new QStandardItem(QString::number(tracks));
+    allRow.first()->setData(true, Qt::UserRole);
     m_artistsModel->appendRow(allRow);
     for(const QVariantList &row : rows)
     {
@@ -640,7 +734,6 @@ void LibraryWidget::refreshArtists()
         items.first()->setData(row.at(0), Qt::UserRole);
         m_artistsModel->appendRow(items);
     }
-    m_ui->artistsTableView->resizeColumnsToContents();
     m_ui->artistsTableView->selectRow(0);
 }
 
@@ -680,6 +773,7 @@ void LibraryWidget::refreshAlbums()
     allRow << new QStandardItem(tr("All (%n albums)", "", rows.count()));
     allRow << new QStandardItem;
     allRow << new QStandardItem(QString::number(tracks));
+    allRow.first()->setData(true, Qt::UserRole);
     m_albumsModel->appendRow(allRow);
     for(const QVariantList &row : rows)
     {
@@ -690,7 +784,6 @@ void LibraryWidget::refreshAlbums()
         items.first()->setData(row.at(0), Qt::UserRole);
         m_albumsModel->appendRow(items);
     }
-    m_ui->albumsTableView->resizeColumnsToContents();
     m_ui->albumsTableView->selectRow(0);
 }
 
