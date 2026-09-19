@@ -39,6 +39,7 @@ public:
     enum ViewMode
     {
         ArtistView,
+        AlbumView,
         MostPlayedView,
         RecentlyPlayedView,
         UnratedView

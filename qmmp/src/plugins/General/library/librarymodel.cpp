@@ -61,6 +61,7 @@ public:
     }
 
     QString name;
+    QString artist;
     qint64 id = -1;
     int year = 0;
     int playCount = 0;
@@ -183,7 +184,7 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
                           "AND SearchString LIKE :filter"_s);
             query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
         }
-        query.bindValue(u":artist"_s, parentItem->parent->name);
+        query.bindValue(u":artist"_s, parentItem->artist.isEmpty() ? parentItem->parent->name : parentItem->artist);
         query.bindValue(u":album"_s, parentItem->name);
 
         if(!query.exec())
@@ -210,8 +211,13 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     LibraryTreeItem *item = static_cast<LibraryTreeItem *>(index.internalPointer());
-    if(item->type == Qmmp::ALBUM && m_showYear && item->year > 0)
-        return tr("%1 - %2").arg(item->year).arg(item->name);
+    if(item->type == Qmmp::ALBUM)
+    {
+        QString album = item->artist.isEmpty() ? item->name : tr("%1 - %2").arg(item->artist, item->name);
+        if(m_showYear && item->year > 0)
+            return tr("%1 - %2").arg(item->year).arg(album);
+        return album;
+    }
     if(item->type == Qmmp::ARTIST && (m_viewMode == MostPlayedView || m_viewMode == RecentlyPlayedView))
     {
         if(m_viewMode == MostPlayedView && item->playCount > 0)
@@ -324,6 +330,9 @@ void LibraryModel::refresh()
         case ArtistView:
             sql = u"SELECT DISTINCT Artist FROM track_library ORDER BY Artist"_s;
             break;
+        case AlbumView:
+            sql = u"SELECT Album, Artist, MAX(Year) AS Year FROM track_library GROUP BY Artist, Album ORDER BY Album, Artist"_s;
+            break;
         case MostPlayedView:
             sql = u"SELECT Artist, MAX(PlayCount) AS PlayCount FROM track_library WHERE PlayCount > 0 GROUP BY Artist ORDER BY PlayCount DESC, Artist"_s;
             break;
@@ -341,6 +350,10 @@ void LibraryModel::refresh()
         {
         case ArtistView:
             sql = u"SELECT DISTINCT Artist FROM track_library WHERE SearchString LIKE :filter ORDER BY Artist"_s;
+            break;
+        case AlbumView:
+            sql = u"SELECT Album, Artist, MAX(Year) AS Year FROM track_library WHERE SearchString LIKE :filter "
+                  "GROUP BY Artist, Album ORDER BY Album, Artist"_s;
             break;
         case MostPlayedView:
             sql = u"SELECT Artist, MAX(PlayCount) AS PlayCount FROM track_library WHERE SearchString LIKE :filter AND PlayCount > 0 GROUP BY Artist ORDER BY PlayCount DESC, Artist"_s;
@@ -363,9 +376,17 @@ void LibraryModel::refresh()
     {
         LibraryTreeItem *item = new LibraryTreeItem;
         item->name = query.value(u"Artist"_s).toString();
+        if(m_viewMode == AlbumView)
+        {
+            item->name = query.value(u"Album"_s).toString();
+            item->artist = query.value(u"Artist"_s).toString();
+            item->year = query.value(u"Year"_s).toInt();
+            item->type = Qmmp::ALBUM;
+        }
         item->playCount = query.value(u"PlayCount"_s).toInt();
         item->lastPlayed = query.value(u"LastPlayed"_s).toLongLong();
-        item->type = Qmmp::ARTIST;
+        if(item->type == Qmmp::UNKNOWN)
+            item->type = Qmmp::ARTIST;
         item->parent = m_rootItem;
         m_rootItem->children << item;
     }
@@ -510,7 +531,7 @@ QList<PlayListTrack *> LibraryModel::getTracks(const QModelIndex &index) const
     {
         QSqlQuery query(db);
         query.prepare(u"SELECT * from track_library WHERE Artist = :artist AND Album = :album"_s);
-        query.bindValue(u":artist"_s, item->parent->name);
+        query.bindValue(u":artist"_s, item->artist.isEmpty() ? item->parent->name : item->artist);
         query.bindValue(u":album"_s, item->name);
 
         if(!query.exec())
