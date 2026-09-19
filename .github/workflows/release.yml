@@ -485,7 +485,7 @@ jobs:
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
-            -DCMAKE_CXX_FLAGS="-I$(brew --prefix opusfile)/include -I$(brew --prefix opus)/include" \
+            -DCMAKE_CXX_FLAGS="-I$(brew --prefix libbs2b)/include -I$(brew --prefix opusfile)/include -I$(brew --prefix opus)/include" \
             -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-needed_library,$(brew --prefix libiconv)/lib/libiconv.dylib"
       - name: Build
         run: |
