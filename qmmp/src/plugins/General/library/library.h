@@ -22,7 +22,6 @@
 #define LIBRARY_H
 
 #include <QObject>
-#include <QElapsedTimer>
 #include <QPointer>
 #include <QStringList>
 #include <QThread>
@@ -33,8 +32,6 @@
 
 class QFileInfo;
 class QAction;
-class SoundCore;
-class PlayListTrack;
 class LibraryWidget;
 
 class Library : public QThread
@@ -48,13 +45,13 @@ public:
 
 private slots:
     void showLibraryWindow();
-
-private slots:
-    void startDirectoryScanning();
+    void onPlaybackStateChanged(Qmmp::State state);
 
 private:
     void run() override;
     bool createTables();
+    bool ensureTrackLibraryColumns();
+    void recordTrackPlay(const QString &path);
     void addTrack(const TrackInfo &track, const QString &filePath);
     QByteArray serializeAudioInfo(const QMap<Qmmp::TrackProperty, QString> &properties);
     bool scanDirectories(const QStringList &paths);

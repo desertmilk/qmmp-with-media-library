@@ -31,6 +31,7 @@
 #include <QJsonObject>
 #include <algorithm>
 #include <qmmp/qmmp.h>
+#include <qmmp/soundcore.h>
 #include <qmmp/metadatamanager.h>
 #include <qmmpui/uihelper.h>
 #include "librarymodel.h"
@@ -70,6 +71,10 @@ Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
     QAction *refreshAction = new QAction(QIcon::fromTheme(u"view-refresh"_s), tr("Update library"), this);
     UiHelper::instance()->addAction(refreshAction, UiHelper::TOOLS_MENU);
     connect(refreshAction, &QAction::triggered, this, &Library::startDirectoryScanning);
+
+    SoundCore *core = SoundCore::instance();
+    if(core)
+        connect(core, &SoundCore::stateChanged, this, &Library::onPlaybackStateChanged);
 
     connect(this, &QThread::finished, this, [=] {
         if(!m_libraryWidget->isNull())
@@ -129,6 +134,22 @@ void Library::showLibraryWindow()
         m_libraryWidget->data()->setBusyMode(true);
 }
 
+void Library::onPlaybackStateChanged(Qmmp::State state)
+{
+    if(state != Qmmp::Playing)
+        return;
+
+    SoundCore *core = SoundCore::instance();
+    if(!core)
+        return;
+
+    const QString path = core->path();
+    if(path.isEmpty())
+        return;
+
+    recordTrackPlay(path);
+}
+
 void Library::startDirectoryScanning()
 {
     if(isRunning())
@@ -158,7 +179,8 @@ bool Library::createTables()
                          "Timestamp TIMESTAMP NOT NULL,"
                          "Title TEXT, Artist TEXT, AlbumArtist TEXT, Album TEXT, Comment TEXT, Genre TEXT, Composer TEXT,"
                          "Year INTEGER, Track INTEGER, DiscNumber TEXT, Duration INTEGER, "
-                         "AudioInfo BLOB, URL TEXT, FilePath TEXT, SearchString TEXT)"_s);
+                         "AudioInfo BLOB, URL TEXT, FilePath TEXT, SearchString TEXT, "
+                         "PlayCount INTEGER DEFAULT 0, LastPlayed INTEGER DEFAULT 0, Rating INTEGER DEFAULT 0, SkipCount INTEGER DEFAULT 0)"_s);
 
     if(!ok)
     {
@@ -166,12 +188,69 @@ bool Library::createTables()
         return false;
     }
 
+    ok = ensureTrackLibraryColumns();
+
+    if(!ok)
+        return false;
+
     ok = query.exec(u"CREATE TABLE IF NOT EXISTS ignored_files(ID INTEGER PRIMARY KEY AUTOINCREMENT, FilePath TEXT UNIQUE)"_s);
 
     if(!ok)
         qCWarning(plugin, "unable to create ignored file list, error: %s", qPrintable(query.lastError().text()));
 
     return ok;
+}
+
+bool Library::ensureTrackLibraryColumns()
+{
+    QSqlDatabase db = QSqlDatabase::database(CONNECTION_NAME);
+    if(!db.isOpen())
+        return false;
+
+    QSqlQuery info(db);
+    if(!info.exec(u"PRAGMA table_info(track_library)"_s))
+    {
+        qCWarning(plugin, "unable to inspect library schema, error: %s", qPrintable(info.lastError().text()));
+        return false;
+    }
+
+    QSet<QString> columns;
+    while(info.next())
+        columns.insert(info.value(1).toString());
+
+    const QStringList required = { u"PlayCount"_s, u"LastPlayed"_s, u"Rating"_s, u"SkipCount"_s };
+    for(const QString &column : std::as_const(required))
+    {
+        if(columns.contains(column))
+            continue;
+
+        QSqlQuery alter(db);
+        if(!alter.exec(QStringLiteral("ALTER TABLE track_library ADD COLUMN %1 INTEGER DEFAULT 0").arg(column)))
+        {
+            qCWarning(plugin, "unable to add column '%s', error: %s", qPrintable(column), qPrintable(alter.lastError().text()));
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void Library::recordTrackPlay(const QString &path)
+{
+    QSqlDatabase db = QSqlDatabase::database(CONNECTION_NAME);
+    if(!db.isOpen())
+        return;
+
+    QSqlQuery query(db);
+    query.prepare(u"UPDATE track_library "
+                  "SET PlayCount = PlayCount + 1, LastPlayed = :lastPlayed "
+                  "WHERE URL = :path OR FilePath = :filePath"_s);
+    query.bindValue(u":lastPlayed"_s, qint64(QDateTime::currentMSecsSinceEpoch()));
+    query.bindValue(u":path"_s, path);
+    query.bindValue(u":filePath"_s, QFileInfo(path).absoluteFilePath());
+
+    if(!query.exec())
+        qCWarning(plugin, "unable to update play statistics, error: %s", qPrintable(query.lastError().text()));
 }
 
 void Library::addTrack(const TrackInfo &track, const QString &filePath)
@@ -182,11 +261,11 @@ void Library::addTrack(const TrackInfo &track, const QString &filePath)
 
     QSqlQuery query(db);
     query.prepare(u"INSERT OR REPLACE INTO track_library VALUES("
-                  "(SELECT ID FROM track_library WHERE URL = :url), "
-                  ":timestamp, "
-                  ":title, :artist, :albumartist, :album, :comment, :genre, :composer, "
-                  ":year, :track, :discnumber, :duration, "
-                  ":audioinfo, :url, :filepath, :searchstring)"_s);
+                   "(SELECT ID FROM track_library WHERE URL = :url), "
+                   ":timestamp, "
+                   ":title, :artist, :albumartist, :album, :comment, :genre, :composer, "
+                   ":year, :track, :discnumber, :duration, "
+                   ":audioinfo, :url, :filepath, :searchstring, 0, 0, 0, 0)"_s);
 
     QString title = track.value(Qmmp::TITLE).isEmpty() ? track.path().section(QLatin1Char('/'), -1) : track.value(Qmmp::TITLE);
     QString album = track.value(Qmmp::ALBUM).isEmpty() ? tr("Unknown") : track.value(Qmmp::ALBUM);
@@ -303,17 +382,13 @@ void Library::addDirectory(const QString &s)
             QStringList paths;
             const QList<TrackInfo> pl = MetaDataManager::instance()->createPlayList(info.absoluteFilePath(), TrackInfo::AllParts, &paths);
 
-            //save local file path
             for(const TrackInfo &t : std::as_const(pl))
                 tracks << qMakePair(t, info.absoluteFilePath());
             ignoredPaths << paths;
-
         }
 
         if(m_stopped)
-        {
             return;
-        }
     }
 
     removeIgnoredTracks(&tracks, ignoredPaths);
@@ -321,10 +396,8 @@ void Library::addDirectory(const QString &s)
     for(const auto &t : std::as_const(tracks))
         addTrack(t.first, t.second);
 
-
     updateIgnoredFiles(ignoredPaths);
 
-    //filter directories
     dir.setFilter(QDir::Dirs | QDir::NoDotAndDotDot);
     dir.setSorting(QDir::Name);
     l.clear();
@@ -362,9 +435,9 @@ void Library::removeMissingFiles(const QStringList &paths)
 
         previousPath = path;
 
-        if(!QFile::exists(path) || //remove missing or disabled file paths
+        if(!QFile::exists(path) ||
                 !std::any_of(paths.cbegin(), paths.cend(), [path](const QString &p){ return path.startsWith(p); } ) ||
-                (!url.contains(u"://"_s) && m_ignoredFiles.contains(url))) //remove ignored files
+                (!url.contains(u"://"_s) && m_ignoredFiles.contains(url)))
         {
             qCDebug(plugin, "removing '%s' from library", qPrintable(path));
             QSqlQuery rmQuery(db);
@@ -388,7 +461,7 @@ void Library::removeMissingFiles(const QStringList &paths)
     {
         QString path = query.value(0).toString();
 
-        if(!QFile::exists(path) || //remove missing or disabled file paths
+        if(!QFile::exists(path) ||
                 !std::any_of(paths.cbegin(), paths.cend(), [path](const QString &p){ return path.startsWith(p); } ))
         {
             qCDebug(plugin, "removing '%s' from ignored files", qPrintable(path));
