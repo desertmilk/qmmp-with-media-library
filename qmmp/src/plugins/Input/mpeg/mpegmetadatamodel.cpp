@@ -438,11 +438,7 @@ void MpegFileTagModel::remove()
 void MpegFileTagModel::save()
 {
     if(m_tag)
-#if TAGLIB_MAJOR_VERSION >= 2
-        m_file->save(m_type, TagLib::StripNone, TagLib::ID3v2::v4, TagLib::DoNotDuplicate);
-#else
-        m_file->save(m_type, TagLib::File::StripNone, TagLib::ID3v2::v4, TagLib::File::DoNotDuplicate);
-#endif
+        m_file->save(m_type);
     else
         m_file->strip(m_type);
 }
@@ -494,10 +490,6 @@ void MpegFileTagModel::setLyrics(const QString &content)
             }
         }
 
-    #if TAGLIB_MAJOR_VERSION >= 2
-        m_file->save(m_type, TagLib::StripNone, TagLib::ID3v2::v4, TagLib::DoNotDuplicate);
-    #else
-        m_file->save(m_type, TagLib::File::StripNone, TagLib::ID3v2::v4, TagLib::File::DoNotDuplicate);
-    #endif
+        m_file->save(m_type);
     }
 }
