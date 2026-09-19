@@ -40,6 +40,7 @@
 #include <QAbstractItemView>
 #include <QTableView>
 #include <QSortFilterProxyModel>
+#include <QTimer>
 #include <qmmp/qmmp.h>
 #include <qmmpui/qmmpuiskin.h>
 #include "librarymodel.h"
@@ -93,6 +94,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     connect(m_ui->treeView, &QTreeView::doubleClicked, this, &LibraryWidget::playSelected);
     QHeaderView *treeHeader = m_ui->treeView->header();
     treeHeader->setSectionsMovable(true);
+    treeHeader->setFirstSectionMovable(true);
         m_artistsModel = new QStandardItemModel(this);
         m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
         m_artistsProxy = new LibrarySummarySortModel(this);
@@ -199,6 +201,14 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_ui->filterLineEdit->setVisible(m_filterAction->isChecked());
     if(dialog)
         restoreGeometry(settings.value(u"Library/geometry"_s).toByteArray());
+
+    QTimer::singleShot(0, this, [this]
+    {
+        initializeSummaryColumnWidths(m_ui->artistsTableView);
+        initializeSummaryColumnWidths(m_ui->albumsTableView);
+        adjustSummaryColumnSpace(m_ui->artistsTableView);
+        adjustSummaryColumnSpace(m_ui->albumsTableView);
+    });
 }
 
 LibraryWidget::~LibraryWidget()
@@ -517,7 +527,7 @@ void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excluded
         int largestDeficit = 0;
         for(int column = 0; column < header->count(); ++column)
         {
-            const int deficit = header->sectionSizeHint(column) - header->sectionSize(column);
+            const int deficit = tableView->sizeHintForColumn(column) - header->sectionSize(column);
             if(deficit > largestDeficit)
             {
                 largestDeficit = deficit;
@@ -546,7 +556,7 @@ void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excluded
             {
                 if(column == excludedColumn)
                     continue;
-                const int deficit = header->sectionSizeHint(column) - header->sectionSize(column);
+                const int deficit = tableView->sizeHintForColumn(column) - header->sectionSize(column);
                 if(deficit > largestDeficit)
                 {
                     largestDeficit = deficit;
@@ -601,6 +611,10 @@ void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excluded
 
 void LibraryWidget::initializeSummaryColumnWidths(QTableView *tableView)
 {
+    if((tableView == m_ui->artistsTableView && m_artistsColumnsInitialized) ||
+            (tableView == m_ui->albumsTableView && m_albumsColumnsInitialized))
+        return;
+
     const int width = tableView->viewport()->width();
     if(width <= 0)
         return;
