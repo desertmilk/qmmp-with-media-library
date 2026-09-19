@@ -59,16 +59,14 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_artistsModel = new QStandardItemModel(this);
         m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
         m_ui->artistsTableView->setModel(m_artistsModel);
-            m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-            m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-            m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+        m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+        m_ui->artistsTableView->horizontalHeader()->setStretchLastSection(true);
             m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
         m_albumsModel->setHorizontalHeaderLabels({tr("Album"), tr("Year"), tr("Tracks")});
         m_ui->albumsTableView->setModel(m_albumsModel);
-            m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-            m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-            m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+        m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+        m_ui->albumsTableView->horizontalHeader()->setStretchLastSection(true);
         m_ui->albumsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &LibraryWidget::refreshAlbums);
@@ -628,7 +626,7 @@ void LibraryWidget::replaceSelected()
 
 void LibraryWidget::playSelected(const QModelIndex &index)
 {
-    m_model->replaceAndPlay(index);
+    m_model->replaceAndPlay(index.siblingAtColumn(0));
 }
 
 void LibraryWidget::showTrackInformation()

@@ -578,7 +578,7 @@ void LibraryModel::replaceFiltered()
 
 void LibraryModel::replaceAndPlay(const QModelIndex &index)
 {
-    if(!index.isValid() || index.column() != 0)
+    if(!index.isValid())
         return;
 
     const LibraryTreeItem *item = static_cast<const LibraryTreeItem *>(index.internalPointer());
