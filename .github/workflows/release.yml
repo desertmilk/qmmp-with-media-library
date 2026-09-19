@@ -138,6 +138,7 @@ jobs:
             cmake \
             ninja-build \
             ccache \
+            pkg-config \
             tar \
             unzip \
             bzip2 \
@@ -263,6 +264,7 @@ jobs:
             cmake \
             ninja-build \
             ccache \
+            pkg-config \
             tar \
             unzip \
             bzip2 \
@@ -344,6 +346,8 @@ jobs:
             -DUSE_PIPEWIRE=TRUE \
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
+            -DUSE_MAD=TRUE \
+            -DUSE_MPG123=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=FALSE \
             -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib'
@@ -358,6 +362,10 @@ jobs:
           mkdir -p ${{ github.workspace }}/AppDir
           cd qmmp-src/qmmp/build
           DESTDIR=${{ github.workspace }}/AppDir ninja install
+          MPEG_PLUGIN=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libmpeg.so' -print -quit)
+          test -n "$MPEG_PLUGIN"
+          ldd "$MPEG_PLUGIN"
+          ! ldd "$MPEG_PLUGIN" | grep -q 'not found'
 
       - name: Download linuxdeploy
         run: |
@@ -419,7 +427,12 @@ jobs:
             PLUGIN_LIBS+=(--library "$plugin")
           done < <(find ${{ github.workspace }}/AppDir/usr -type f,l -name '*.so' -print)
           test "${#PLUGIN_LIBS[@]}" -gt 0
-          printf 'Qmmp libraries: %s %s; plugin dependency roots: %s\n' "$QMMP_LIB" "$QMMPUI_LIB" "$(( ${#PLUGIN_LIBS[@]} / 2 ))"
+          QT_LIBS=()
+          while IFS= read -r qtlib; do
+            QT_LIBS+=(--library "$qtlib")
+          done < <(find /usr/lib -type f,l -name 'libQt6*.so.6' -print)
+          test "${#QT_LIBS[@]}" -gt 0
+          printf 'Qmmp libraries: %s %s; plugin roots: %s; Qt6 roots: %s\n' "$QMMP_LIB" "$QMMPUI_LIB" "$(( ${#PLUGIN_LIBS[@]} / 2 ))" "$(( ${#QT_LIBS[@]} / 2 ))"
           QMMP_LIB_DIR=$(dirname "$QMMP_LIB")
           QMMPUI_LIB_DIR=$(dirname "$QMMPUI_LIB")
           export LD_LIBRARY_PATH="$QMMP_LIB_DIR:$QMMPUI_LIB_DIR:${LD_LIBRARY_PATH:-}"
@@ -431,10 +444,14 @@ jobs:
             --library "$QMMP_LIB" \
             --library "$QMMPUI_LIB" \
             "${PLUGIN_LIBS[@]}" \
+            "${QT_LIBS[@]}" \
             -e ${{ github.workspace }}/AppDir/usr/bin/qmmp \
             -d ${{ github.workspace }}/AppDir/qmmp.desktop \
             -i ${{ github.workspace }}/AppDir/qmmp.png \
             -v2
+
+          test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libmpeg.so' -print -quit)"
+          test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libQt6Sql.so.6' -print -quit)"
 
           # Create the final AppImage with a FUSE 2-independent runtime.
           ./appimagetool-x86_64.AppImage --no-appstream \
