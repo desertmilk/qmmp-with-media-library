@@ -32,7 +32,6 @@
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 #include <taglib/mpegfile.h>
-#include <taglib/tversion.h>
 #include "converter.h"
 
 Converter::Converter(QObject *parent) : QObject(parent), QRunnable()
@@ -265,11 +264,7 @@ void Converter::run()
             if(full_path.endsWith(u".mp3"_s, Qt::CaseInsensitive))
             {
                 TagLib::MPEG::File *mpeg_file = dynamic_cast <TagLib::MPEG::File *> (file.file());
-#if TAGLIB_MAJOR_VERSION >= 2
-                mpeg_file->save(TagLib::MPEG::File::ID3v2, TagLib::StripOthers);
-#else
-                mpeg_file->save(TagLib::MPEG::File::ID3v2, TagLib::File::StripOthers);
-#endif
+                mpeg_file->save(TagLib::MPEG::File::ID3v2);
             }
             else
                 file.save();
