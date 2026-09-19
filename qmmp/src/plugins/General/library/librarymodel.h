@@ -68,12 +68,14 @@ public:
     void refresh();
     void add(const QModelIndexList &indexes);
     void replace(const QModelIndexList &indexes);
+    void replaceAndPlay(const QModelIndex &index);
     void showTrackInformation(const QModelIndexList &indexes, QWidget *parent = nullptr);
     void showLibraryInformation(QWidget *parent = nullptr);
 
 private:
     QList<PlayListTrack *> getTracks(const QModelIndexList &indexes) const;
     QList<PlayListTrack *> getTracks(const QModelIndex &index) const;
+    QList<PlayListTrack *> getFilteredTracks() const;
     PlayListTrack *createTrack(const QSqlQuery &query) const;
 
     LibraryTreeItem *m_rootItem;

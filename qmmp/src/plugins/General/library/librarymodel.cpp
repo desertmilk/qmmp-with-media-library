@@ -151,11 +151,11 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
         QSqlQuery query(db);
         if(m_filter.isEmpty())
         {
-            query.prepare(u"SELECT DISTINCT Album, Year from track_library WHERE Artist = :artist"_s);
+            query.prepare(u"SELECT DISTINCT Album, Year from track_library WHERE Artist = :artist ORDER BY Album, Year"_s);
         }
         else
         {
-            query.prepare(u"SELECT DISTINCT Album, Year from track_library WHERE Artist = :artist AND SearchString LIKE :filter"_s);
+            query.prepare(u"SELECT DISTINCT Album, Year from track_library WHERE Artist = :artist AND SearchString LIKE :filter ORDER BY Album, Year"_s);
             query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
         }
         query.bindValue(u":artist"_s, parentItem->name);
@@ -483,7 +483,7 @@ void LibraryModel::refresh()
             conditions << u"Album = :album"_s;
         if(!conditions.isEmpty())
             sql += (sql.contains(u" WHERE "_s) ? u" AND "_s : u" WHERE "_s) + conditions.join(u" AND "_s);
-        sql += u" ORDER BY DiscNumber, Track, ID"_s;
+        sql += u" ORDER BY Artist, Album, DiscNumber, Track, ID"_s;
     }
 
     query.prepare(sql);
@@ -558,6 +558,42 @@ void LibraryModel::replace(const QModelIndexList &indexes)
         MediaPlayer::instance()->stop();
         MediaPlayer::instance()->play();
     }
+}
+
+void LibraryModel::replaceAndPlay(const QModelIndex &index)
+{
+    if(!index.isValid() || index.column() != 0)
+        return;
+
+    const LibraryTreeItem *item = static_cast<const LibraryTreeItem *>(index.internalPointer());
+    if(item->type != Qmmp::TITLE)
+        return;
+
+    QList<PlayListTrack *> clickedTracks = getTracks(index);
+    if(clickedTracks.isEmpty())
+        return;
+    const QString clickedPath = clickedTracks.constFirst()->path();
+    qDeleteAll(clickedTracks);
+
+    QList<PlayListTrack *> tracks = getFilteredTracks();
+    if(tracks.isEmpty())
+        return;
+
+    PlayListManager *manager = PlayListManager::instance();
+    PlayListModel *model = manager->selectedPlayList();
+    model->clear();
+    model->addTracks(tracks);
+
+    for(int i = 0; i < tracks.size(); ++i)
+    {
+        if(tracks.at(i)->path() == clickedPath)
+        {
+            model->setCurrent(i);
+            break;
+        }
+    }
+    manager->activateSelectedPlayList();
+    MediaPlayer::instance()->play();
 }
 
 void LibraryModel::showTrackInformation(const QModelIndexList &indexes, QWidget *parent)
@@ -702,6 +738,40 @@ QList<PlayListTrack *> LibraryModel::getTracks(const QModelIndex &index) const
             tracks << createTrack(query);
         }
     }
+
+    return tracks;
+}
+
+QList<PlayListTrack *> LibraryModel::getFilteredTracks() const
+{
+    QSqlDatabase db = QSqlDatabase::database(CONNECTION_NAME);
+    QList<PlayListTrack *> tracks;
+    if(!db.isOpen())
+        return tracks;
+
+    QString sql = u"SELECT * from track_library WHERE SearchString LIKE :filter"_s;
+    if(m_viewMode == TrackView && !m_artistFilter.isEmpty())
+        sql += u" AND Artist = :artist"_s;
+    if(m_viewMode == TrackView && !m_albumFilter.isEmpty())
+        sql += u" AND Album = :album"_s;
+    sql += u" ORDER BY Artist, Album, DiscNumber, Track, ID"_s;
+
+    QSqlQuery query(db);
+    query.prepare(sql);
+    query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
+    if(m_viewMode == TrackView && !m_artistFilter.isEmpty())
+        query.bindValue(u":artist"_s, m_artistFilter);
+    if(m_viewMode == TrackView && !m_albumFilter.isEmpty())
+        query.bindValue(u":album"_s, m_albumFilter);
+
+    if(!query.exec())
+    {
+        qCWarning(plugin, "exec error: %s", qPrintable(query.lastError().text()));
+        return tracks;
+    }
+
+    while(query.next())
+        tracks << createTrack(query);
 
     return tracks;
 }

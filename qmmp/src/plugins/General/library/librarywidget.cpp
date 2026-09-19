@@ -50,6 +50,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_ui->setupUi(this);
     m_model = new LibraryModel(this);
     m_ui->treeView->setModel(m_model);
+    connect(m_ui->treeView, &QTreeView::doubleClicked, this, &LibraryWidget::playSelected);
         m_artistsModel = new QStandardItemModel(this);
         m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
         m_ui->artistsTableView->setModel(m_artistsModel);
@@ -465,6 +466,11 @@ void LibraryWidget::addSelected()
 void LibraryWidget::replaceSelected()
 {
     m_model->replace(m_ui->treeView->selectionModel()->selectedIndexes());
+}
+
+void LibraryWidget::playSelected(const QModelIndex &index)
+{
+    m_model->replaceAndPlay(index);
 }
 
 void LibraryWidget::showTrackInformation()
