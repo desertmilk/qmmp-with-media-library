@@ -305,6 +305,7 @@ jobs:
             -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_INSTALL_LIBDIR=lib \
             -DUSE_QTMULTIMEDIA=TRUE \
             -DUSE_PIPEWIRE=TRUE \
             -DUSE_PROJECTM=TRUE \
@@ -375,10 +376,11 @@ jobs:
           export QT_PLUGIN_PATH=/usr/lib/qt6/plugins
           export EXTRA_QT_PLUGINS="multimedia,multimediawidgets"
           export DEPLOY_GSTREAMER_PLUGINS="1"
-          QMMP_LIB=$(find ${{ github.workspace }}/AppDir/usr/lib -type f,l -name 'libqmmp.so.2' -print -quit)
-          QMMPUI_LIB=$(find ${{ github.workspace }}/AppDir/usr/lib -type f,l -name 'libqmmpui.so.2' -print -quit)
+          QMMP_LIB=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libqmmp.so.2' -print -quit)
+          QMMPUI_LIB=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libqmmpui.so.2' -print -quit)
           test -n "$QMMP_LIB"
           test -n "$QMMPUI_LIB"
+          printf 'Qmmp libraries: %s %s\n' "$QMMP_LIB" "$QMMPUI_LIB"
           QMMP_LIB_DIR=$(dirname "$QMMP_LIB")
           QMMPUI_LIB_DIR=$(dirname "$QMMPUI_LIB")
           export LD_LIBRARY_PATH="$QMMP_LIB_DIR:$QMMPUI_LIB_DIR:${LD_LIBRARY_PATH:-}"
