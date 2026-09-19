@@ -34,6 +34,7 @@ class QContextMenuEvent;
 class QCloseEvent;
 class QEvent;
 class QPaintEvent;
+class QResizeEvent;
 class QMouseEvent;
 class QLabel;
 class LibraryModel;
@@ -80,9 +81,11 @@ private slots:
 private:
     void changeEvent(QEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
     void applyPalette();
     bool loadSkinChrome();
     void toggleShade();
@@ -96,9 +99,12 @@ private:
     QString m_selectedArtist;
     QString m_selectedAlbum;
     QPixmap m_skinPlaylist;
+    QWidget *m_resizeWidget = nullptr;
     QPoint m_dragOffset;
     bool m_dragging = false;
     bool m_resizing = false;
+    bool m_closePressed = false;
+    bool m_shadePressed = false;
     bool m_shaded = false;
     int m_unshadedHeight = 0;
 };
