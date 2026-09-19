@@ -27,6 +27,8 @@ docker run --rm \
             libmad0-dev \
             libmpg123-dev \
             libogg-dev \
+            libopus-dev \
+            libopusfile-dev \
             libtag1-dev \
             libvorbis-dev
 

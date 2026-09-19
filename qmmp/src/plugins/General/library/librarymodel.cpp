@@ -28,6 +28,7 @@
 #include <QJsonObject>
 #include <QWidget>
 #include <QMessageBox>
+#include <algorithm>
 #include <qmmp/qmmp.h>
 #include <qmmp/soundcore.h>
 #include <qmmpui/playlistparser.h>
@@ -50,6 +51,7 @@ public:
     void clear()
     {
         name.clear();
+        track = 0;
         id = -1;
         year = 0;
         playCount = 0;
@@ -63,6 +65,7 @@ public:
     QString name;
     QString artist;
     qint64 id = -1;
+    int track = 0;
     int year = 0;
     int playCount = 0;
     qint64 lastPlayed = 0;
@@ -170,18 +173,21 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
             item->parent = parentItem;
             parentItem->children << item;
         }
+
+        if(m_sortColumn >= 0)
+            sort(m_sortColumn, m_sortOrder);
     }
     else if(parentItem->type == Qmmp::ALBUM)
     {
         QSqlQuery query(db);
         if(m_filter.isEmpty())
         {
-            query.prepare(u"SELECT ID, Title from track_library WHERE Artist = :artist AND Album = :album "
+            query.prepare(u"SELECT ID, Title, Track from track_library WHERE Artist = :artist AND Album = :album "
                           "ORDER BY DiscNumber, Track, ID"_s);
         }
         else
         {
-            query.prepare(u"SELECT ID, Title from track_library WHERE Artist = :artist AND Album = :album "
+            query.prepare(u"SELECT ID, Title, Track from track_library WHERE Artist = :artist AND Album = :album "
                           "AND SearchString LIKE :filter ORDER BY DiscNumber, Track, ID"_s);
             query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
         }
@@ -199,10 +205,14 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
             LibraryTreeItem *item = new LibraryTreeItem;
             item->id = query.value(u"ID"_s).toLongLong();
             item->name = query.value(u"Title"_s).toString();
+            item->track = query.value(u"Track"_s).toInt();
             item->type = Qmmp::TITLE;
             item->parent = parentItem;
             parentItem->children << item;
         }
+
+        if(m_sortColumn >= 0)
+            sort(m_sortColumn, m_sortOrder);
     }
 }
 
@@ -215,6 +225,8 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const
     switch(index.column())
     {
     case 0:
+        return item->type == Qmmp::TITLE && item->track > 0 ? QString::number(item->track) : QString();
+    case 1:
         if(item->type == Qmmp::ARTIST && m_viewMode == MostPlayedView && item->playCount > 0)
             return tr("%1 (%2)").arg(item->name).arg(item->playCount);
         if(item->type == Qmmp::ARTIST && m_viewMode == RecentlyPlayedView && item->lastPlayed > 0)
@@ -226,15 +238,15 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const
         if(item->type == Qmmp::TITLE && item->parent && item->parent->parent)
             return item->parent->artist.isEmpty() ? item->parent->parent->name : item->parent->artist;
         return QString();
-    case 1:
+    case 2:
         if(item->type == Qmmp::ALBUM)
             return item->name;
         if(item->type == Qmmp::TITLE && item->parent)
             return item->parent->name;
         return QString();
-    case 2:
-        return item->type == Qmmp::TITLE ? item->name : QString();
     case 3:
+        return item->type == Qmmp::TITLE ? item->name : QString();
+    case 4:
         if(!m_showYear)
             return QString();
         if(item->type == Qmmp::ALBUM)
@@ -255,16 +267,50 @@ QVariant LibraryModel::headerData(int section, Qt::Orientation orientation, int 
     switch(section)
     {
     case 0:
-        return tr("Artist");
+        return tr("Track #");
     case 1:
-        return tr("Album");
+        return tr("Artist");
     case 2:
-        return tr("Track");
+        return tr("Album");
     case 3:
+        return tr("Track");
+    case 4:
         return tr("Year");
     default:
         return QVariant();
     }
+}
+
+void LibraryModel::sort(int column, Qt::SortOrder order)
+{
+    if(column < 0 || column >= columnCount(QModelIndex()))
+        return;
+
+    m_sortColumn = column;
+    m_sortOrder = order;
+
+    const auto sortChildren = [this](LibraryTreeItem *parentItem, auto &&sortChildren) -> void
+    {
+        std::stable_sort(parentItem->children.begin(), parentItem->children.end(), [this](const LibraryTreeItem *left, const LibraryTreeItem *right)
+        {
+            const QModelIndex leftIndex = createIndex(0, m_sortColumn, const_cast<LibraryTreeItem *>(left));
+            const QModelIndex rightIndex = createIndex(0, m_sortColumn, const_cast<LibraryTreeItem *>(right));
+            const QVariant leftValue = data(leftIndex);
+            const QVariant rightValue = data(rightIndex);
+            const int result = (m_sortColumn == 0 || m_sortColumn == 4) ?
+                        leftValue.toInt() - rightValue.toInt() :
+                        QString::localeAwareCompare(leftValue.toString(), rightValue.toString());
+
+            return m_sortOrder == Qt::AscendingOrder ? result < 0 : result > 0;
+        });
+
+        for(LibraryTreeItem *child : parentItem->children)
+            sortChildren(child, sortChildren);
+    };
+
+    beginResetModel();
+    sortChildren(m_rootItem, sortChildren);
+    endResetModel();
 }
 
 QModelIndex LibraryModel::parent(const QModelIndex &child) const
@@ -298,7 +344,7 @@ QModelIndex LibraryModel::index(int row, int column, const QModelIndex &parent) 
 int LibraryModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return 4;
+    return 5;
 }
 
 int LibraryModel::rowCount(const QModelIndex &parent) const

@@ -39,10 +39,11 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_ui->treeView->setModel(m_model);
     m_ui->treeView->header()->setSectionResizeMode(QHeaderView::Interactive);
     m_ui->treeView->header()->setStretchLastSection(false);
-    m_ui->treeView->setColumnWidth(0, 180);
+    m_ui->treeView->setColumnWidth(0, 60);
     m_ui->treeView->setColumnWidth(1, 180);
-    m_ui->treeView->setColumnWidth(2, 240);
-    m_ui->treeView->setColumnWidth(3, 60);
+    m_ui->treeView->setColumnWidth(2, 180);
+    m_ui->treeView->setColumnWidth(3, 240);
+    m_ui->treeView->setColumnWidth(4, 60);
 
     if(dialog)
     {
