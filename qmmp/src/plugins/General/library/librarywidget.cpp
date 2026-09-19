@@ -91,6 +91,8 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_model = new LibraryModel(this);
     m_ui->treeView->setModel(m_model);
     connect(m_ui->treeView, &QTreeView::doubleClicked, this, &LibraryWidget::playSelected);
+    QHeaderView *treeHeader = m_ui->treeView->header();
+    treeHeader->setSectionsMovable(true);
         m_artistsModel = new QStandardItemModel(this);
         m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
         m_artistsProxy = new LibrarySummarySortModel(this);
@@ -177,6 +179,20 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_menu->addAction(QIcon::fromTheme(u"preferences-system"_s), tr("&Library Settings"), this, &LibraryWidget::showSettings);
     m_menu->addAction(tr("&Library Information"), this, &LibraryWidget::showLibraryInformation);
     m_filterAction->setCheckable(true);
+
+    QMenu *columnsMenu = m_menu->addMenu(tr("Columns"));
+    const QStringList columnNames = {tr("Track #"), tr("Artist"), tr("Title"),
+                                     tr("Album"), tr("Year")};
+    for(int column = 0; column < columnNames.size(); ++column)
+    {
+        QAction *action = columnsMenu->addAction(columnNames.at(column));
+        action->setCheckable(true);
+        action->setChecked(!treeHeader->isSectionHidden(column));
+        connect(action, &QAction::toggled, this, [treeHeader, column](bool visible)
+        {
+            treeHeader->setSectionHidden(column, !visible);
+        });
+    }
 
     QSettings settings;
     m_filterAction->setChecked(settings.value(u"Library/quick_search_visible"_s, true).toBool());

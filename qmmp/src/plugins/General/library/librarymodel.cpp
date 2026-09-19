@@ -243,6 +243,8 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const
             return item->parent->artist.isEmpty() ? item->parent->parent->name : item->parent->artist;
         return QString();
     case 2:
+        return item->type == Qmmp::TITLE ? item->name : QString();
+    case 3:
         if(item->type == Qmmp::ALBUM)
             return item->name;
         if(item->type == Qmmp::TITLE && !item->album.isEmpty())
@@ -250,8 +252,6 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const
         if(item->type == Qmmp::TITLE && item->parent)
             return item->parent->name;
         return QString();
-    case 3:
-        return item->type == Qmmp::TITLE ? item->name : QString();
     case 4:
         if(!m_showYear)
             return QString();
@@ -279,9 +279,9 @@ QVariant LibraryModel::headerData(int section, Qt::Orientation orientation, int 
     case 1:
         return tr("Artist");
     case 2:
-        return tr("Album");
+        return tr("Title");
     case 3:
-        return tr("Track");
+        return tr("Album");
     case 4:
         return tr("Year");
     default:
@@ -805,10 +805,10 @@ QList<PlayListTrack *> LibraryModel::getFilteredTracks() const
             order = u"Artist"_s;
             break;
         case 2:
-            order = u"Album"_s;
+            order = u"Title"_s;
             break;
         case 3:
-            order = u"Title"_s;
+            order = u"Album"_s;
             break;
         case 4:
             order = u"Year"_s;
