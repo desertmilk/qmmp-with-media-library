@@ -76,11 +76,11 @@ void SkinnedListWidgetDrawer::readSettings()
         Skin *skin = Skin::instance();
         bool alternate_splitter_color = settings.value("pl_alt_splitter_color"_L1, false).toBool();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-        m_normal = QColor::fromString(skin->getPLValue("normal"));
-        m_current = QColor::fromString(skin->getPLValue("current"));
+        m_normal = QColor(skin->getPLValue("normal"));
+        m_current = QColor(skin->getPLValue("current"));
         m_highlighted = m_normal;
-        m_normal_bg = QColor::fromString(skin->getPLValue("normalbg"));
-        m_selected_bg = QColor::fromString(skin->getPLValue("selectedbg"));
+        m_normal_bg = QColor(skin->getPLValue("normalbg"));
+        m_selected_bg = QColor(skin->getPLValue("selectedbg"));
 #else
         m_normal.setNamedColor(skin->getPLValue("normal"));
         m_current.setNamedColor(skin->getPLValue("current"));
@@ -100,14 +100,14 @@ void SkinnedListWidgetDrawer::readSettings()
     if(!settings.value("pl_use_skin_colors"_L1, true).toBool())
     {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-        m_normal_bg = QColor::fromString(settings.value("pl_bg1_color"_L1, m_normal_bg.name()).toString());
-        m_alternate_bg = QColor::fromString(settings.value("pl_bg2_color"_L1, m_alternate_bg.name()).toString());
-        m_selected_bg = QColor::fromString(settings.value("pl_highlight_color"_L1, m_selected_bg.name()).toString());
-        m_normal = QColor::fromString(settings.value("pl_normal_text_color"_L1, m_normal.name()).toString());
-        m_current = QColor::fromString(settings.value("pl_current_text_color"_L1, m_current.name()).toString());
-        m_highlighted = QColor::fromString(settings.value(u"pl_hl_text_color"_s, m_highlighted.name()).toString());
-        m_splitter = QColor::fromString(settings.value("pl_splitter_color"_L1, m_splitter).toString());
-        m_group_text = QColor::fromString(settings.value("pl_group_text"_L1, m_group_text.name()).toString());
+        m_normal_bg = QColor(settings.value("pl_bg1_color"_L1, m_normal_bg.name()).toString());
+        m_alternate_bg = QColor(settings.value("pl_bg2_color"_L1, m_alternate_bg.name()).toString());
+        m_selected_bg = QColor(settings.value("pl_highlight_color"_L1, m_selected_bg.name()).toString());
+        m_normal = QColor(settings.value("pl_normal_text_color"_L1, m_normal.name()).toString());
+        m_current = QColor(settings.value("pl_current_text_color"_L1, m_current.name()).toString());
+        m_highlighted = QColor(settings.value(u"pl_hl_text_color"_s, m_highlighted.name()).toString());
+        m_splitter = QColor(settings.value("pl_splitter_color"_L1, m_splitter).toString());
+        m_group_text = QColor(settings.value("pl_group_text"_L1, m_group_text.name()).toString());
 #else
         m_normal_bg.setNamedColor(settings.value("pl_bg1_color"_L1, m_normal_bg.name()).toString());
         m_alternate_bg.setNamedColor(settings.value("pl_bg2_color"_L1, m_alternate_bg.name()).toString());
@@ -127,7 +127,7 @@ void SkinnedListWidgetDrawer::readSettings()
     if(settings.value("pl_override_group_bg"_L1, false).toBool())
     {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-        m_group_bg = QColor::fromString(settings.value("pl_group_bg"_L1, m_normal_bg.name()).toString());
+        m_group_bg = QColor(settings.value("pl_group_bg"_L1, m_normal_bg.name()).toString());
 #else
         m_group_bg.setNamedColor(settings.value("pl_group_bg"_L1, m_normal_bg.name()).toString());
 #endif
@@ -137,7 +137,7 @@ void SkinnedListWidgetDrawer::readSettings()
     if(settings.value("pl_override_current_bg"_L1, false).toBool())
     {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-        m_current_bg = QColor::fromString(settings.value("pl_current_bg_color"_L1, m_normal_bg.name()).toString());
+        m_current_bg = QColor(settings.value("pl_current_bg_color"_L1, m_normal_bg.name()).toString());
 #else
         m_current_bg.setNamedColor(settings.value("pl_current_bg_color"_L1, m_normal_bg.name()).toString());
 #endif

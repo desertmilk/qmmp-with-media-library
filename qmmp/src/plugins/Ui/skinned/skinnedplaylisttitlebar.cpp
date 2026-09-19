@@ -131,7 +131,7 @@ void SkinnedPlayListTitleBar::updatePixmap()
     if(m_shaded)
     {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-        QColor col = QColor::fromString(QString(skin()->getPLValue("normalbg")));
+        QColor col = QColor(QString(skin()->getPLValue("normalbg")));
 #else
         QColor col;
         col.setNamedColor(QString(skin()->getPLValue("normalbg")));

@@ -131,8 +131,10 @@ void LibraryWidget::applyPalette()
     QPalette panelPalette = applicationPalette;
     const QColor background = QmmpUiSkin::backgroundColor();
     const QColor foreground = QmmpUiSkin::foregroundColor();
-    const QColor selectedBackground = QColor::fromString(QmmpUiSkin::playlistValue(u"SelectedBG"_s));
-    const QColor current = QColor::fromString(QmmpUiSkin::playlistValue(u"Current"_s));
+    QColor selectedBackground;
+    selectedBackground.setNamedColor(QmmpUiSkin::playlistValue(u"SelectedBG"_s));
+    QColor current;
+    current.setNamedColor(QmmpUiSkin::playlistValue(u"Current"_s));
     if(QmmpUiSkin::isSkinnedUi() && background.isValid() && foreground.isValid())
     {
         panelPalette.setColor(QPalette::Window, background);

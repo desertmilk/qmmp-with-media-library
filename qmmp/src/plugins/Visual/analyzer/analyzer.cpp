@@ -92,11 +92,11 @@ void Analyzer::readSettings()
     m_show_peaks = settings.value("show_peaks"_L1, true).toBool();
     m_timer->setInterval(1000 / settings.value("refresh_rate"_L1, 25).toInt());
 #if QT_VERSION >= QT_VERSION_CHECK(6, 4, 0)
-    m_color1 = QColor::fromString(settings.value("color1"_L1, u"Green"_s).toString());
-    m_color2 = QColor::fromString(settings.value("color2"_L1, u"Yellow"_s).toString());
-    m_color3 = QColor::fromString(settings.value("color3"_L1, u"Red"_s).toString());
-    m_bgColor = QColor::fromString(settings.value("bg_color"_L1, u"Black"_s).toString());
-    m_peakColor = QColor::fromString(settings.value("peak_color"_L1, u"Cyan"_s).toString());
+    m_color1 = QColor(settings.value("color1"_L1, u"Green"_s).toString());
+    m_color2 = QColor(settings.value("color2"_L1, u"Yellow"_s).toString());
+    m_color3 = QColor(settings.value("color3"_L1, u"Red"_s).toString());
+    m_bgColor = QColor(settings.value("bg_color"_L1, u"Black"_s).toString());
+    m_peakColor = QColor(settings.value("peak_color"_L1, u"Cyan"_s).toString());
 #else
     m_color1.setNamedColor(settings.value("color1"_L1, u"Green"_s).toString());
     m_color2.setNamedColor(settings.value("color2"_L1, u"Yellow"_s).toString());
