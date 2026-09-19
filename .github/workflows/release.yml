@@ -375,17 +375,20 @@ jobs:
           export QT_PLUGIN_PATH=/usr/lib/qt6/plugins
           export EXTRA_QT_PLUGINS="multimedia,multimediawidgets"
           export DEPLOY_GSTREAMER_PLUGINS="1"
-          export LD_LIBRARY_PATH="${{ github.workspace }}/AppDir/usr/lib:${LD_LIBRARY_PATH:-}"
-
-          test -e ${{ github.workspace }}/AppDir/usr/lib/libqmmp.so.2
-          test -e ${{ github.workspace }}/AppDir/usr/lib/libqmmpui.so.2
+          QMMP_LIB=$(find ${{ github.workspace }}/AppDir/usr/lib -type f,l -name 'libqmmp.so.2' -print -quit)
+          QMMPUI_LIB=$(find ${{ github.workspace }}/AppDir/usr/lib -type f,l -name 'libqmmpui.so.2' -print -quit)
+          test -n "$QMMP_LIB"
+          test -n "$QMMPUI_LIB"
+          QMMP_LIB_DIR=$(dirname "$QMMP_LIB")
+          QMMPUI_LIB_DIR=$(dirname "$QMMPUI_LIB")
+          export LD_LIBRARY_PATH="$QMMP_LIB_DIR:$QMMPUI_LIB_DIR:${LD_LIBRARY_PATH:-}"
           
           # Deploy dependencies and plugins into AppDir. AppImage creation is done separately below so the custom runtime is always selected.
           ./linuxdeploy-x86_64.AppImage \
             --appdir ${{ github.workspace }}/AppDir \
             --plugin qt \
-            --library ${{ github.workspace }}/AppDir/usr/lib/libqmmp.so.2 \
-            --library ${{ github.workspace }}/AppDir/usr/lib/libqmmpui.so.2 \
+            --library "$QMMP_LIB" \
+            --library "$QMMPUI_LIB" \
             -e ${{ github.workspace }}/AppDir/usr/bin/qmmp \
             -d ${{ github.workspace }}/AppDir/qmmp.desktop \
             -i ${{ github.workspace }}/AppDir/qmmp.png \
