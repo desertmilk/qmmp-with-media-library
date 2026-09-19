@@ -355,7 +355,7 @@ jobs:
             -DUSE_AAC=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=FALSE \
-            -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib'
+            -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib:$ORIGIN/../../lib'
 
       - name: Build
         run: |

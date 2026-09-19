@@ -26,6 +26,7 @@
 #endif
 #include <sndfile.h>
 #include <taglib/aifffile.h>
+#include <taglib/taglib.h>
 #include <taglib/wavfile.h>
 #include <taglib/tfilestream.h>
 #include "decoder_sndfile.h"

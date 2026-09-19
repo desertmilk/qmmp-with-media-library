@@ -26,6 +26,7 @@
 #include <qmmpui/filedialog.h>
 #include <qmmp/metadatamanager.h>
 #include <algorithm>
+#include <taglib/taglib.h>
 #include <taglib/mpegfile.h>
 #include <taglib/apetag.h>
 #include <taglib/flacfile.h>
@@ -402,7 +403,11 @@ void RGScanDialog::on_writeButton_clicked()
             TagLib::MPEG::File file(qPrintable(item->url));
             writeAPETag(file.APETag(true), item);
             writeID3v2Tag(file.ID3v2Tag(true), item);
-                file.save(TagLib::MPEG::File::APE | TagLib::MPEG::File::ID3v2);
+#if TAGLIB_MAJOR_VERSION >= 2
+            file.save(TagLib::MPEG::File::APE | TagLib::MPEG::File::ID3v2, TagLib::StripNone);
+#else
+            file.save(TagLib::MPEG::File::APE | TagLib::MPEG::File::ID3v2, TagLib::File::StripNone);
+#endif
         }
         else if(ext == "flac"_L1) //flac
         {

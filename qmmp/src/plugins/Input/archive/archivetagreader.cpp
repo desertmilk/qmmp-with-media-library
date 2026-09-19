@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 #include <taglib/tiostream.h>
+#include <taglib/taglib.h>
 #include "archivetagreader.h"
 
 class IODeviceStream : public TagLib::IOStream

@@ -21,6 +21,7 @@
 #include <QImage>
 #include <QBuffer>
 #include <taglib/tag.h>
+#include <taglib/taglib.h>
 #include <taglib/fileref.h>
 #include <taglib/tmap.h>
 #include <taglib/id3v2framefactory.h>

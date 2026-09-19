@@ -23,6 +23,7 @@
 #include <QSettings>
 #include <QFile>
 #include <taglib/tag.h>
+#include <taglib/taglib.h>
 #include <taglib/fileref.h>
 #include <taglib/id3v1tag.h>
 #include <taglib/id3v2tag.h>

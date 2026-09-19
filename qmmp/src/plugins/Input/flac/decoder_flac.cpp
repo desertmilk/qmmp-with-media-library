@@ -24,6 +24,7 @@
 
 
 #include <taglib/tag.h>
+#include <taglib/taglib.h>
 #include <taglib/fileref.h>
 #include <taglib/flacfile.h>
 #include <taglib/xiphcomment.h>
