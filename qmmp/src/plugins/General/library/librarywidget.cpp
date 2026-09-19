@@ -241,33 +241,54 @@ void LibraryWidget::mouseMoveEvent(QMouseEvent *event)
     if(m_dragging)
     {
         QPoint position = event->globalPosition().toPoint() - m_dragOffset;
+        const QSize windowSize = frameGeometry().size();
+        constexpr int snapDistance = 13;
+        int horizontalSnapDistance = snapDistance;
+        int verticalSnapDistance = snapDistance;
+        auto snapCoordinate = [](int &coordinate, int target, int &distance)
+        {
+            const int delta = qAbs(coordinate - target);
+            if(delta < distance)
+            {
+                coordinate = target;
+                distance = delta;
+            }
+        };
+
         QScreen *screen = QGuiApplication::screenAt(event->globalPosition().toPoint());
         if(screen)
         {
             const QRect available = screen->availableGeometry();
-            constexpr int snapDistance = 13;
-            if(qAbs(position.x() - available.left()) < snapDistance)
-                position.setX(available.left());
-            if(qAbs(position.y() - available.top()) < snapDistance)
-                position.setY(available.top());
-            if(qAbs(position.x() + width() - available.right() - 1) < snapDistance)
-                position.setX(available.right() - width() + 1);
-            if(qAbs(position.y() + height() - available.bottom() - 1) < snapDistance)
-                position.setY(available.bottom() - height() + 1);
+            snapCoordinate(position.rx(), available.left(), horizontalSnapDistance);
+            snapCoordinate(position.ry(), available.top(), verticalSnapDistance);
+            snapCoordinate(position.rx(), available.right() - windowSize.width() + 1,
+                           horizontalSnapDistance);
+            snapCoordinate(position.ry(), available.bottom() - windowSize.height() + 1,
+                           verticalSnapDistance);
+        }
 
-            QWidget *anchor = parentWidget() ? parentWidget()->window() : nullptr;
-            if(anchor && anchor != this && anchor->isVisible())
-            {
-                const QRect anchorGeometry = anchor->frameGeometry();
-                if(qAbs(position.x() - anchorGeometry.left()) < snapDistance)
-                    position.setX(anchorGeometry.left());
-                if(qAbs(position.y() - anchorGeometry.top()) < snapDistance)
-                    position.setY(anchorGeometry.top());
-                if(qAbs(position.x() + width() - anchorGeometry.right() - 1) < snapDistance)
-                    position.setX(anchorGeometry.right() - width() + 1);
-                if(qAbs(position.y() + height() - anchorGeometry.bottom() - 1) < snapDistance)
-                    position.setY(anchorGeometry.bottom() - height() + 1);
-            }
+        for(QWidget *anchor : qApp->topLevelWidgets())
+        {
+            if(anchor == this || !anchor->isVisible())
+                continue;
+
+            const Qt::WindowType type = anchor->windowType();
+            if(type != Qt::Window && type != Qt::Dialog && type != Qt::Tool && type != Qt::Drawer)
+                continue;
+
+            const QRect anchorGeometry = anchor->frameGeometry();
+            snapCoordinate(position.rx(), anchorGeometry.left(), horizontalSnapDistance);
+            snapCoordinate(position.rx(), anchorGeometry.right() + 1, horizontalSnapDistance);
+            snapCoordinate(position.rx(), anchorGeometry.right() - windowSize.width() + 1,
+                           horizontalSnapDistance);
+            snapCoordinate(position.rx(), anchorGeometry.left() - windowSize.width(),
+                           horizontalSnapDistance);
+            snapCoordinate(position.ry(), anchorGeometry.top(), verticalSnapDistance);
+            snapCoordinate(position.ry(), anchorGeometry.bottom() + 1, verticalSnapDistance);
+            snapCoordinate(position.ry(), anchorGeometry.bottom() - windowSize.height() + 1,
+                           verticalSnapDistance);
+            snapCoordinate(position.ry(), anchorGeometry.top() - windowSize.height(),
+                           verticalSnapDistance);
         }
         move(position);
         event->accept();
