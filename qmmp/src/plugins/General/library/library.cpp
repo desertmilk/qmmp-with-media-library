@@ -218,18 +218,34 @@ bool Library::ensureTrackLibraryColumns()
     while(info.next())
         columns.insert(info.value(1).toString());
 
-    const QStringList required = { u"PlayCount"_s, u"LastPlayed"_s, u"Rating"_s, u"SkipCount"_s };
-    for(const QString &column : std::as_const(required))
+    QList<QPair<QString, QString>> required = {
+        { u"SearchString"_s, u"TEXT DEFAULT ''"_s },
+        { u"PlayCount"_s, u"INTEGER DEFAULT 0"_s },
+        { u"LastPlayed"_s, u"INTEGER DEFAULT 0"_s },
+        { u"Rating"_s, u"INTEGER DEFAULT 0"_s },
+        { u"SkipCount"_s, u"INTEGER DEFAULT 0"_s }
+    };
+    for(const auto &columnDef : std::as_const(required))
     {
+        const QString &column = columnDef.first;
+        const QString &type = columnDef.second;
+
         if(columns.contains(column))
             continue;
 
         QSqlQuery alter(db);
-        if(!alter.exec(QStringLiteral("ALTER TABLE track_library ADD COLUMN %1 INTEGER DEFAULT 0").arg(column)))
+        if(!alter.exec(QStringLiteral("ALTER TABLE track_library ADD COLUMN %1 %2").arg(column, type)))
         {
             qCWarning(plugin, "unable to add column '%s', error: %s", qPrintable(column), qPrintable(alter.lastError().text()));
             return false;
         }
+    }
+
+    QSqlQuery backfill(db);
+    if(!backfill.exec(u"UPDATE track_library SET SearchString = LOWER(COALESCE(Artist, '') || '||| ' || COALESCE(Album, '') || '||| ' || COALESCE(Title, '')) WHERE SearchString IS NULL OR SearchString = ''"_s))
+    {
+        qCWarning(plugin, "unable to backfill search strings, error: %s", qPrintable(backfill.lastError().text()));
+        return false;
     }
 
     return true;
