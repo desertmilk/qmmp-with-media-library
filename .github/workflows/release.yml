@@ -414,7 +414,12 @@ jobs:
           QMMPUI_LIB=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libqmmpui.so.2' -print -quit)
           test -n "$QMMP_LIB"
           test -n "$QMMPUI_LIB"
-          printf 'Qmmp libraries: %s %s\n' "$QMMP_LIB" "$QMMPUI_LIB"
+          PLUGIN_LIBS=()
+          while IFS= read -r plugin; do
+            PLUGIN_LIBS+=(--library "$plugin")
+          done < <(find ${{ github.workspace }}/AppDir/usr -type f,l -name '*.so' -print)
+          test "${#PLUGIN_LIBS[@]}" -gt 0
+          printf 'Qmmp libraries: %s %s; plugin dependency roots: %s\n' "$QMMP_LIB" "$QMMPUI_LIB" "$(( ${#PLUGIN_LIBS[@]} / 2 ))"
           QMMP_LIB_DIR=$(dirname "$QMMP_LIB")
           QMMPUI_LIB_DIR=$(dirname "$QMMPUI_LIB")
           export LD_LIBRARY_PATH="$QMMP_LIB_DIR:$QMMPUI_LIB_DIR:${LD_LIBRARY_PATH:-}"
@@ -425,6 +430,7 @@ jobs:
             --plugin qt \
             --library "$QMMP_LIB" \
             --library "$QMMPUI_LIB" \
+            "${PLUGIN_LIBS[@]}" \
             -e ${{ github.workspace }}/AppDir/usr/bin/qmmp \
             -d ${{ github.workspace }}/AppDir/qmmp.desktop \
             -i ${{ github.workspace }}/AppDir/qmmp.png \

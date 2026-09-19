@@ -4,7 +4,7 @@ add_definitions(-DQMMPUI_LIBRARY)
 
 set(QMMP_DEFAULT_UI "" CACHE STRING "default user interface")
 if(QMMP_DEFAULT_UI)
-    set(libqmmpui_DEFINES ${libqmmpui_DEFINES} QMMP_DEFAULT_UI="${QMMP_DEFAULT_OUTPUT}")
+    set(libqmmpui_DEFINES ${libqmmpui_DEFINES} QMMP_DEFAULT_UI="${QMMP_DEFAULT_UI}")
     message(STATUS "Default user interface: ${QMMP_DEFAULT_UI}")
 endif(QMMP_DEFAULT_UI)
 
