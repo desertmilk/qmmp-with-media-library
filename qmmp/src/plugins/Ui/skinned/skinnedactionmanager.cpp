@@ -59,6 +59,7 @@ SkinnedActionManager::SkinnedActionManager(QObject *parent) :
         //view
         { SHOW_PLAYLIST, createAction2(tr("Show Playlist"), u"show_playlist"_s, tr("Alt+E")) },
         { SHOW_EQUALIZER, createAction2(tr("Show Equalizer"), u"show_equalizer"_s, tr("Alt+G")) },
+        { SHOW_MEDIA_LIBRARY, createAction2(tr("Show Media Library"), u"show_media_library"_s) },
         { WM_ALLWAYS_ON_TOP, createAction2(tr("Always on Top"), u"always_on_top"_s) },
         { WM_STICKY, createAction2(tr("Put on All Workspaces"), u"sticky"_s) },
         { WM_DOUBLE_SIZE, createAction2(tr("Double Size"), u"double_size"_s, tr("Meta+D")) },

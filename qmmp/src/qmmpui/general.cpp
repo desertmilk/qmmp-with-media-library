@@ -50,6 +50,17 @@ public:
             generalCache->append(item);
         }
         enabledNames = settings.value(u"General/enabled_plugins"_s).toStringList();
+        bool updated = false;
+        for(QmmpUiPluginCache *item : std::as_const(*generalCache))
+        {
+            if(item->shortName() == u"library"_s && !enabledNames.contains(u"library"_s))
+            {
+                enabledNames << u"library"_s;
+                updated = true;
+            }
+        }
+        if(updated)
+            settings.setValue(u"General/enabled_plugins"_s, enabledNames);
         QmmpUiPluginCache::cleanup(&settings);
         qAddPostRoutine(GeneralPrivate::cleanup);
     }

@@ -393,6 +393,29 @@ void SkinnedMainWindow::createActions()
     QMenu *viewMenu = m_mainMenu->addMenu(tr("View"));
     viewMenu->addAction(ACTION(SkinnedActionManager::SHOW_PLAYLIST));
     viewMenu->addAction(ACTION(SkinnedActionManager::SHOW_EQUALIZER));
+
+    QAction *libraryAction = nullptr;
+    for(QAction *action : m_uiHelper->actions(UiHelper::TOOLS_MENU))
+    {
+        if(action->text().remove(QLatin1Char('&')).contains(u"Library"_s, Qt::CaseInsensitive))
+        {
+            libraryAction = action;
+            break;
+        }
+    }
+    QAction *showMediaLibrary = ACTION(SkinnedActionManager::SHOW_MEDIA_LIBRARY);
+    if(libraryAction)
+    {
+        showMediaLibrary->setEnabled(true);
+        showMediaLibrary->setShortcut(libraryAction->shortcut());
+        showMediaLibrary->setShortcutVisibleInContextMenu(true);
+        connect(showMediaLibrary, &QAction::triggered, libraryAction, &QAction::trigger);
+    }
+    else
+    {
+        showMediaLibrary->setEnabled(false);
+    }
+    viewMenu->addAction(showMediaLibrary);
     viewMenu->addSeparator();
     viewMenu->addAction(SET_ACTION(SkinnedActionManager::WM_ALLWAYS_ON_TOP, this, &SkinnedMainWindow::updateSettings));
     viewMenu->addAction(SET_ACTION(SkinnedActionManager::WM_STICKY, this, &SkinnedMainWindow::updateSettings));

@@ -65,6 +65,7 @@ public:
 
         SHOW_PLAYLIST,
         SHOW_EQUALIZER,
+        SHOW_MEDIA_LIBRARY,
 
         WM_ALLWAYS_ON_TOP,
         WM_STICKY,

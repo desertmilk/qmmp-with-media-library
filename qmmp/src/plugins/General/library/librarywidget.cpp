@@ -23,6 +23,7 @@
 #include <QContextMenuEvent>
 #include <QIcon>
 #include <QLabel>
+#include <QHeaderView>
 #include <qmmp/qmmp.h>
 #include "librarymodel.h"
 #include "librarysettingsdialog.h"
@@ -36,6 +37,12 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_ui->setupUi(this);
     m_model = new LibraryModel(this);
     m_ui->treeView->setModel(m_model);
+    m_ui->treeView->header()->setSectionResizeMode(QHeaderView::Interactive);
+    m_ui->treeView->header()->setStretchLastSection(false);
+    m_ui->treeView->setColumnWidth(0, 180);
+    m_ui->treeView->setColumnWidth(1, 180);
+    m_ui->treeView->setColumnWidth(2, 240);
+    m_ui->treeView->setColumnWidth(3, 60);
 
     if(dialog)
     {

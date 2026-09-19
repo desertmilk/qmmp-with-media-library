@@ -75,7 +75,7 @@ LibraryModel::LibraryModel(QObject *parent) : QAbstractItemModel(parent)
 {
     m_rootItem = new LibraryTreeItem;
     QSettings settings;
-    m_showYear = settings.value(u"Library/show_year"_s, false).toBool();
+    m_showYear = settings.value(u"Library/show_year"_s, true).toBool();
     refresh();
 }
 
@@ -212,22 +212,59 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     LibraryTreeItem *item = static_cast<LibraryTreeItem *>(index.internalPointer());
-    if(item->type == Qmmp::ALBUM)
+    switch(index.column())
     {
-        QString album = item->artist.isEmpty() ? item->name : tr("%1 - %2").arg(item->artist, item->name);
-        if(m_showYear && item->year > 0)
-            return tr("%1 - %2").arg(item->year).arg(album);
-        return album;
-    }
-    if(item->type == Qmmp::ARTIST && (m_viewMode == MostPlayedView || m_viewMode == RecentlyPlayedView))
-    {
-        if(m_viewMode == MostPlayedView && item->playCount > 0)
+    case 0:
+        if(item->type == Qmmp::ARTIST && m_viewMode == MostPlayedView && item->playCount > 0)
             return tr("%1 (%2)").arg(item->name).arg(item->playCount);
-        if(m_viewMode == RecentlyPlayedView && item->lastPlayed > 0)
+        if(item->type == Qmmp::ARTIST && m_viewMode == RecentlyPlayedView && item->lastPlayed > 0)
             return tr("%1 (%2)").arg(item->name).arg(QDateTime::fromMSecsSinceEpoch(item->lastPlayed).toString(Qt::ISODate));
+        if(item->type == Qmmp::ARTIST)
+            return item->name;
+        if(item->type == Qmmp::ALBUM)
+            return item->artist.isEmpty() && item->parent ? item->parent->name : item->artist;
+        if(item->type == Qmmp::TITLE && item->parent && item->parent->parent)
+            return item->parent->artist.isEmpty() ? item->parent->parent->name : item->parent->artist;
+        return QString();
+    case 1:
+        if(item->type == Qmmp::ALBUM)
+            return item->name;
+        if(item->type == Qmmp::TITLE && item->parent)
+            return item->parent->name;
+        return QString();
+    case 2:
+        return item->type == Qmmp::TITLE ? item->name : QString();
+    case 3:
+        if(!m_showYear)
+            return QString();
+        if(item->type == Qmmp::ALBUM)
+            return item->year > 0 ? QString::number(item->year) : QString();
+        if(item->type == Qmmp::TITLE && item->parent)
+            return item->parent->year > 0 ? QString::number(item->parent->year) : QString();
+        return QString();
+    default:
+        return QVariant();
     }
+}
 
-    return item->name;
+QVariant LibraryModel::headerData(int section, Qt::Orientation orientation, int role) const
+{
+    if(orientation != Qt::Horizontal || role != Qt::DisplayRole)
+        return QVariant();
+
+    switch(section)
+    {
+    case 0:
+        return tr("Artist");
+    case 1:
+        return tr("Album");
+    case 2:
+        return tr("Track");
+    case 3:
+        return tr("Year");
+    default:
+        return QVariant();
+    }
 }
 
 QModelIndex LibraryModel::parent(const QModelIndex &child) const
@@ -261,7 +298,7 @@ QModelIndex LibraryModel::index(int row, int column, const QModelIndex &parent) 
 int LibraryModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent);
-    return 1;
+    return 4;
 }
 
 int LibraryModel::rowCount(const QModelIndex &parent) const
@@ -493,7 +530,7 @@ QList<PlayListTrack *> LibraryModel::getTracks(const QModelIndexList &indexes) c
 
     for(const QModelIndex &index : indexes)
     {
-        if(index.isValid())
+        if(index.isValid() && index.column() == 0)
         {
             tracks << getTracks(index);
         }

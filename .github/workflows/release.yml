@@ -993,7 +993,7 @@ jobs:
       - name: Verify release
         run: |
           echo "=== Release Created Successfully ==="
-          gh release view nightly --json tagName,name,assets --jq '{tag: .tagName, name: .name, assets: [.assets[] | {name: .name, size: (.size / 1048576 | floor | tostring + " MB")]}]'
+          gh release view nightly --json tagName,name,assets --jq '{tag: .tagName, name: .name, assets: [.assets[] | {name: .name, size: (.size / 1048576 | floor | tostring + " MB")}]}'
           echo "====================================="
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
