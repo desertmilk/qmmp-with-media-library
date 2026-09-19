@@ -1,23 +1,3 @@
-/***************************************************************************
- *   Copyright (C) 2020-2026 by Ilya Kotov                                 *
- *   forkotov02@ya.ru                                                      *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 or (at your option)    *
- *   any later version.                                                     *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
- ***************************************************************************/
-
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -52,6 +32,8 @@ public:
         name.clear();
         id = -1;
         year = 0;
+        playCount = 0;
+        lastPlayed = 0;
         type = Qmmp::UNKNOWN;
         parent = nullptr;
         qDeleteAll(children);
@@ -61,6 +43,8 @@ public:
     QString name;
     qint64 id = -1;
     int year = 0;
+    int playCount = 0;
+    qint64 lastPlayed = 0;
     Qmmp::MetaData type = Qmmp::UNKNOWN;
     QList<LibraryTreeItem *> children;
     LibraryTreeItem *parent = nullptr;
@@ -208,6 +192,13 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const
     LibraryTreeItem *item = static_cast<LibraryTreeItem *>(index.internalPointer());
     if(item->type == Qmmp::ALBUM && m_showYear && item->year > 0)
         return tr("%1 - %2").arg(item->year).arg(item->name);
+    if(item->type == Qmmp::ARTIST && (m_viewMode == MostPlayedView || m_viewMode == RecentlyPlayedView))
+    {
+        if(m_viewMode == MostPlayedView && item->playCount > 0)
+            return tr("%1 (%2)").arg(item->name).arg(item->playCount);
+        if(m_viewMode == RecentlyPlayedView && item->lastPlayed > 0)
+            return tr("%1 (%2)").arg(item->name).arg(QDateTime::fromMSecsSinceEpoch(item->lastPlayed).toString(Qt::ISODate));
+    }
 
     return item->name;
 }
@@ -263,6 +254,22 @@ void LibraryModel::setFilter(const QString &filter)
     m_filter = filter;
 }
 
+void LibraryModel::setViewMode(ViewMode mode)
+{
+    if(m_viewMode == mode)
+        return;
+
+    beginResetModel();
+    m_viewMode = mode;
+    refresh();
+    endResetModel();
+}
+
+LibraryModel::ViewMode LibraryModel::viewMode() const
+{
+    return m_viewMode;
+}
+
 void LibraryModel::refresh()
 {
     beginResetModel();
@@ -288,16 +295,47 @@ void LibraryModel::refresh()
     }
 
     QSqlQuery query(db);
+    QString sql;
+
     if(m_filter.isEmpty())
     {
-        query.prepare(u"SELECT DISTINCT Artist from track_library ORDER BY Artist"_s);
+        switch(m_viewMode)
+        {
+        case ArtistView:
+            sql = u"SELECT DISTINCT Artist FROM track_library ORDER BY Artist"_s;
+            break;
+        case MostPlayedView:
+            sql = u"SELECT Artist, MAX(PlayCount) AS PlayCount FROM track_library WHERE PlayCount > 0 GROUP BY Artist ORDER BY PlayCount DESC, Artist"_s;
+            break;
+        case RecentlyPlayedView:
+            sql = u"SELECT Artist, MAX(LastPlayed) AS LastPlayed FROM track_library WHERE LastPlayed > 0 GROUP BY Artist ORDER BY LastPlayed DESC, Artist"_s;
+            break;
+        case UnratedView:
+            sql = u"SELECT DISTINCT Artist FROM track_library WHERE Rating = 0 ORDER BY Artist"_s;
+            break;
+        }
     }
     else
     {
-        query.prepare(u"SELECT DISTINCT Artist from track_library WHERE SearchString LIKE :filter ORDER BY Artist"_s);
+        switch(m_viewMode)
+        {
+        case ArtistView:
+            sql = u"SELECT DISTINCT Artist FROM track_library WHERE SearchString LIKE :filter ORDER BY Artist"_s;
+            break;
+        case MostPlayedView:
+            sql = u"SELECT Artist, MAX(PlayCount) AS PlayCount FROM track_library WHERE SearchString LIKE :filter AND PlayCount > 0 GROUP BY Artist ORDER BY PlayCount DESC, Artist"_s;
+            break;
+        case RecentlyPlayedView:
+            sql = u"SELECT Artist, MAX(LastPlayed) AS LastPlayed FROM track_library WHERE SearchString LIKE :filter AND LastPlayed > 0 GROUP BY Artist ORDER BY LastPlayed DESC, Artist"_s;
+            break;
+        case UnratedView:
+            sql = u"SELECT DISTINCT Artist FROM track_library WHERE SearchString LIKE :filter AND Rating = 0 ORDER BY Artist"_s;
+            break;
+        }
         query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
     }
 
+    query.prepare(sql);
     if(!query.exec())
         qCWarning(plugin, "exec error: %s", qPrintable(query.lastError().text()));
 
@@ -305,6 +343,8 @@ void LibraryModel::refresh()
     {
         LibraryTreeItem *item = new LibraryTreeItem;
         item->name = query.value(u"Artist"_s).toString();
+        item->playCount = query.value(u"PlayCount"_s).toInt();
+        item->lastPlayed = query.value(u"LastPlayed"_s).toLongLong();
         item->type = Qmmp::ARTIST;
         item->parent = m_rootItem;
         m_rootItem->children << item;
@@ -362,7 +402,7 @@ void LibraryModel::showLibraryInformation(QWidget *parent)
     }
 
     QSqlQuery query(db);
-    query.prepare(u"select COUNT(id),COUNT(DISTINCT Album||Artist),COUNT(DISTINCT Artist),SUM(Duration) from track_library"_s);
+    query.prepare(u"select COUNT(id),COUNT(DISTINCT Album||Artist),COUNT(DISTINCT Artist),SUM(Duration),SUM(PlayCount),MAX(LastPlayed) from track_library"_s);
 
     if(!query.exec())
     {
@@ -375,6 +415,8 @@ void LibraryModel::showLibraryInformation(QWidget *parent)
     int albums = query.value(1).toInt();
     int artists = query.value(2).toInt();
     qint64 duration = query.value(3).toLongLong() / 1000;
+    qint64 totalPlays = query.value(4).toLongLong();
+    qint64 lastPlayed = query.value(5).toLongLong();
     int days = duration / (3600 * 24);
     int hours = (duration / 3600) % 24;
 
@@ -396,6 +438,8 @@ void LibraryModel::showLibraryInformation(QWidget *parent)
         tr("Number of albums: <b>%1</b>").arg(albums),
         tr("Number of artists: <b>%1</b>").arg(artists),
         tr("Total duration: <b>%1</b>").arg(durationText),
+        tr("Total plays: <b>%1</b>").arg(totalPlays),
+        tr("Latest play: <b>%1</b>").arg(lastPlayed > 0 ? QDateTime::fromMSecsSinceEpoch(lastPlayed).toString(Qt::DefaultLocaleShortDate) : tr("Never")),
     };
 
     QMessageBox::information(parent, tr("Library Information"), lines.join(u"<br>"_s));
@@ -515,5 +559,6 @@ PlayListTrack *LibraryModel::createTrack(const QSqlQuery &query) const
     track->setValue(Qmmp::FORMAT_NAME, obj.value(u"formatName"_s).toString());
     track->setValue(Qmmp::DECODER, obj.value(u"decoder"_s).toString());
     track->setValue(Qmmp::FILE_SIZE, qint64(obj.value(u"fileSize"_s).toDouble()));
+    track->setValue(Qmmp::COMMENTS, query.value(u"PlayCount"_s).toString());
     return track;
 }

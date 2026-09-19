@@ -1,23 +1,3 @@
-/***************************************************************************
- *   Copyright (C) 2020-2026 by Ilya Kotov                                 *
- *   forkotov02@ya.ru                                                      *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 or (at your option)    *
- *   any later version.                                                     *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
- ***************************************************************************/
-
 #include <QSettings>
 #include <QMenu>
 #include <QContextMenuEvent>
@@ -52,6 +32,13 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_menu->addAction(QIcon::fromTheme(u"media-eject"_s), tr("Replace Playlist"), this, &LibraryWidget::replaceSelected);
     m_menu->addAction(QIcon::fromTheme(u"dialog-information"_s), tr("&View Track Details"), this, &LibraryWidget::showTrackInformation);
     m_menu->addSeparator();
+
+    QMenu *viewMenu = m_menu->addMenu(tr("Library View"));
+    viewMenu->addAction(tr("All Artists"), this, &LibraryWidget::setArtistView);
+    viewMenu->addAction(tr("Most Played"), this, &LibraryWidget::setMostPlayedView);
+    viewMenu->addAction(tr("Recently Played"), this, &LibraryWidget::setRecentlyPlayedView);
+    viewMenu->addAction(tr("Unrated"), this, &LibraryWidget::setUnratedView);
+
     m_filterAction = m_menu->addAction(tr("Quick Search"), m_ui->filterLineEdit, &QLineEdit::setVisible);
     m_menu->addAction(tr("&Library Information"), this, &LibraryWidget::showLibraryInformation);
     m_filterAction->setCheckable(true);
@@ -144,4 +131,28 @@ void LibraryWidget::showTrackInformation()
 void LibraryWidget::showLibraryInformation()
 {
     m_model->showLibraryInformation(qApp->activeWindow());
+}
+
+void LibraryWidget::setArtistView()
+{
+    m_model->setViewMode(LibraryModel::ArtistView);
+    m_model->refresh();
+}
+
+void LibraryWidget::setMostPlayedView()
+{
+    m_model->setViewMode(LibraryModel::MostPlayedView);
+    m_model->refresh();
+}
+
+void LibraryWidget::setRecentlyPlayedView()
+{
+    m_model->setViewMode(LibraryModel::RecentlyPlayedView);
+    m_model->refresh();
+}
+
+void LibraryWidget::setUnratedView()
+{
+    m_model->setViewMode(LibraryModel::UnratedView);
+    m_model->refresh();
 }
