@@ -108,10 +108,7 @@ install(TARGETS libqmmp LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 if(APPLE)
-    if(NOT ICONV_LIBRARY)
-        find_library(ICONV_LIBRARY iconv REQUIRED)
-    endif()
-    target_link_libraries(libqmmp PRIVATE ${ICONV_LIBRARY})
+    target_link_libraries(libqmmp PRIVATE iconv)
 elseif(WIN32 OR MINGW)
     find_library(ICONV_LIBRARY iconv REQUIRED)
     target_link_libraries(libqmmp PRIVATE ${ICONV_LIBRARY})

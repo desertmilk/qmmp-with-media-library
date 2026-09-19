@@ -485,8 +485,7 @@ jobs:
             -DUSE_QTMULTIMEDIA=TRUE \
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
-            -DQMMP_DEFAULT_UI=qsui \
-            -DICONV_LIBRARY:FILEPATH="$(brew --prefix libiconv)/lib/libiconv.dylib"
+            -DQMMP_DEFAULT_UI=qsui
       - name: Build
         run: |
           cd qmmp-src/qmmp/build
