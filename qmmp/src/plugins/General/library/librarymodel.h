@@ -67,8 +67,9 @@ public:
     ViewMode viewMode() const;
     void refresh();
     void add(const QModelIndexList &indexes);
+    void addFiltered();
     void replace(const QModelIndexList &indexes);
-    void replaceFiltered();
+    void replaceFiltered(bool play = false);
     void replaceAndPlay(const QModelIndex &index);
     void showTrackInformation(const QModelIndexList &indexes, QWidget *parent = nullptr);
     void showLibraryInformation(QWidget *parent = nullptr);

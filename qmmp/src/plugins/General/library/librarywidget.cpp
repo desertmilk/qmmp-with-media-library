@@ -482,7 +482,9 @@ void LibraryWidget::closeEvent(QCloseEvent *)
 
 void LibraryWidget::contextMenuEvent(QContextMenuEvent *e)
 {
+    m_contextSource = childAt(e->pos());
     m_menu->exec(mapToGlobal(e->pos()));
+    m_contextSource = nullptr;
 }
 
 void LibraryWidget::on_filterLineEdit_textChanged(const QString &text)
@@ -606,21 +608,33 @@ void LibraryWidget::updateTrackFilter()
 
 void LibraryWidget::replaceArtists()
 {
-    m_model->replaceFiltered();
+    m_model->replaceFiltered(true);
 }
 
 void LibraryWidget::replaceAlbums()
 {
-    m_model->replaceFiltered();
+    m_model->replaceFiltered(true);
 }
 
 void LibraryWidget::addSelected()
 {
+    if((m_ui->artistsTableView->isAncestorOf(m_contextSource) ||
+        m_ui->albumsTableView->isAncestorOf(m_contextSource)))
+    {
+        m_model->addFiltered();
+        return;
+    }
     m_model->add(m_ui->treeView->selectionModel()->selectedIndexes());
 }
 
 void LibraryWidget::replaceSelected()
 {
+    if((m_ui->artistsTableView->isAncestorOf(m_contextSource) ||
+        m_ui->albumsTableView->isAncestorOf(m_contextSource)))
+    {
+        m_model->replaceFiltered();
+        return;
+    }
     m_model->replace(m_ui->treeView->selectionModel()->selectedIndexes());
 }
 

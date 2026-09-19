@@ -537,6 +537,11 @@ void LibraryModel::add(const QModelIndexList &indexes)
     PlayListManager::instance()->addTracks(getTracks(indexes));
 }
 
+void LibraryModel::addFiltered()
+{
+    PlayListManager::instance()->addTracks(getFilteredTracks());
+}
+
 void LibraryModel::replace(const QModelIndexList &indexes)
 {
     QList<PlayListTrack *> tracks = getTracks(indexes);
@@ -560,20 +565,28 @@ void LibraryModel::replace(const QModelIndexList &indexes)
     }
 }
 
-void LibraryModel::replaceFiltered()
+void LibraryModel::replaceFiltered(bool play)
 {
     QList<PlayListTrack *> tracks = getFilteredTracks();
     if(tracks.isEmpty())
         return;
 
-    MediaPlayer::instance()->stop();
     PlayListManager *manager = PlayListManager::instance();
     PlayListModel *model = manager->selectedPlayList();
+    SoundCore *core = SoundCore::instance();
+    const bool resume = play ||
+            ((core->state() == Qmmp::Playing || core->state() == Qmmp::Paused ||
+              core->state() == Qmmp::Buffering) && model == manager->currentPlayList());
+    if(resume)
+        MediaPlayer::instance()->stop();
     model->clear();
     model->addTracks(tracks);
-    model->setCurrent(0);
-    manager->activateSelectedPlayList();
-    MediaPlayer::instance()->play();
+    if(resume)
+    {
+        model->setCurrent(0);
+        manager->activateSelectedPlayList();
+        MediaPlayer::instance()->play();
+    }
 }
 
 void LibraryModel::replaceAndPlay(const QModelIndex &index)

@@ -92,6 +92,7 @@ private:
     Ui::LibraryWidget *m_ui;
     LibraryModel *m_model;
     QMenu *m_menu;
+    QWidget *m_contextSource = nullptr;
     QAction *m_filterAction;
     QLabel *m_busyIndicator = nullptr;
     QStandardItemModel *m_artistsModel;
