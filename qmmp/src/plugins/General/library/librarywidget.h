@@ -54,6 +54,7 @@ private slots:
     void replaceSelected();
     void showTrackInformation();
     void showLibraryInformation();
+    void showSettings();
     void setArtistView();
     void setAlbumView();
     void setMostPlayedView();
