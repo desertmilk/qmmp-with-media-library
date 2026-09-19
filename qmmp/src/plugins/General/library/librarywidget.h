@@ -55,6 +55,7 @@ private slots:
     void showTrackInformation();
     void showLibraryInformation();
     void setArtistView();
+    void setAlbumView();
     void setMostPlayedView();
     void setRecentlyPlayedView();
     void setUnratedView();

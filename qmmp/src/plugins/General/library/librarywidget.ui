@@ -25,6 +25,9 @@
    </property>
    <item>
     <widget class="QLineEdit" name="filterLineEdit">
+         <property name="placeholderText">
+            <string>Search artists, albums and tracks</string>
+         </property>
      <property name="clearButtonEnabled">
       <bool>true</bool>
      </property>

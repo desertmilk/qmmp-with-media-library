@@ -55,6 +55,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
 
     QMenu *viewMenu = m_menu->addMenu(tr("Library View"));
     viewMenu->addAction(tr("All Artists"), this, &LibraryWidget::setArtistView);
+    viewMenu->addAction(tr("All Albums"), this, &LibraryWidget::setAlbumView);
     viewMenu->addAction(tr("Most Played"), this, &LibraryWidget::setMostPlayedView);
     viewMenu->addAction(tr("Recently Played"), this, &LibraryWidget::setRecentlyPlayedView);
     viewMenu->addAction(tr("Unrated"), this, &LibraryWidget::setUnratedView);
@@ -156,6 +157,12 @@ void LibraryWidget::showLibraryInformation()
 void LibraryWidget::setArtistView()
 {
     m_model->setViewMode(LibraryModel::ArtistView);
+    m_model->refresh();
+}
+
+void LibraryWidget::setAlbumView()
+{
+    m_model->setViewMode(LibraryModel::AlbumView);
     m_model->refresh();
 }
 
