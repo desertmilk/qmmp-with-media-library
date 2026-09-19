@@ -409,7 +409,12 @@ void SkinnedMainWindow::createActions()
         showMediaLibrary->setEnabled(true);
         showMediaLibrary->setShortcut(libraryAction->shortcut());
         showMediaLibrary->setShortcutVisibleInContextMenu(true);
-        connect(showMediaLibrary, &QAction::triggered, libraryAction, &QAction::trigger);
+        showMediaLibrary->setChecked(libraryAction->isChecked());
+        connect(libraryAction, &QAction::toggled, showMediaLibrary, &QAction::setChecked);
+        connect(showMediaLibrary, &QAction::toggled, this, [showMediaLibrary, libraryAction](bool checked) {
+            if(checked != libraryAction->isChecked())
+                libraryAction->trigger();
+        });
     }
     else
     {

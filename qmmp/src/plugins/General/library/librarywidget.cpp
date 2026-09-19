@@ -202,8 +202,14 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
     painter.drawPixmap(0, 0, m_skinPlaylist.copy(0, 0, 25, 20));
     painter.drawPixmap(width - 25, 0, m_skinPlaylist.copy(153, 0, 25, 20));
     painter.drawPixmap(width - 13, 6, m_skinPlaylist.copy(167, 3, 9, 9));
-    painter.setPen(Qt::white);
-    painter.drawText(8, 14, tr("Media Library"));
+    const QString title = tr("Media Library").toLower();
+    const int titleWidth = title.size() * 5;
+    int x = (width - titleWidth) / 2;
+    for(const QChar character : title)
+    {
+        painter.drawPixmap(x, 7, QmmpUiSkin::letter(character));
+        x += 5;
+    }
 }
 
 void LibraryWidget::mousePressEvent(QMouseEvent *event)

@@ -62,6 +62,42 @@ QString QmmpUiSkin::playlistValue(const QString &key)
     return QString();
 }
 
+QPixmap QmmpUiSkin::letter(QChar ch)
+{
+    const QPixmap image(filePath(u"text.png"_s));
+    if(image.isNull())
+        return QPixmap();
+
+    const QChar lower = ch.toLower();
+    int row = 2;
+    int column = 5;
+    if(lower >= u'a' && lower <= u'z')
+    {
+        row = 0;
+        column = lower.unicode() - u'a';
+    }
+    else if(lower >= u'0' && lower <= u'9')
+    {
+        row = 1;
+        column = lower.unicode() - u'0';
+    }
+    else if(lower == QChar::Space)
+    {
+        row = 2;
+        column = 5;
+    }
+    else
+    {
+        const QString special = u"\"@:()-'!_+/[]^&%.,=$#"_s;
+        column = special.indexOf(lower);
+        if(column < 0)
+            return image.copy(25, 12, 5, 6);
+        row = column < 2 ? 0 : 1;
+        column = row == 0 ? column + 27 : column + 10;
+    }
+    return image.copy(column * 5, row * 6, 5, 6);
+}
+
 QColor QmmpUiSkin::backgroundColor()
 {
     QColor playlistColor;

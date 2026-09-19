@@ -13,6 +13,7 @@
 
 #include "qmmpui_export.h"
 #include <QColor>
+#include <QPixmap>
 #include <QString>
 
 class QMMPUI_EXPORT QmmpUiSkin
@@ -22,6 +23,7 @@ public:
     static QString currentSkinPath();
     static QString filePath(const QString &fileName);
     static QString playlistValue(const QString &key);
+    static QPixmap letter(QChar ch);
     static QColor backgroundColor();
     static QColor foregroundColor();
 };

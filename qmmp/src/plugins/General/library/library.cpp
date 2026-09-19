@@ -62,6 +62,7 @@ Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
     m_dirs = settings.value(u"Library/dirs"_s).toStringList();
 
     m_showAction = new QAction(QIcon::fromTheme(u"text-x-generic"_s), tr("Library"), this);
+    m_showAction->setCheckable(true);
     m_showAction->setShortcut(tr("Alt+L"));
     UiHelper::instance()->addAction(m_showAction, UiHelper::TOOLS_MENU);
     connect(m_showAction, &QAction::triggered, this, &Library::showLibraryWindow);
@@ -124,11 +125,21 @@ QAction *Library::showAction() const
 
 void Library::showLibraryWindow()
 {
+    if(!m_libraryWidget->isNull() && m_libraryWidget->data()->isWindow() &&
+            m_libraryWidget->data()->isVisible())
+    {
+        m_libraryWidget->data()->close();
+        return;
+    }
+
     if(m_libraryWidget->isNull())
         *m_libraryWidget = new LibraryWidget(true, qApp->activeWindow());
 
     if(m_libraryWidget->data()->isWindow())
+    {
         m_libraryWidget->data()->show();
+        m_showAction->setChecked(true);
+    }
 
     if(isRunning())
         m_libraryWidget->data()->setBusyMode(true);
