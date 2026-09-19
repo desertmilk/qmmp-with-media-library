@@ -64,7 +64,8 @@ QString QmmpUiSkin::playlistValue(const QString &key)
 
 QColor QmmpUiSkin::backgroundColor()
 {
-    const QColor playlistColor = QColor::fromString(playlistValue(u"NormalBG"_s));
+    QColor playlistColor;
+    playlistColor.setNamedColor(playlistValue(u"NormalBG"_s));
     if(playlistColor.isValid())
         return playlistColor;
     const QImage image(filePath(u"text.png"_s));
@@ -73,7 +74,8 @@ QColor QmmpUiSkin::backgroundColor()
 
 QColor QmmpUiSkin::foregroundColor()
 {
-    const QColor playlistColor = QColor::fromString(playlistValue(u"Normal"_s));
+    QColor playlistColor;
+    playlistColor.setNamedColor(playlistValue(u"Normal"_s));
     if(playlistColor.isValid())
         return playlistColor;
     const QImage image(filePath(u"text.png"_s));
