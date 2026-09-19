@@ -150,6 +150,8 @@ jobs:
             libgl1-mesa-dev \
             libmad0-dev \
             libmpg123-dev \
+            libflac-dev \
+            libfaad-dev \
             libvorbis-dev \
             libogg-dev \
             libasound2-dev \
@@ -160,7 +162,6 @@ jobs:
         run: |
           sudo apt-get install -y \
             qtmultimedia6-dev \
-            libflac-dev \
             libmpcdec-dev \
             libjack-jackd2-dev \
             libsoxr-dev \
@@ -176,7 +177,6 @@ jobs:
             libcdio-dev \
             libcdio-paranoia-dev \
             libcddb2-dev \
-            libfaad-dev \
             libgme-dev \
             libopus-dev \
             libopusfile-dev \
@@ -213,6 +213,8 @@ jobs:
             -DUSE_PIPEWIRE=TRUE \
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
+            -DUSE_FLAC=TRUE \
+            -DUSE_AAC=TRUE \
             -DQMMP_DEFAULT_UI=qsui
 
       - name: Build
@@ -277,6 +279,8 @@ jobs:
             libgl1-mesa-dev \
             libmad0-dev \
             libmpg123-dev \
+            libflac-dev \
+            libfaad-dev \
             libvorbis-dev \
             libogg-dev \
             libasound2-dev \
@@ -289,7 +293,6 @@ jobs:
         run: |
           sudo apt-get install -y \
             qtmultimedia6-dev \
-            libflac-dev \
             libmpcdec-dev \
             libjack-jackd2-dev \
             libsoxr-dev \
@@ -305,7 +308,6 @@ jobs:
             libcdio-dev \
             libcdio-paranoia-dev \
             libcddb2-dev \
-            libfaad-dev \
             libgme-dev \
             libopus-dev \
             libopusfile-dev \
@@ -334,7 +336,7 @@ jobs:
 
       - name: Configure with CMake for AppImage
         run: |
-          pkg-config --modversion taglib libmpg123
+          pkg-config --modversion taglib libmpg123 flac faad2
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
           cmake .. \
             -G Ninja \
@@ -349,6 +351,8 @@ jobs:
             -DUSE_LIBCDDB=TRUE \
             -DUSE_MAD=TRUE \
             -DUSE_MPG123=TRUE \
+            -DUSE_FLAC=TRUE \
+            -DUSE_AAC=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=FALSE \
             -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib'
@@ -365,12 +369,20 @@ jobs:
           DESTDIR=${{ github.workspace }}/AppDir ninja install
           MPEG_PLUGIN=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libmpeg.so' -print -quit)
           VORBIS_PLUGIN=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libvorbis.so' -print -quit)
+          FLAC_PLUGIN=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libflac.so' -print -quit)
+          AAC_PLUGIN=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libaac.so' -print -quit)
           test -n "$MPEG_PLUGIN"
           test -n "$VORBIS_PLUGIN"
+          test -n "$FLAC_PLUGIN"
+          test -n "$AAC_PLUGIN"
           ldd "$MPEG_PLUGIN"
           ! ldd "$MPEG_PLUGIN" | grep -q 'not found'
           ldd "$VORBIS_PLUGIN"
           ! ldd "$VORBIS_PLUGIN" | grep -q 'not found'
+          ldd "$FLAC_PLUGIN"
+          ! ldd "$FLAC_PLUGIN" | grep -q 'not found'
+          ldd "$AAC_PLUGIN"
+          ! ldd "$AAC_PLUGIN" | grep -q 'not found'
 
       - name: Download linuxdeploy
         run: |
@@ -457,6 +469,8 @@ jobs:
 
           test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libmpeg.so' -print -quit)"
           test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libvorbis.so' -print -quit)"
+          test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libflac.so' -print -quit)"
+          test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libaac.so' -print -quit)"
           test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libQt6Sql.so.6' -print -quit)"
 
           # Create the final AppImage with a FUSE 2-independent runtime.
