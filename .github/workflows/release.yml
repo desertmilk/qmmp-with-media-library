@@ -486,7 +486,8 @@ jobs:
             -DUSE_QTMULTIMEDIA=TRUE \
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
-            -DQMMP_DEFAULT_UI=qsui
+            -DQMMP_DEFAULT_UI=qsui \
+            -DICONV_LIBRARY="$(brew --prefix libiconv)/lib/libiconv.dylib"
       - name: Build
         run: |
           cd qmmp-src/qmmp/build
@@ -544,6 +545,7 @@ jobs:
             mingw-w64-ucrt-x86_64-libogg
             mingw-w64-ucrt-x86_64-taglib
             mingw-w64-ucrt-x86_64-curl
+            mingw-w64-ucrt-x86_64-libiconv
             mingw-w64-ucrt-x86_64-mpg123
             mingw-w64-ucrt-x86_64-flac
             mingw-w64-ucrt-x86_64-libmpcdec
