@@ -486,7 +486,8 @@ jobs:
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
-            -DICONV_LIBRARY="$(brew --prefix libiconv)/lib/libiconv.dylib"
+            -DICONV_LIBRARY="$(brew --prefix libiconv)/lib/libiconv.dylib" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-L$(brew --prefix libiconv)/lib -liconv"
       - name: Build
         run: |
           cd qmmp-src/qmmp/build
@@ -558,7 +559,7 @@ jobs:
             mingw-w64-ucrt-x86_64-libcddb
             mingw-w64-ucrt-x86_64-faad2
             mingw-w64-ucrt-x86_64-opus
-            mingw-w64-ucrt-x86_64-sidplayfp
+            mingw-w64-ucrt-x86_64-libsidplayfp
             mingw-w64-ucrt-x86_64-libbs2b
             mingw-w64-ucrt-x86_64-libprojectm
             mingw-w64-ucrt-x86_64-libarchive
@@ -585,8 +586,7 @@ jobs:
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
-            -DQMMP_DEFAULT_OUTPUT=wasapi \
-            -DCMAKE_SHARED_LINKER_FLAGS="-liconv"
+            -DQMMP_DEFAULT_OUTPUT=wasapi
 
       - name: Build
         run: |
