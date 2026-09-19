@@ -25,6 +25,7 @@
 #include <QLabel>
 #include <qmmp/qmmp.h>
 #include "librarymodel.h"
+#include "librarysettingsdialog.h"
 #include "ui_librarywidget.h"
 #include "librarywidget.h"
 
@@ -61,6 +62,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     viewMenu->addAction(tr("Unrated"), this, &LibraryWidget::setUnratedView);
 
     m_filterAction = m_menu->addAction(tr("Quick Search"), m_ui->filterLineEdit, &QLineEdit::setVisible);
+    m_menu->addAction(QIcon::fromTheme(u"preferences-system"_s), tr("&Library Settings"), this, &LibraryWidget::showSettings);
     m_menu->addAction(tr("&Library Information"), this, &LibraryWidget::showLibraryInformation);
     m_filterAction->setCheckable(true);
 
@@ -152,6 +154,12 @@ void LibraryWidget::showTrackInformation()
 void LibraryWidget::showLibraryInformation()
 {
     m_model->showLibraryInformation(qApp->activeWindow());
+}
+
+void LibraryWidget::showSettings()
+{
+    LibrarySettingsDialog dialog(this);
+    dialog.exec();
 }
 
 void LibraryWidget::setArtistView()
