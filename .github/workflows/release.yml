@@ -508,11 +508,64 @@ jobs:
           cd ${{ github.workspace }}
           tar -czf qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.tar.gz -C staging-macos .
 
+      - name: Create macOS app bundle and DMG
+        run: |
+          APP_BUNDLE=${{ github.workspace }}/Qmmp.app
+          CONTENTS="$APP_BUNDLE/Contents"
+          STAGING=${{ github.workspace }}/staging-macos
+
+          mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources" "$CONTENTS/lib" "$CONTENTS/share"
+          cp "$STAGING/usr/local/bin/qmmp" "$CONTENTS/MacOS/qmmp"
+          chmod +x "$CONTENTS/MacOS/qmmp"
+
+          if [ -d "$STAGING/usr/local/lib" ]; then
+            cp -R "$STAGING/usr/local/lib/." "$CONTENTS/lib/"
+          fi
+          if [ -d "$STAGING/usr/local/share/qmmp" ]; then
+            cp -R "$STAGING/usr/local/share/qmmp" "$CONTENTS/share/"
+          fi
+
+          cat > "$CONTENTS/Info.plist" << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleDisplayName</key>
+              <string>Qmmp</string>
+              <key>CFBundleExecutable</key>
+              <string>qmmp</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.ylsoftware.qmmp</string>
+              <key>CFBundleName</key>
+              <string>Qmmp</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>${{ needs.check-for-updates.outputs.build_date }}</string>
+              <key>CFBundleVersion</key>
+              <string>${{ needs.check-for-updates.outputs.short_sha }}</string>
+          </dict>
+          </plist>
+          EOF
+
+          MACDEPLOYQT="$(brew --prefix qt@6)/bin/macdeployqt"
+          test -x "$MACDEPLOYQT"
+          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -dmg
+
+          mv Qmmp.dmg qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.dmg
+          ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" \
+            qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.app.zip
+          test -s qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.dmg
+          test -s qmmp-${{ needs.check-for-updates.outputs.build_date }}-macos-arm64.app.zip
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: qmmp-macos
-          path: qmmp-*-macos-arm64.tar.gz
+          path: |
+            qmmp-*-macos-arm64.tar.gz
+            qmmp-*-macos-arm64.dmg
+            qmmp-*-macos-arm64.app.zip
           retention-days: 7
 
   # ==========================================================================
@@ -643,7 +696,7 @@ jobs:
       - name: List downloaded artifacts
         run: |
           echo "=== Downloaded Artifacts ==="
-          find artifacts -type f \( -name "*.tar.gz" -o -name "*.7z" -o -name "*.AppImage" \) | sort
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.7z" -o -name "*.AppImage" -o -name "*.dmg" -o -name "*.app.zip" \) | sort
           echo "============================"
 
       - name: Get recent changes
@@ -686,7 +739,7 @@ jobs:
           # Collect all archive files
           ARCHIVES=""
           for artifact_dir in artifacts/*/; do
-            for file in "${artifact_dir}"*.tar.gz "${artifact_dir}"*.7z "${artifact_dir}"*.AppImage; do
+            for file in "${artifact_dir}"*.tar.gz "${artifact_dir}"*.7z "${artifact_dir}"*.AppImage "${artifact_dir}"*.dmg "${artifact_dir}"*.app.zip; do
               if [ -f "$file" ]; then
                 ARCHIVES="${ARCHIVES} ${file}"
               fi
@@ -737,6 +790,8 @@ jobs:
           | Architecture | File |
           |--------------|------|
           | Apple Silicon (ARM64) | \`qmmp-*-macos-arm64.tar.gz\` |
+          | Apple Silicon (ARM64) | \`qmmp-*-macos-arm64.dmg\` |
+          | Apple Silicon (ARM64) | \`qmmp-*-macos-arm64.app.zip\` |
           
           ### 🪟 Windows
           
@@ -789,6 +844,14 @@ jobs:
           
           ### macOS
           \`\`\`bash
+          # Open the DMG and drag Qmmp.app to Applications
+          open qmmp-*-macos-arm64.dmg
+
+          # Or extract and run the app bundle directly
+          unzip qmmp-*-macos-arm64.app.zip
+          open Qmmp.app
+
+          # Legacy Unix-style installation
           tar -xzf qmmp-*-macos-arm64.tar.gz
           sudo cp -r usr/local/* /usr/local/
           \`\`\`
