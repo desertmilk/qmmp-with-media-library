@@ -382,13 +382,17 @@ void Library::addDirectory(const QString &s)
             QStringList paths;
             const QList<TrackInfo> pl = MetaDataManager::instance()->createPlayList(info.absoluteFilePath(), TrackInfo::AllParts, &paths);
 
+            //save local file path
             for(const TrackInfo &t : std::as_const(pl))
                 tracks << qMakePair(t, info.absoluteFilePath());
             ignoredPaths << paths;
+
         }
 
         if(m_stopped)
+        {
             return;
+        }
     }
 
     removeIgnoredTracks(&tracks, ignoredPaths);
@@ -396,8 +400,10 @@ void Library::addDirectory(const QString &s)
     for(const auto &t : std::as_const(tracks))
         addTrack(t.first, t.second);
 
+
     updateIgnoredFiles(ignoredPaths);
 
+    //filter directories
     dir.setFilter(QDir::Dirs | QDir::NoDotAndDotDot);
     dir.setSorting(QDir::Name);
     l.clear();
@@ -435,9 +441,9 @@ void Library::removeMissingFiles(const QStringList &paths)
 
         previousPath = path;
 
-        if(!QFile::exists(path) ||
+        if(!QFile::exists(path) || //remove missing or disabled file paths
                 !std::any_of(paths.cbegin(), paths.cend(), [path](const QString &p){ return path.startsWith(p); } ) ||
-                (!url.contains(u"://"_s) && m_ignoredFiles.contains(url)))
+                (!url.contains(u"://"_s) && m_ignoredFiles.contains(url))) //remove ignored files
         {
             qCDebug(plugin, "removing '%s' from library", qPrintable(path));
             QSqlQuery rmQuery(db);
@@ -461,7 +467,7 @@ void Library::removeMissingFiles(const QStringList &paths)
     {
         QString path = query.value(0).toString();
 
-        if(!QFile::exists(path) ||
+        if(!QFile::exists(path) || //remove missing or disabled file paths
                 !std::any_of(paths.cbegin(), paths.cend(), [path](const QString &p){ return path.startsWith(p); } ))
         {
             qCDebug(plugin, "removing '%s' from ignored files", qPrintable(path));
