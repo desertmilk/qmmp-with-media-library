@@ -52,6 +52,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     if(dialog)
         setObjectName(u"MediaLibrary"_s);
     m_ui->setupUi(this);
+    m_ui->filterLineEdit->addAction(QIcon::fromTheme(u"edit-find"_s), QLineEdit::LeadingPosition);
     m_model = new LibraryModel(this);
     m_ui->treeView->setModel(m_model);
     connect(m_ui->treeView, &QTreeView::doubleClicked, this, &LibraryWidget::playSelected);
@@ -224,12 +225,10 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
     painter.drawTiledPixmap(0, 0, width, 20, m_skinPlaylist.copy(127, 0, 25, 20));
     painter.drawPixmap(0, 0, m_skinPlaylist.copy(0, 0, 25, 20));
     painter.drawPixmap(width - 25, 0, m_skinPlaylist.copy(153, 0, 25, 20));
-    painter.drawPixmap(width - 22, 6,
-                      m_skinPlaylist.copy(m_shadePressed ? 62 : 158,
-                                          m_shadePressed ? 42 : 3, 9, 9));
-    painter.drawPixmap(width - 13, 6,
-                      m_skinPlaylist.copy(m_closePressed ? 52 : 167,
-                                          m_closePressed ? 42 : 3, 9, 9));
+    if(m_shadePressed)
+        painter.drawPixmap(width - 22, 6, m_skinPlaylist.copy(62, 42, 9, 9));
+    if(m_closePressed)
+        painter.drawPixmap(width - 13, 6, m_skinPlaylist.copy(52, 42, 9, 9));
     const QString title = tr("Media Library").toLower();
     const int titleWidth = title.size() * 5;
     int x = (width - titleWidth) / 2;

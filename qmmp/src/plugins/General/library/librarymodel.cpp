@@ -566,10 +566,14 @@ void LibraryModel::replaceFiltered()
     if(tracks.isEmpty())
         return;
 
+    MediaPlayer::instance()->stop();
     PlayListManager *manager = PlayListManager::instance();
     PlayListModel *model = manager->selectedPlayList();
     model->clear();
     model->addTracks(tracks);
+    model->setCurrent(0);
+    manager->activateSelectedPlayList();
+    MediaPlayer::instance()->play();
 }
 
 void LibraryModel::replaceAndPlay(const QModelIndex &index)
@@ -760,6 +764,16 @@ QList<PlayListTrack *> LibraryModel::getFilteredTracks() const
     QList<PlayListTrack *> tracks;
     if(!db.isOpen())
         return tracks;
+
+    if(m_viewMode == TrackView)
+    {
+        for(int row = 0; row < m_rootItem->children.count(); ++row)
+        {
+            const QModelIndex index = createIndex(row, 0, m_rootItem->children.at(row));
+            tracks << getTracks(index);
+        }
+        return tracks;
+    }
 
     QString sql = u"SELECT * from track_library WHERE SearchString LIKE :filter"_s;
     if(m_viewMode == TrackView && !m_artistFilter.isEmpty())

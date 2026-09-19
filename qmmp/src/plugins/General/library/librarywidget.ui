@@ -27,6 +27,12 @@
     <number>26</number>
    </property>
    <item>
+    <widget class="QLineEdit" name="filterLineEdit">
+     <property name="placeholderText"><string>Search...</string></property>
+     <property name="clearButtonEnabled"><bool>true</bool></property>
+    </widget>
+   </item>
+   <item>
     <widget class="QSplitter" name="contentSplitter">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -85,12 +91,6 @@
      </widget>
     </widget>
    </item>
-   <item>
-      <widget class="QLineEdit" name="filterLineEdit">
-       <property name="placeholderText"><string>Filter artists, albums and tracks</string></property>
-       <property name="clearButtonEnabled"><bool>true</bool></property>
-      </widget>
-      </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="standardButtons">
