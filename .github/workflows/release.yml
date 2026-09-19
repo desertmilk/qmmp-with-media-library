@@ -403,9 +403,9 @@ jobs:
             ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage
 
           test -s ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage
-          cmp -n "$(stat -c%s ${{ github.workspace }}/runtime-x86_64)" \
-            ${{ github.workspace }}/runtime-x86_64 \
-            ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage
+          runtime_version=$(./runtime-x86_64 --appimage-version)
+          appimage_version=$(./qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage --appimage-version)
+          test "$runtime_version" = "$appimage_version"
         env:
           QMAKE: /usr/lib/qt6/bin/qmake
 
