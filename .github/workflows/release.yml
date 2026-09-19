@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: master
+          ref: ${{ github.ref }}
 
       - name: Check for new commits
         id: check
@@ -118,7 +118,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ github.ref }}
           path: qmmp-src
 
       - name: Install required dependencies
@@ -228,7 +228,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ github.ref }}
           path: qmmp-src
 
       - name: Install required dependencies
@@ -430,7 +430,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ github.ref }}
           path: qmmp-src
 
       - name: Install Homebrew dependencies
@@ -449,7 +449,6 @@ jobs:
             libxmp \
             libsndfile \
             wavpack \
-            pipewire \
             ffmpeg \
             libcdio \
             libcddb \
@@ -485,7 +484,8 @@ jobs:
             -DUSE_QTMULTIMEDIA=TRUE \
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
-            -DQMMP_DEFAULT_UI=qsui
+            -DQMMP_DEFAULT_UI=qsui \
+            -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-needed_library,$(brew --prefix libiconv)/lib/libiconv.dylib"
       - name: Build
         run: |
           cd qmmp-src/qmmp/build
@@ -522,7 +522,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ github.ref }}
           path: qmmp-src
 
       - name: Setup MSYS2 with UCRT64
@@ -625,7 +625,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: master
+          ref: ${{ github.ref }}
           fetch-depth: 0
 
       - name: Download all artifacts
