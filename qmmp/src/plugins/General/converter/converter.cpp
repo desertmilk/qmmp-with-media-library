@@ -32,6 +32,7 @@
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 #include <taglib/mpegfile.h>
+#include <taglib/tversion.h>
 #include "converter.h"
 
 Converter::Converter(QObject *parent) : QObject(parent), QRunnable()
