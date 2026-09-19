@@ -10,6 +10,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QImage>
 #include <QSettings>
 #include <qmmp/qmmp.h>
 #include "qmmpuiskin.h"
@@ -33,4 +34,37 @@ QString QmmpUiSkin::filePath(const QString &fileName)
         return QDir(skinPath).filePath(fileName);
 
     return QDir(Qmmp::cacheDir() + u"/skinned/skin"_s).filePath(fileName);
+}
+
+QColor QmmpUiSkin::backgroundColor()
+{
+    const QImage image(filePath(u"text.png"_s));
+    return image.isNull() ? QColor() : QColor::fromRgb(image.pixel(144, 3));
+}
+
+QColor QmmpUiSkin::foregroundColor()
+{
+    const QImage image(filePath(u"text.png"_s));
+    if(image.isNull())
+        return QColor();
+
+    const QRgb background = image.pixel(144, 3);
+    QRgb foreground = 0;
+    uint difference = 0;
+    for(int x = 0; x < image.width(); ++x)
+    {
+        for(int y = 0; y < image.height(); ++y)
+        {
+            const QRgb color = image.pixel(x, y);
+            const uint currentDifference = qAbs(qRed(background) - qRed(color)) +
+                    qAbs(qGreen(background) - qGreen(color)) +
+                    qAbs(qBlue(background) - qBlue(color));
+            if(currentDifference > difference)
+            {
+                difference = currentDifference;
+                foreground = color;
+            }
+        }
+    }
+    return QColor::fromRgb(foreground);
 }

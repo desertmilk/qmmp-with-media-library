@@ -127,20 +127,35 @@ void LibraryWidget::applyPalette()
 {
     const QPalette applicationPalette = qApp->palette();
     QPalette panelPalette = applicationPalette;
-    panelPalette.setColor(QPalette::Window,
-                          applicationPalette.color(QPalette::Base));
-    panelPalette.setColor(QPalette::WindowText,
-                          applicationPalette.color(QPalette::Text));
+    const QColor background = QmmpUiSkin::backgroundColor();
+    const QColor foreground = QmmpUiSkin::foregroundColor();
+    if(QmmpUiSkin::isSkinnedUi() && background.isValid() && foreground.isValid())
+    {
+        panelPalette.setColor(QPalette::Window, background);
+        panelPalette.setColor(QPalette::WindowText, foreground);
+        panelPalette.setColor(QPalette::Base, background);
+        panelPalette.setColor(QPalette::Text, foreground);
+        panelPalette.setColor(QPalette::AlternateBase, background.lighter(115));
+        panelPalette.setColor(QPalette::Button, background);
+        panelPalette.setColor(QPalette::ButtonText, foreground);
+    }
+    else
+    {
+        panelPalette.setColor(QPalette::Window,
+                              applicationPalette.color(QPalette::Base));
+        panelPalette.setColor(QPalette::WindowText,
+                              applicationPalette.color(QPalette::Text));
+    }
 
     setPalette(panelPalette);
     m_ui->artistsPanel->setPalette(panelPalette);
     m_ui->albumsPanel->setPalette(panelPalette);
     m_ui->artistsLabel->setPalette(panelPalette);
     m_ui->albumsLabel->setPalette(panelPalette);
-    m_ui->filterLineEdit->setPalette(applicationPalette);
-    m_ui->artistsTableView->setPalette(applicationPalette);
-    m_ui->albumsTableView->setPalette(applicationPalette);
-    m_ui->treeView->setPalette(applicationPalette);
+    m_ui->filterLineEdit->setPalette(panelPalette);
+    m_ui->artistsTableView->setPalette(panelPalette);
+    m_ui->albumsTableView->setPalette(panelPalette);
+    m_ui->treeView->setPalette(panelPalette);
 }
 
 bool LibraryWidget::loadSkinChrome()
@@ -166,8 +181,8 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
     QPainter painter(this);
     const int width = qMax(275, this->width());
     painter.drawTiledPixmap(0, 0, width, 20, m_skinPlaylist.copy(127, 0, 25, 20));
-    painter.drawPixmap(0, 0, m_skinPlaylist.copy(26, 0, 100, 20));
-    painter.drawPixmap(width - 100, 0, m_skinPlaylist.copy(26, 0, 100, 20));
+    painter.drawPixmap(0, 0, m_skinPlaylist.copy(0, 0, 25, 20));
+    painter.drawPixmap(width - 25, 0, m_skinPlaylist.copy(153, 0, 25, 20));
     painter.drawPixmap(width - 13, 6, m_skinPlaylist.copy(167, 3, 9, 9));
     painter.setPen(Qt::white);
     painter.drawText(8, 14, tr("Media Library"));
@@ -221,6 +236,20 @@ void LibraryWidget::mouseMoveEvent(QMouseEvent *event)
                 position.setX(available.right() - width() + 1);
             if(qAbs(position.y() + height() - available.bottom() - 1) < snapDistance)
                 position.setY(available.bottom() - height() + 1);
+
+            QWidget *anchor = parentWidget() ? parentWidget()->window() : nullptr;
+            if(anchor && anchor != this && anchor->isVisible())
+            {
+                const QRect anchorGeometry = anchor->frameGeometry();
+                if(qAbs(position.x() - anchorGeometry.left()) < snapDistance)
+                    position.setX(anchorGeometry.left());
+                if(qAbs(position.y() - anchorGeometry.top()) < snapDistance)
+                    position.setY(anchorGeometry.top());
+                if(qAbs(position.x() + width() - anchorGeometry.right() - 1) < snapDistance)
+                    position.setX(anchorGeometry.right() - width() + 1);
+                if(qAbs(position.y() + height() - anchorGeometry.bottom() - 1) < snapDistance)
+                    position.setY(anchorGeometry.bottom() - height() + 1);
+            }
         }
         move(position);
         event->accept();

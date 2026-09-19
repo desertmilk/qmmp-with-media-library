@@ -12,6 +12,7 @@
 #define QMMPUISKIN_H
 
 #include "qmmpui_export.h"
+#include <QColor>
 #include <QString>
 
 class QMMPUI_EXPORT QmmpUiSkin
@@ -20,6 +21,8 @@ public:
     static bool isSkinnedUi();
     static QString currentSkinPath();
     static QString filePath(const QString &fileName);
+    static QColor backgroundColor();
+    static QColor foregroundColor();
 };
 
 #endif // QMMPUISKIN_H
