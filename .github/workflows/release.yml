@@ -332,12 +332,12 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
           
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage
-          chmod +x linuxdeploy-plugin-appimage-x86_64.AppImage
-
           # Use a statically linked runtime so the produced AppImage does not require libfuse.so.2 on the target system.
           wget -q https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
           chmod +x runtime-x86_64
+
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
 
       - name: Create AppImage
         run: |
@@ -375,37 +375,26 @@ jobs:
           export QT_PLUGIN_PATH=/usr/lib/qt6/plugins
           export EXTRA_QT_PLUGINS="multimedia,multimediawidgets"
           export DEPLOY_GSTREAMER_PLUGINS="1"
-          export LDAI_RUNTIME_FILE=${{ github.workspace }}/runtime-x86_64
           
-          # Create AppImage (with EXTRA_QT_PLUGINS for multimedia)
+          # Deploy dependencies and plugins into AppDir. AppImage creation is done separately below so the custom runtime is always selected.
           ./linuxdeploy-x86_64.AppImage \
             --appdir ${{ github.workspace }}/AppDir \
             --plugin qt \
-            --plugin appimage \
             -e ${{ github.workspace }}/AppDir/usr/bin/qmmp \
             -d ${{ github.workspace }}/AppDir/qmmp.desktop \
             -i ${{ github.workspace }}/AppDir/qmmp.png \
-            --output appimage \
-            -v2 \
-            || true
-          
-          # Find and rename the created AppImage
-          APPIMAGE_FILE=$(find . -maxdepth 1 -name "Qmmp*.AppImage" -o -name "qmmp*.AppImage" 2>/dev/null | head -1)
-          if [ -n "$APPIMAGE_FILE" ]; then
-            mv "$APPIMAGE_FILE" "qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage"
-          fi
-          
-          # If no AppImage was created, create a simple one from AppDir
-          if [ ! -f "qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage" ]; then
-            echo "linuxdeploy failed, creating minimal AppImage..."
-            cd ${{ github.workspace }}/AppDir
-            wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-            chmod +x appimagetool-x86_64.AppImage
-            ./appimagetool-x86_64.AppImage --no-appstream \
-              --runtime-file ${{ github.workspace }}/runtime-x86_64 \
-              ${{ github.workspace }}/AppDir \
-              ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage || true
-          fi
+            -v2
+
+          # Create the final AppImage with a FUSE 2-independent runtime.
+          ./appimagetool-x86_64.AppImage --no-appstream \
+            --runtime-file ${{ github.workspace }}/runtime-x86_64 \
+            ${{ github.workspace }}/AppDir \
+            ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage
+
+          test -s ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage
+          cmp -n "$(stat -c%s ${{ github.workspace }}/runtime-x86_64)" \
+            ${{ github.workspace }}/runtime-x86_64 \
+            ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage
         env:
           LD_LIBRARY_PATH: ${{ github.workspace }}/AppDir/usr/lib:${{ github.workspace }}/AppDir/usr/lib/qmmp-*
           QMAKE: /usr/lib/qt6/bin/qmake
