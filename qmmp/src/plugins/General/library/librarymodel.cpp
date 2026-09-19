@@ -4,8 +4,8 @@
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
+ *   the Free Software Foundation; either version 2 or (at your option)    *
+ *   any later version.                                                     *
  *                                                                         *
  *   This program is distributed in the hope that it will be useful,       *
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
@@ -50,6 +50,8 @@ public:
     void clear()
     {
         name.clear();
+        id = -1;
+        year = 0;
         type = Qmmp::UNKNOWN;
         parent = nullptr;
         qDeleteAll(children);
@@ -57,6 +59,7 @@ public:
     }
 
     QString name;
+    qint64 id = -1;
     int year = 0;
     Qmmp::MetaData type = Qmmp::UNKNOWN;
     QList<LibraryTreeItem *> children;
@@ -168,11 +171,11 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
         QSqlQuery query(db);
         if(m_filter.isEmpty())
         {
-            query.prepare(u"SELECT Title from track_library WHERE Artist = :artist AND Album = :album"_s);
+            query.prepare(u"SELECT ID, Title from track_library WHERE Artist = :artist AND Album = :album"_s);
         }
         else
         {
-            query.prepare(u"SELECT Title from track_library WHERE Artist = :artist AND Album = :album "
+            query.prepare(u"SELECT ID, Title from track_library WHERE Artist = :artist AND Album = :album "
                           "AND SearchString LIKE :filter"_s);
             query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
         }
@@ -188,6 +191,7 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
         while(query.next())
         {
             LibraryTreeItem *item = new LibraryTreeItem;
+            item->id = query.value(u"ID"_s).toLongLong();
             item->name = query.value(u"Title"_s).toString();
             item->type = Qmmp::TITLE;
             item->parent = parentItem;
@@ -228,7 +232,7 @@ QModelIndex LibraryModel::index(int row, int column, const QModelIndex &parent) 
         return QModelIndex();
 
     LibraryTreeItem *parentItem = parent.isValid() ? static_cast<LibraryTreeItem *>(parent.internalPointer()) :
-                                                     m_rootItem;
+                                                      m_rootItem;
 
     if(row >= 0 && row < parentItem->children.count())
         return createIndex(row, column, parentItem->children.at(row));
@@ -424,10 +428,8 @@ QList<PlayListTrack *> LibraryModel::getTracks(const QModelIndex &index) const
     if(item->type == Qmmp::TITLE)
     {
         QSqlQuery query(db);
-        query.prepare(u"SELECT * from track_library WHERE Artist = :artist AND Album = :album AND Title = :title"_s);
-        query.bindValue(u":artist"_s, item->parent->parent->name);
-        query.bindValue(u":album"_s, item->parent->name);
-        query.bindValue(u":title"_s, item->name);
+        query.prepare(u"SELECT * from track_library WHERE ID = :id"_s);
+        query.bindValue(u":id"_s, item->id);
 
         if(!query.exec())
         {
