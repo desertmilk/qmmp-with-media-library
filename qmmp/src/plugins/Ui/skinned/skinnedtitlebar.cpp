@@ -91,6 +91,11 @@ void SkinnedTitleBar::mousePressEvent(QMouseEvent* event)
     {
     case Qt::LeftButton:
         m_pos = event->pos();
+        for(QWidget *widget : qApp->topLevelWidgets())
+        {
+            if(widget->objectName() == u"MediaLibrary"_s && widget->isWindow() && widget->isVisible())
+                Dock::instance()->addWidget(widget);
+        }
         Dock::instance()->calculateDistances();
         Dock::instance()->updateDock();
         break;
