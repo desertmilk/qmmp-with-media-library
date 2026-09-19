@@ -487,7 +487,8 @@ jobs:
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
-            -DICONV_LIBRARY="$(brew --prefix libiconv)/lib/libiconv.dylib"
+            -DICONV_LIBRARY="$(brew --prefix libiconv)/lib/libiconv.dylib" \
+            -DCMAKE_SHARED_LINKER_FLAGS="-L$(brew --prefix libiconv)/lib -liconv"
       - name: Build
         run: |
           cd qmmp-src/qmmp/build
@@ -586,7 +587,8 @@ jobs:
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
-            -DQMMP_DEFAULT_OUTPUT=wasapi
+            -DQMMP_DEFAULT_OUTPUT=wasapi \
+            -DCMAKE_SHARED_LINKER_FLAGS="-liconv"
 
       - name: Build
         run: |
