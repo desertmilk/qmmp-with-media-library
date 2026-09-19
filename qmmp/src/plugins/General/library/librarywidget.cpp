@@ -59,10 +59,16 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_artistsModel = new QStandardItemModel(this);
         m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
         m_ui->artistsTableView->setModel(m_artistsModel);
+            m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+            m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+            m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
             m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
         m_albumsModel->setHorizontalHeaderLabels({tr("Album"), tr("Year"), tr("Tracks")});
         m_ui->albumsTableView->setModel(m_albumsModel);
+            m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+            m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+            m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
         m_ui->albumsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &LibraryWidget::refreshAlbums);
@@ -169,6 +175,7 @@ void LibraryWidget::applyPalette()
             QFont skinFont = font();
             skinFont.setFamily(fontFamily);
             setFont(skinFont);
+            m_ui->filterLineEdit->setFont(skinFont);
         }
     }
     else
@@ -188,6 +195,8 @@ void LibraryWidget::applyPalette()
         QPalette filterPalette = panelPalette;
         filterPalette.setColor(QPalette::Base, background.lighter(130));
         filterPalette.setColor(QPalette::AlternateBase, background.lighter(130));
+        if(foreground.isValid())
+            filterPalette.setColor(QPalette::PlaceholderText, foreground);
         m_ui->filterLineEdit->setPalette(filterPalette);
     }
     m_ui->artistsTableView->setPalette(panelPalette);
