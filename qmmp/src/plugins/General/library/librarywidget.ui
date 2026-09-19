@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>423</width>
-    <height>394</height>
+    <width>640</width>
+    <height>420</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,9 +25,9 @@
    </property>
    <item>
     <widget class="QLineEdit" name="filterLineEdit">
-         <property name="placeholderText">
-            <string>Search artists, albums and tracks</string>
-         </property>
+     <property name="placeholderText">
+      <string>Search artists, albums and tracks</string>
+     </property>
      <property name="clearButtonEnabled">
       <bool>true</bool>
      </property>
@@ -35,6 +35,18 @@
    </item>
    <item>
     <widget class="QTreeView" name="treeView">
+     <property name="alternatingRowColors">
+      <bool>true</bool>
+     </property>
+     <property name="uniformRowHeights">
+      <bool>true</bool>
+     </property>
+     <property name="rootIsDecorated">
+      <bool>true</bool>
+     </property>
+     <property name="sortingEnabled">
+      <bool>false</bool>
+     </property>
      <property name="dragEnabled">
       <bool>true</bool>
      </property>
@@ -45,7 +57,10 @@
       <enum>QAbstractItemView::ExtendedSelection</enum>
      </property>
      <attribute name="headerVisible">
-      <bool>false</bool>
+      <bool>true</bool>
+     </attribute>
+     <attribute name="headerDefaultSectionSize">
+      <number>150</number>
      </attribute>
     </widget>
    </item>
