@@ -44,6 +44,7 @@ public:
     QAction *showAction() const;
 
 private slots:
+    void startDirectoryScanning();
     void showLibraryWindow();
     void onPlaybackStateChanged(Qmmp::State state);
 

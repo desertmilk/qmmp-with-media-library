@@ -481,7 +481,7 @@ void LibraryModel::showLibraryInformation(QWidget *parent)
         tr("Number of artists: <b>%1</b>").arg(artists),
         tr("Total duration: <b>%1</b>").arg(durationText),
         tr("Total plays: <b>%1</b>").arg(totalPlays),
-        tr("Latest play: <b>%1</b>").arg(lastPlayed > 0 ? QDateTime::fromMSecsSinceEpoch(lastPlayed).toString(Qt::DefaultLocaleShortDate) : tr("Never")),
+        tr("Latest play: <b>%1</b>").arg(lastPlayed > 0 ? QLocale().toString(QDateTime::fromMSecsSinceEpoch(lastPlayed), QLocale::ShortFormat) : tr("Never")),
     };
 
     QMessageBox::information(parent, tr("Library Information"), lines.join(u"<br>"_s));
@@ -602,6 +602,5 @@ PlayListTrack *LibraryModel::createTrack(const QSqlQuery &query) const
     track->setValue(Qmmp::FORMAT_NAME, obj.value(u"formatName"_s).toString());
     track->setValue(Qmmp::DECODER, obj.value(u"decoder"_s).toString());
     track->setValue(Qmmp::FILE_SIZE, qint64(obj.value(u"fileSize"_s).toDouble()));
-    track->setValue(Qmmp::COMMENTS, query.value(u"PlayCount"_s).toString());
     return track;
 }
