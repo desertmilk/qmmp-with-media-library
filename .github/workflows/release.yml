@@ -276,6 +276,7 @@ jobs:
             qt6-l10n-tools \
             libgl1-mesa-dev \
             libmad0-dev \
+            libmpg123-dev \
             libvorbis-dev \
             libogg-dev \
             libasound2-dev \
@@ -287,7 +288,6 @@ jobs:
       - name: Install optional dependencies
         run: |
           sudo apt-get install -y \
-            libmpg123-dev \
             qtmultimedia6-dev \
             libflac-dev \
             libmpcdec-dev \
