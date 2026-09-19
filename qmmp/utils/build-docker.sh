@@ -33,7 +33,7 @@ docker run --rm \
         cmake -S /worktree -B "$QMMP_BUILD_DIR" -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DUSE_LIBRARY=ON \
-            -DUSE_SKINNED=OFF \
+            -DUSE_SKINNED=ON \
             -DUSE_ALSA=OFF \
             -DUSE_FFMPEG=OFF \
             -DUSE_MPG123=ON \

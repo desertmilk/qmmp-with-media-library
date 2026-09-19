@@ -133,7 +133,11 @@ void SndFileMetaDataModel::setCover(const QImage &img)
     tag->addFrame(frame);
 
     if(m_wavFile)
+#if TAGLIB_MAJOR_VERSION >= 2
+        m_wavFile->save(TagLib::RIFF::WAV::File::ID3v2, TagLib::StripNone, TagLib::ID3v2::v4);
+#else
         m_wavFile->save(TagLib::RIFF::WAV::File::ID3v2, TagLib::File::StripNone, TagLib::ID3v2::v4);
+#endif
     else if(m_aiffFile)
         m_aiffFile->save(TagLib::ID3v2::v4);
 }
@@ -143,7 +147,11 @@ void SndFileMetaDataModel::removeCover()
     if(m_wavFile && m_wavFile->ID3v2Tag())
     {
         m_wavFile->ID3v2Tag()->removeFrames("APIC");
+    #if TAGLIB_MAJOR_VERSION >= 2
+        m_wavFile->save(TagLib::RIFF::WAV::File::ID3v2, TagLib::StripNone, TagLib::ID3v2::v4);
+    #else
         m_wavFile->save(TagLib::RIFF::WAV::File::ID3v2, TagLib::File::StripNone, TagLib::ID3v2::v4);
+    #endif
     }
     else if(m_aiffFile)
     {
@@ -311,7 +319,11 @@ void SndFileTagModel::save()
     if(m_tag)
     {
         if(m_wavFile)
+    #if TAGLIB_MAJOR_VERSION >= 2
+            m_wavFile->save(TagLib::RIFF::WAV::File::ID3v2, TagLib::StripNone, TagLib::ID3v2::v4);
+    #else
             m_wavFile->save(TagLib::RIFF::WAV::File::ID3v2, TagLib::File::StripNone, TagLib::ID3v2::v4);
+    #endif
         else if(m_aiffFile)
             m_aiffFile->save(TagLib::ID3v2::v4);
     }
