@@ -39,12 +39,33 @@
 #include <QItemSelectionModel>
 #include <QAbstractItemView>
 #include <QTableView>
+#include <QSortFilterProxyModel>
 #include <qmmp/qmmp.h>
 #include <qmmpui/qmmpuiskin.h>
 #include "librarymodel.h"
 #include "librarysettingsdialog.h"
 #include "ui_librarywidget.h"
 #include "librarywidget.h"
+
+class LibrarySummarySortModel : public QSortFilterProxyModel
+{
+public:
+    using QSortFilterProxyModel::QSortFilterProxyModel;
+
+protected:
+    bool lessThan(const QModelIndex &left, const QModelIndex &right) const override
+    {
+        const bool leftIsAll = left.row() == 0;
+        const bool rightIsAll = right.row() == 0;
+        if(leftIsAll != rightIsAll)
+            return leftIsAll;
+
+        if(left.column() == 1 || left.column() == 2)
+            return left.data().toInt() < right.data().toInt();
+
+        return QString::localeAwareCompare(left.data().toString(), right.data().toString()) < 0;
+    }
+};
 
 LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     QWidget(parent),
@@ -59,26 +80,36 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     connect(m_ui->treeView, &QTreeView::doubleClicked, this, &LibraryWidget::playSelected);
         m_artistsModel = new QStandardItemModel(this);
         m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
-        m_ui->artistsTableView->setModel(m_artistsModel);
+        m_artistsProxy = new LibrarySummarySortModel(this);
+        m_artistsProxy->setSourceModel(m_artistsModel);
+        m_ui->artistsTableView->setModel(m_artistsProxy);
         m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
         m_ui->artistsTableView->horizontalHeader()->setStretchLastSection(false);
+        m_ui->artistsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         m_ui->artistsTableView->installEventFilter(this);
         connect(m_ui->artistsTableView->horizontalHeader(), &QHeaderView::sectionResized,
             this, [this](int column, int oldSize, int newSize)
             {
-                redistributeSummaryColumn(m_ui->artistsTableView, column, oldSize, newSize);
+                Q_UNUSED(oldSize);
+                Q_UNUSED(newSize);
+                adjustSummaryColumnSpace(m_ui->artistsTableView, column);
             });
             m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
         m_albumsModel->setHorizontalHeaderLabels({tr("Album"), tr("Year"), tr("Tracks")});
-        m_ui->albumsTableView->setModel(m_albumsModel);
+        m_albumsProxy = new LibrarySummarySortModel(this);
+        m_albumsProxy->setSourceModel(m_albumsModel);
+        m_ui->albumsTableView->setModel(m_albumsProxy);
         m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
         m_ui->albumsTableView->horizontalHeader()->setStretchLastSection(false);
+        m_ui->albumsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         m_ui->albumsTableView->installEventFilter(this);
         connect(m_ui->albumsTableView->horizontalHeader(), &QHeaderView::sectionResized,
             this, [this](int column, int oldSize, int newSize)
             {
-                redistributeSummaryColumn(m_ui->albumsTableView, column, oldSize, newSize);
+                Q_UNUSED(oldSize);
+                Q_UNUSED(newSize);
+                adjustSummaryColumnSpace(m_ui->albumsTableView, column);
             });
         m_ui->albumsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
@@ -409,7 +440,7 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
     if((watched == m_ui->artistsTableView || watched == m_ui->albumsTableView) &&
             event->type() == QEvent::Resize)
     {
-        distributeSummaryColumnSpace(static_cast<QTableView *>(watched));
+        adjustSummaryColumnSpace(static_cast<QTableView *>(watched));
     }
     if(watched == m_resizeWidget && event->type() == QEvent::MouseButtonPress)
     {
@@ -435,62 +466,47 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
     return QWidget::eventFilter(watched, event);
 }
 
-void LibraryWidget::distributeSummaryColumnSpace(QTableView *tableView)
+void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn)
 {
     if(m_distributingColumnSpace)
         return;
 
     QHeaderView *header = tableView->horizontalHeader();
-    const int extra = tableView->viewport()->width() - header->length();
-    if(extra == 0 || header->count() == 0)
-        return;
-
-    int totalWidth = 0;
-    for(int column = 0; column < header->count(); ++column)
-        totalWidth += header->sectionSize(column);
-    if(totalWidth <= 0)
+    const int difference = tableView->viewport()->width() - header->length();
+    if(difference == 0 || header->count() == 0)
         return;
 
     m_distributingColumnSpace = true;
-    int distributed = 0;
-    for(int column = 0; column < header->count(); ++column)
+    if(difference > 0)
     {
-        const int share = column == header->count() - 1 ? extra - distributed :
-                    extra * header->sectionSize(column) / totalWidth;
-        header->resizeSection(column, qMax(0, header->sectionSize(column) + share));
-        distributed += share;
+        int widestColumn = 0;
+        for(int column = 1; column < header->count(); ++column)
+        {
+            if(header->sectionSize(column) > header->sectionSize(widestColumn))
+                widestColumn = column;
+        }
+        header->resizeSection(widestColumn, header->sectionSize(widestColumn) + difference);
     }
-    m_distributingColumnSpace = false;
-}
-
-void LibraryWidget::redistributeSummaryColumn(QTableView *tableView, int column,
-                                               int oldSize, int newSize)
-{
-    if(m_distributingColumnSpace || oldSize == newSize)
-        return;
-
-    QHeaderView *header = tableView->horizontalHeader();
-    const int delta = newSize - oldSize;
-    int otherWidth = 0;
-    for(int other = 0; other < header->count(); ++other)
+    else
     {
-        if(other != column)
-            otherWidth += header->sectionSize(other);
-    }
-    if(otherWidth <= 0)
-        return;
-
-    m_distributingColumnSpace = true;
-    int redistributed = 0;
-    for(int other = 0; other < header->count(); ++other)
-    {
-        if(other == column)
-            continue;
-        const int available = header->sectionSize(other);
-        const int share = other == header->count() - 1 ? delta - redistributed :
-                    delta * available / otherWidth;
-        header->resizeSection(other, qMax(0, available - share));
-        redistributed += share;
+        int remaining = -difference;
+        while(remaining > 0)
+        {
+            int widestColumn = -1;
+            for(int column = 0; column < header->count(); ++column)
+            {
+                if(column == excludedColumn || header->sectionSize(column) <= header->minimumSectionSize())
+                    continue;
+                if(widestColumn < 0 || header->sectionSize(column) > header->sectionSize(widestColumn))
+                    widestColumn = column;
+            }
+            if(widestColumn < 0)
+                break;
+            const int reduction = qMin(remaining,
+                                       header->sectionSize(widestColumn) - header->minimumSectionSize());
+            header->resizeSection(widestColumn, header->sectionSize(widestColumn) - reduction);
+            remaining -= reduction;
+        }
     }
     m_distributingColumnSpace = false;
 }

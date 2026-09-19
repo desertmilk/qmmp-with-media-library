@@ -40,6 +40,7 @@ class QLabel;
 class LibraryModel;
 class QStandardItemModel;
 class QTableView;
+class QSortFilterProxyModel;
 
 class LibraryWidget : public QWidget
 {
@@ -88,8 +89,7 @@ private:
     void mouseReleaseEvent(QMouseEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
     void applyPalette();
-    void distributeSummaryColumnSpace(QTableView *tableView);
-    void redistributeSummaryColumn(QTableView *tableView, int column, int oldSize, int newSize);
+    void adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn = -1);
     bool loadSkinChrome();
     void toggleShade();
     Ui::LibraryWidget *m_ui;
@@ -100,6 +100,8 @@ private:
     QLabel *m_busyIndicator = nullptr;
     QStandardItemModel *m_artistsModel;
     QStandardItemModel *m_albumsModel;
+    QSortFilterProxyModel *m_artistsProxy;
+    QSortFilterProxyModel *m_albumsProxy;
     QString m_selectedArtist;
     QString m_selectedAlbum;
     QPixmap m_skinPlaylist;
