@@ -51,6 +51,7 @@ public:
 
 signals:
     void closed();
+    void shadedChanged(bool shaded, int delta);
 
 private:
     void closeEvent(QCloseEvent *) override;
@@ -82,6 +83,7 @@ private:
     void mouseReleaseEvent(QMouseEvent *event) override;
     void applyPalette();
     bool loadSkinChrome();
+    void toggleShade();
     Ui::LibraryWidget *m_ui;
     LibraryModel *m_model;
     QMenu *m_menu;

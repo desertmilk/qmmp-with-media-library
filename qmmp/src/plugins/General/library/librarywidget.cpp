@@ -203,7 +203,8 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
     painter.drawTiledPixmap(0, 0, width, 20, m_skinPlaylist.copy(127, 0, 25, 20));
     painter.drawPixmap(0, 0, m_skinPlaylist.copy(0, 0, 25, 20));
     painter.drawPixmap(width - 25, 0, m_skinPlaylist.copy(153, 0, 25, 20));
-    painter.drawPixmap(width - 22, 6, m_skinPlaylist.copy(155, 3, 9, 9));
+    painter.drawPixmap(width - 22, 6, m_skinPlaylist.copy(m_shaded ? 129 : 158,
+                                                          m_shaded ? 45 : 3, 9, 9));
     painter.drawPixmap(width - 13, 6, m_skinPlaylist.copy(167, 3, 9, 9));
     const QString title = tr("Media Library").toLower();
     const int titleWidth = title.size() * 5;
@@ -232,18 +233,7 @@ void LibraryWidget::mousePressEvent(QMouseEvent *event)
         }
         if(event->position().x() >= width() - 29)
         {
-            if(m_shaded)
-            {
-                setMinimumHeight(420);
-                setMaximumHeight(QWIDGETSIZE_MAX);
-                resize(width(), m_unshadedHeight);
-            }
-            else
-            {
-                m_unshadedHeight = height();
-                setFixedHeight(20);
-            }
-            m_shaded = !m_shaded;
+            toggleShade();
             return;
         }
         m_dragging = true;
@@ -337,6 +327,25 @@ void LibraryWidget::mouseReleaseEvent(QMouseEvent *event)
     m_dragging = false;
     m_resizing = false;
     QWidget::mouseReleaseEvent(event);
+}
+
+void LibraryWidget::toggleShade()
+{
+    const int oldHeight = height();
+    if(m_shaded)
+    {
+        setMinimumHeight(420);
+        setMaximumHeight(QWIDGETSIZE_MAX);
+        resize(width(), m_unshadedHeight);
+    }
+    else
+    {
+        m_unshadedHeight = oldHeight;
+        setFixedHeight(20);
+    }
+    m_shaded = !m_shaded;
+    emit shadedChanged(m_shaded, height() - oldHeight);
+    update();
 }
 
 void LibraryWidget::refresh()

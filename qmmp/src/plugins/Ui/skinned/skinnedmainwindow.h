@@ -75,6 +75,7 @@ public slots:
     void updateSettings();
 
 private slots:
+    void shadeMediaLibrary(bool shaded, int delta);
     void showState(Qmmp::State state);
     void showMetaData();
     void showSettings();

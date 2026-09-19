@@ -374,6 +374,12 @@ void SkinnedMainWindow::showAndRaise()
     }
 }
 
+void SkinnedMainWindow::shadeMediaLibrary(bool, int delta)
+{
+    if(QWidget *widget = qobject_cast<QWidget *>(sender()))
+        Dock::instance()->align(widget, delta);
+}
+
 void SkinnedMainWindow::createActions()
 {
     SET_ACTION(SkinnedActionManager::PL_ADD_FILE, this, &SkinnedMainWindow::addFile);
@@ -421,10 +427,17 @@ void SkinnedMainWindow::createActions()
                 if(widget->objectName() == u"MediaLibrary"_s && widget->isWindow())
                 {
                     Dock::instance()->addWidget(widget);
+                    if(!widget->property("mediaLibraryDockSignals").toBool())
+                    {
+                        connect(widget, SIGNAL(shadedChanged(bool,int)), this,
+                                SLOT(shadeMediaLibrary(bool,int)));
+                        widget->setProperty("mediaLibraryDockSignals", true);
+                    }
                     Dock::instance()->updateDock();
                     Dock::instance()->calculateDistances();
                     break;
                 }
+
             }
         });
     }
