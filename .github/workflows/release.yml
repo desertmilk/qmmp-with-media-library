@@ -375,11 +375,17 @@ jobs:
           export QT_PLUGIN_PATH=/usr/lib/qt6/plugins
           export EXTRA_QT_PLUGINS="multimedia,multimediawidgets"
           export DEPLOY_GSTREAMER_PLUGINS="1"
+          export LD_LIBRARY_PATH="${{ github.workspace }}/AppDir/usr/lib:${LD_LIBRARY_PATH:-}"
+
+          test -e ${{ github.workspace }}/AppDir/usr/lib/libqmmp.so.2
+          test -e ${{ github.workspace }}/AppDir/usr/lib/libqmmpui.so.2
           
           # Deploy dependencies and plugins into AppDir. AppImage creation is done separately below so the custom runtime is always selected.
           ./linuxdeploy-x86_64.AppImage \
             --appdir ${{ github.workspace }}/AppDir \
             --plugin qt \
+            --library ${{ github.workspace }}/AppDir/usr/lib/libqmmp.so.2 \
+            --library ${{ github.workspace }}/AppDir/usr/lib/libqmmpui.so.2 \
             -e ${{ github.workspace }}/AppDir/usr/bin/qmmp \
             -d ${{ github.workspace }}/AppDir/qmmp.desktop \
             -i ${{ github.workspace }}/AppDir/qmmp.png \
@@ -396,7 +402,6 @@ jobs:
             ${{ github.workspace }}/runtime-x86_64 \
             ${{ github.workspace }}/qmmp-${{ needs.check-for-updates.outputs.build_date }}-linux-x86_64.AppImage
         env:
-          LD_LIBRARY_PATH: ${{ github.workspace }}/AppDir/usr/lib:${{ github.workspace }}/AppDir/usr/lib/qmmp-*
           QMAKE: /usr/lib/qt6/bin/qmake
 
       - name: List AppDir contents for debugging
