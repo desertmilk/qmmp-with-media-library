@@ -21,6 +21,7 @@ public:
     static bool isSkinnedUi();
     static QString currentSkinPath();
     static QString filePath(const QString &fileName);
+    static QString playlistValue(const QString &key);
     static QColor backgroundColor();
     static QColor foregroundColor();
 };

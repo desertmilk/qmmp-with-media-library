@@ -11,7 +11,9 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QImage>
+#include <QFile>
 #include <QSettings>
+#include <QTextStream>
 #include <qmmp/qmmp.h>
 #include "qmmpuiskin.h"
 
@@ -36,14 +38,44 @@ QString QmmpUiSkin::filePath(const QString &fileName)
     return QDir(Qmmp::cacheDir() + u"/skinned/skin"_s).filePath(fileName);
 }
 
+QString QmmpUiSkin::playlistValue(const QString &key)
+{
+    QFile file(filePath(u"pledit.txt"_s));
+    if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QString();
+
+    QTextStream stream(&file);
+    while(!stream.atEnd())
+    {
+        QString line = stream.readLine().trimmed();
+        line.remove(u'"');
+        const qsizetype comment = line.indexOf(u"//"_s);
+        if(comment >= 0)
+            line.truncate(comment);
+        const qsizetype separator = line.indexOf(u'=');
+        if(separator < 0)
+            continue;
+
+        if(line.left(separator).trimmed().compare(key, Qt::CaseInsensitive) == 0)
+            return line.mid(separator + 1).trimmed();
+    }
+    return QString();
+}
+
 QColor QmmpUiSkin::backgroundColor()
 {
+    const QColor playlistColor = QColor::fromString(playlistValue(u"NormalBG"_s));
+    if(playlistColor.isValid())
+        return playlistColor;
     const QImage image(filePath(u"text.png"_s));
     return image.isNull() ? QColor() : QColor::fromRgb(image.pixel(144, 3));
 }
 
 QColor QmmpUiSkin::foregroundColor()
 {
+    const QColor playlistColor = QColor::fromString(playlistValue(u"Normal"_s));
+    if(playlistColor.isValid())
+        return playlistColor;
     const QImage image(filePath(u"text.png"_s));
     if(image.isNull())
         return QColor();

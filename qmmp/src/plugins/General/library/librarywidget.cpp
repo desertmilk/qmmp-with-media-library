@@ -27,6 +27,7 @@
 #include <QLabel>
 #include <QHeaderView>
 #include <QPalette>
+#include <QFont>
 #include <QPainter>
 #include <QMouseEvent>
 #include <QGuiApplication>
@@ -129,6 +130,8 @@ void LibraryWidget::applyPalette()
     QPalette panelPalette = applicationPalette;
     const QColor background = QmmpUiSkin::backgroundColor();
     const QColor foreground = QmmpUiSkin::foregroundColor();
+    const QColor selectedBackground = QColor::fromString(QmmpUiSkin::playlistValue(u"SelectedBG"_s));
+    const QColor current = QColor::fromString(QmmpUiSkin::playlistValue(u"Current"_s));
     if(QmmpUiSkin::isSkinnedUi() && background.isValid() && foreground.isValid())
     {
         panelPalette.setColor(QPalette::Window, background);
@@ -138,6 +141,18 @@ void LibraryWidget::applyPalette()
         panelPalette.setColor(QPalette::AlternateBase, background.lighter(115));
         panelPalette.setColor(QPalette::Button, background);
         panelPalette.setColor(QPalette::ButtonText, foreground);
+        if(selectedBackground.isValid())
+            panelPalette.setColor(QPalette::Highlight, selectedBackground);
+        if(current.isValid())
+            panelPalette.setColor(QPalette::HighlightedText, current);
+
+        const QString fontFamily = QmmpUiSkin::playlistValue(u"Font"_s);
+        if(!fontFamily.isEmpty())
+        {
+            QFont skinFont = font();
+            skinFont.setFamily(fontFamily);
+            setFont(skinFont);
+        }
     }
     else
     {
