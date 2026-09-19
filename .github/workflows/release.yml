@@ -469,7 +469,7 @@ jobs:
         run: |
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
           export LDFLAGS="-L$(brew --prefix qt@6)/lib -L$(brew --prefix libiconv)/lib -L$(brew --prefix libogg)/lib -L$(brew --prefix libvorbis)/lib"
-          export CPPFLAGS="-I$(brew --prefix qt@6)/include -I$(brew --prefix libiconv)/include -I$(brew --prefix libogg)/include -I$(brew --prefix libvorbis)/include"
+          export CPPFLAGS="-I$(brew --prefix qt@6)/include -I$(brew --prefix libiconv)/include -I$(brew --prefix libogg)/include -I$(brew --prefix libvorbis)/include -I$(brew --prefix opusfile)/include"
           export PKG_CONFIG_PATH="$(brew --prefix qt@6)/lib/pkgconfig:$(brew --prefix libiconv)/lib/pkgconfig:$(brew --prefix libogg)/lib/pkgconfig:$(brew --prefix libvorbis)/lib/pkgconfig"
           cmake .. \
             -G Ninja \
@@ -595,11 +595,10 @@ jobs:
       - name: Install to staging directory
         run: |
           cd qmmp-src/qmmp/build
-          DESTDIR=${{ github.workspace }}/staging-windows ninja install
+          DESTDIR="$PWD/../../../staging-windows" ninja install
 
       - name: Create 7z archive
         run: |
-          cd ${{ github.workspace }}
           7z a -mx=9 qmmp-${{ needs.check-for-updates.outputs.build_date }}-windows-x86_64.7z ./staging-windows/*
 
       - name: Upload artifact
