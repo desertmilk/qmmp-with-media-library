@@ -458,7 +458,7 @@ jobs:
             opus \
             opusfile \
             wildmidi \
-            sidplayfp \
+            libsidplayfp \
             libbs2b \
             libprojectm \
             libarchive \
