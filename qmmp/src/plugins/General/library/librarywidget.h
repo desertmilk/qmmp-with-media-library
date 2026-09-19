@@ -74,6 +74,8 @@ private slots:
     void refreshArtists();
     void refreshAlbums();
     void updateTrackFilter();
+    void replaceArtists();
+    void replaceAlbums();
 
 private:
     void changeEvent(QEvent *event) override;

@@ -68,6 +68,7 @@ public:
     void refresh();
     void add(const QModelIndexList &indexes);
     void replace(const QModelIndexList &indexes);
+    void replaceFiltered();
     void replaceAndPlay(const QModelIndex &index);
     void showTrackInformation(const QModelIndexList &indexes, QWidget *parent = nullptr);
     void showLibraryInformation(QWidget *parent = nullptr);

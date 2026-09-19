@@ -560,6 +560,18 @@ void LibraryModel::replace(const QModelIndexList &indexes)
     }
 }
 
+void LibraryModel::replaceFiltered()
+{
+    QList<PlayListTrack *> tracks = getFilteredTracks();
+    if(tracks.isEmpty())
+        return;
+
+    PlayListManager *manager = PlayListManager::instance();
+    PlayListModel *model = manager->selectedPlayList();
+    model->clear();
+    model->addTracks(tracks);
+}
+
 void LibraryModel::replaceAndPlay(const QModelIndex &index)
 {
     if(!index.isValid() || index.column() != 0)
@@ -754,7 +766,33 @@ QList<PlayListTrack *> LibraryModel::getFilteredTracks() const
         sql += u" AND Artist = :artist"_s;
     if(m_viewMode == TrackView && !m_albumFilter.isEmpty())
         sql += u" AND Album = :album"_s;
-    sql += u" ORDER BY Artist, Album, DiscNumber, Track, ID"_s;
+    QString order = u"Artist, Album, DiscNumber, Track, ID"_s;
+    if(m_sortColumn >= 0)
+    {
+        switch(m_sortColumn)
+        {
+        case 0:
+            order = u"Track"_s;
+            break;
+        case 1:
+            order = u"Artist"_s;
+            break;
+        case 2:
+            order = u"Album"_s;
+            break;
+        case 3:
+            order = u"Title"_s;
+            break;
+        case 4:
+            order = u"Year"_s;
+            break;
+        default:
+            break;
+        }
+        order += m_sortOrder == Qt::AscendingOrder ? u" ASC"_s : u" DESC"_s;
+        order += u", Artist, Album, DiscNumber, Track, ID"_s;
+    }
+    sql += u" ORDER BY "_s + order;
 
     QSqlQuery query(db);
     query.prepare(sql);

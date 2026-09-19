@@ -36,6 +36,7 @@
 #include <QSqlQuery>
 #include <QStandardItemModel>
 #include <QItemSelectionModel>
+#include <QAbstractItemView>
 #include <qmmp/qmmp.h>
 #include <qmmpui/qmmpuiskin.h>
 #include "librarymodel.h"
@@ -56,13 +57,19 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_artistsModel = new QStandardItemModel(this);
         m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
         m_ui->artistsTableView->setModel(m_artistsModel);
+            m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
         m_albumsModel->setHorizontalHeaderLabels({tr("Album"), tr("Year"), tr("Tracks")});
         m_ui->albumsTableView->setModel(m_albumsModel);
+        m_ui->albumsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &LibraryWidget::refreshAlbums);
         connect(m_ui->albumsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &LibraryWidget::updateTrackFilter);
+        connect(m_ui->artistsTableView, &QTableView::doubleClicked,
+            this, &LibraryWidget::replaceArtists);
+        connect(m_ui->albumsTableView, &QTableView::doubleClicked,
+            this, &LibraryWidget::replaceAlbums);
         refreshSummaryViews();
     applyPalette();
     m_ui->treeView->header()->setSectionResizeMode(QHeaderView::Interactive);
@@ -170,8 +177,6 @@ void LibraryWidget::applyPalette()
     setPalette(panelPalette);
     m_ui->artistsPanel->setPalette(panelPalette);
     m_ui->albumsPanel->setPalette(panelPalette);
-    m_ui->artistsLabel->setPalette(panelPalette);
-    m_ui->albumsLabel->setPalette(panelPalette);
     m_ui->filterLineEdit->setPalette(panelPalette);
     m_ui->artistsTableView->setPalette(panelPalette);
     m_ui->albumsTableView->setPalette(panelPalette);
@@ -203,9 +208,6 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
     painter.drawTiledPixmap(0, 0, width, 20, m_skinPlaylist.copy(127, 0, 25, 20));
     painter.drawPixmap(0, 0, m_skinPlaylist.copy(0, 0, 25, 20));
     painter.drawPixmap(width - 25, 0, m_skinPlaylist.copy(153, 0, 25, 20));
-    painter.drawPixmap(width - 22, 6, m_skinPlaylist.copy(m_shaded ? 129 : 158,
-                                                          m_shaded ? 45 : 3, 9, 9));
-    painter.drawPixmap(width - 13, 6, m_skinPlaylist.copy(167, 3, 9, 9));
     const QString title = tr("Media Library").toLower();
     const int titleWidth = title.size() * 5;
     int x = (width - titleWidth) / 2;
@@ -514,6 +516,16 @@ void LibraryWidget::updateTrackFilter()
     m_selectedAlbum = albumIndex.isValid() && albumIndex.row() > 0 ?
                 albumIndex.siblingAtColumn(0).data(Qt::UserRole).toString() : QString();
     m_model->setTrackFilter(m_selectedArtist, m_selectedAlbum);
+}
+
+void LibraryWidget::replaceArtists()
+{
+    m_model->replaceFiltered();
+}
+
+void LibraryWidget::replaceAlbums()
+{
+    m_model->replaceFiltered();
 }
 
 void LibraryWidget::addSelected()
