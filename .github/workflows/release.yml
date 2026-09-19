@@ -438,7 +438,7 @@ jobs:
           brew update
           
           # Required dependencies
-          brew install cmake ninja qt@6 libmad libvorbis libogg taglib curl
+          brew install cmake ninja qt@6 libmad libvorbis libogg taglib libiconv curl
           
           # Optional dependencies (install what's available)
           brew install \
@@ -470,6 +470,9 @@ jobs:
       - name: Configure with CMake
         run: |
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
+          export LDFLAGS="-L$(brew --prefix qt@6)/lib -L$(brew --prefix libiconv)/lib -L$(brew --prefix libogg)/lib -L$(brew --prefix libvorbis)/lib"
+          export CPPFLAGS="-I$(brew --prefix qt@6)/include -I$(brew --prefix libiconv)/include -I$(brew --prefix libogg)/include -I$(brew --prefix libvorbis)/include"
+          export PKG_CONFIG_PATH="$(brew --prefix qt@6)/lib/pkgconfig:$(brew --prefix libiconv)/lib/pkgconfig:$(brew --prefix libogg)/lib/pkgconfig:$(brew --prefix libvorbis)/lib/pkgconfig"
           cmake .. \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
@@ -484,11 +487,6 @@ jobs:
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
             -DQMMP_DEFAULT_UI=qsui
-        env:
-          LDFLAGS: "-L$(brew --prefix qt@6)/lib -L$(brew --prefix libogg)/lib -L$(brew --prefix libvorbis)/lib"
-          CPPFLAGS: "-I$(brew --prefix qt@6)/include -I$(brew --prefix libogg)/include -I$(brew --prefix libvorbis)/include"
-          PKG_CONFIG_PATH: "$(brew --prefix qt@6)/lib/pkgconfig:$(brew --prefix libogg)/lib/pkgconfig:$(brew --prefix libvorbis)/lib/pkgconfig"
-
       - name: Build
         run: |
           cd qmmp-src/qmmp/build
@@ -558,10 +556,7 @@ jobs:
             mingw-w64-ucrt-x86_64-libcdio
             mingw-w64-ucrt-x86_64-libcddb
             mingw-w64-ucrt-x86_64-faad2
-            mingw-w64-ucrt-x86_64-game-music-emu
             mingw-w64-ucrt-x86_64-opus
-            mingw-w64-ucrt-x86_64-libopusfile
-            mingw-w64-ucrt-x86_64-wildmidi
             mingw-w64-ucrt-x86_64-sidplayfp
             mingw-w64-ucrt-x86_64-libbs2b
             mingw-w64-ucrt-x86_64-libprojectm

@@ -107,8 +107,10 @@ install(TARGETS libqmmp LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
                         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
                         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-#freebsd support
-if(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
+if(APPLE)
+    find_library(ICONV_LIBRARY iconv REQUIRED)
+    target_link_libraries(libqmmp PRIVATE ${ICONV_LIBRARY})
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
     target_link_directories(libqmmp PRIVATE /usr/local/lib)
     target_link_libraries(libqmmp PRIVATE iconv)
 endif()
