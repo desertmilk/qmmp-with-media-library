@@ -39,6 +39,7 @@ class QMouseEvent;
 class QLabel;
 class LibraryModel;
 class QStandardItemModel;
+class QTableView;
 
 class LibraryWidget : public QWidget
 {
@@ -87,6 +88,7 @@ private:
     void mouseReleaseEvent(QMouseEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
     void applyPalette();
+    void distributeSummaryColumnSpace(QTableView *tableView);
     bool loadSkinChrome();
     void toggleShade();
     Ui::LibraryWidget *m_ui;
@@ -107,6 +109,7 @@ private:
     bool m_closePressed = false;
     bool m_shadePressed = false;
     bool m_shaded = false;
+    bool m_distributingColumnSpace = false;
     int m_unshadedHeight = 0;
 };
 

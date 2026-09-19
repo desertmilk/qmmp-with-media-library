@@ -38,6 +38,7 @@
 #include <QStandardItemModel>
 #include <QItemSelectionModel>
 #include <QAbstractItemView>
+#include <QTableView>
 #include <qmmp/qmmp.h>
 #include <qmmpui/qmmpuiskin.h>
 #include "librarymodel.h"
@@ -60,13 +61,15 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
         m_ui->artistsTableView->setModel(m_artistsModel);
         m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-        m_ui->artistsTableView->horizontalHeader()->setStretchLastSection(true);
+        m_ui->artistsTableView->horizontalHeader()->setStretchLastSection(false);
+        m_ui->artistsTableView->installEventFilter(this);
             m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
         m_albumsModel->setHorizontalHeaderLabels({tr("Album"), tr("Year"), tr("Tracks")});
         m_ui->albumsTableView->setModel(m_albumsModel);
         m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-        m_ui->albumsTableView->horizontalHeader()->setStretchLastSection(true);
+        m_ui->albumsTableView->horizontalHeader()->setStretchLastSection(false);
+        m_ui->albumsTableView->installEventFilter(this);
         m_ui->albumsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
             this, &LibraryWidget::refreshAlbums);
@@ -393,6 +396,11 @@ void LibraryWidget::mouseReleaseEvent(QMouseEvent *event)
 
 bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
 {
+    if((watched == m_ui->artistsTableView || watched == m_ui->albumsTableView) &&
+            event->type() == QEvent::Resize)
+    {
+        distributeSummaryColumnSpace(static_cast<QTableView *>(watched));
+    }
     if(watched == m_resizeWidget && event->type() == QEvent::MouseButtonPress)
     {
         m_resizing = true;
@@ -415,6 +423,34 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
         return true;
     }
     return QWidget::eventFilter(watched, event);
+}
+
+void LibraryWidget::distributeSummaryColumnSpace(QTableView *tableView)
+{
+    if(m_distributingColumnSpace)
+        return;
+
+    QHeaderView *header = tableView->horizontalHeader();
+    const int extra = tableView->viewport()->width() - header->length();
+    if(extra <= 0 || header->count() == 0)
+        return;
+
+    int totalWidth = 0;
+    for(int column = 0; column < header->count(); ++column)
+        totalWidth += header->sectionSize(column);
+    if(totalWidth <= 0)
+        return;
+
+    m_distributingColumnSpace = true;
+    int distributed = 0;
+    for(int column = 0; column < header->count(); ++column)
+    {
+        const int share = column == header->count() - 1 ? extra - distributed :
+                    extra * header->sectionSize(column) / totalWidth;
+        header->resizeSection(column, header->sectionSize(column) + share);
+        distributed += share;
+    }
+    m_distributingColumnSpace = false;
 }
 
 void LibraryWidget::toggleShade()
