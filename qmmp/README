@@ -122,6 +122,13 @@ cmake ./
 Build:
 make
 
+To reproduce a minimal Qt6 media-library build in Docker, run:
+
+./utils/build-docker.sh
+
+The image can be overridden with QMMP_BUILD_IMAGE and the container build
+directory with QMMP_BUILD_DIR.
+
 Installation:
 make install
 
