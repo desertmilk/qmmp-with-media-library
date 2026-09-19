@@ -356,7 +356,7 @@ jobs:
             -DUSE_AAC=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
             -DCMAKE_BUILD_WITH_INSTALL_RPATH=FALSE \
-            -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib:$ORIGIN/../../lib'
+            -DCMAKE_INSTALL_RPATH='$ORIGIN/../lib:$ORIGIN/../..'
 
       - name: Build
         run: |
@@ -377,7 +377,7 @@ jobs:
           test -n "$FLAC_PLUGIN"
           test -n "$AAC_PLUGIN"
           find ${{ github.workspace }}/AppDir/usr -type f -name '*.so*' -exec \
-            patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/../../lib' {} +
+            patchelf --set-rpath '$ORIGIN/../lib:$ORIGIN/../..' {} +
           patchelf --set-rpath '$ORIGIN/../lib' ${{ github.workspace }}/AppDir/usr/bin/qmmp
           ldd "$MPEG_PLUGIN"
           ! ldd "$MPEG_PLUGIN" | grep -q 'not found'
