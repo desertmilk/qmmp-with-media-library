@@ -49,6 +49,9 @@ public:
 
     void setBusyMode(bool enabled);
 
+signals:
+    void closed();
+
 private:
     void closeEvent(QCloseEvent *) override;
     void contextMenuEvent(QContextMenuEvent *e) override;
@@ -92,6 +95,8 @@ private:
     QPoint m_dragOffset;
     bool m_dragging = false;
     bool m_resizing = false;
+    bool m_shaded = false;
+    int m_unshadedHeight = 0;
 };
 
 #endif // LIBRARYWIDGET_H

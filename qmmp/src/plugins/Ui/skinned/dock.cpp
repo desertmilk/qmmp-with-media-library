@@ -132,8 +132,19 @@ QPoint Dock::snap(QPoint npos, QWidget* mv, QWidget* st)
 
 void Dock::addWidget(QWidget *widget)
 {
+    if(m_widgetList.contains(widget))
+        return;
     m_widgetList.append(widget);
     m_dockedList.append(false);
+    connect(widget, &QObject::destroyed, this, [this, widget] {
+        const int index = m_widgetList.indexOf(widget);
+        if(index < 0)
+            return;
+        m_widgetList.removeAt(index);
+        m_dockedList.removeAt(index);
+        if(index < m_delta_list.size())
+            m_delta_list.removeAt(index);
+    });
     if(m_mainWidget)
         widget->addActions(m_mainWidget->actions());
 }

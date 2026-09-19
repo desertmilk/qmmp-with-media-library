@@ -133,7 +133,12 @@ void Library::showLibraryWindow()
     }
 
     if(m_libraryWidget->isNull())
+    {
         *m_libraryWidget = new LibraryWidget(true, qApp->activeWindow());
+        connect(m_libraryWidget->data(), &LibraryWidget::closed, m_showAction, [this] {
+            m_showAction->setChecked(false);
+        });
+    }
 
     if(m_libraryWidget->data()->isWindow())
     {

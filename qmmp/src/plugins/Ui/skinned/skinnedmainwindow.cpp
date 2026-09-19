@@ -415,6 +415,18 @@ void SkinnedMainWindow::createActions()
             if(checked != libraryAction->isChecked())
                 libraryAction->trigger();
         });
+        connect(libraryAction, &QAction::triggered, this, [this] {
+            for(QWidget *widget : qApp->topLevelWidgets())
+            {
+                if(widget->objectName() == u"MediaLibrary"_s && widget->isWindow())
+                {
+                    Dock::instance()->addWidget(widget);
+                    Dock::instance()->updateDock();
+                    Dock::instance()->calculateDistances();
+                    break;
+                }
+            }
+        });
     }
     else
     {

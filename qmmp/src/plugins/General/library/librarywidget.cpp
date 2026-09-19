@@ -47,6 +47,8 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     QWidget(parent),
     m_ui(new Ui::LibraryWidget)
 {
+    if(dialog)
+        setObjectName(u"MediaLibrary"_s);
     m_ui->setupUi(this);
     m_model = new LibraryModel(this);
     m_ui->treeView->setModel(m_model);
@@ -201,6 +203,7 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
     painter.drawTiledPixmap(0, 0, width, 20, m_skinPlaylist.copy(127, 0, 25, 20));
     painter.drawPixmap(0, 0, m_skinPlaylist.copy(0, 0, 25, 20));
     painter.drawPixmap(width - 25, 0, m_skinPlaylist.copy(153, 0, 25, 20));
+    painter.drawPixmap(width - 22, 6, m_skinPlaylist.copy(155, 3, 9, 9));
     painter.drawPixmap(width - 13, 6, m_skinPlaylist.copy(167, 3, 9, 9));
     const QString title = tr("Media Library").toLower();
     const int titleWidth = title.size() * 5;
@@ -225,6 +228,22 @@ void LibraryWidget::mousePressEvent(QMouseEvent *event)
         if(event->position().x() >= width() - 20)
         {
             close();
+            return;
+        }
+        if(event->position().x() >= width() - 29)
+        {
+            if(m_shaded)
+            {
+                setMinimumHeight(420);
+                setMaximumHeight(QWIDGETSIZE_MAX);
+                resize(width(), m_unshadedHeight);
+            }
+            else
+            {
+                m_unshadedHeight = height();
+                setFixedHeight(20);
+            }
+            m_shaded = !m_shaded;
             return;
         }
         m_dragging = true;
@@ -360,6 +379,7 @@ void LibraryWidget::closeEvent(QCloseEvent *)
     {
         QSettings settings;
         settings.setValue(u"Library/geometry"_s, saveGeometry());
+        emit closed();
     }
 }
 
