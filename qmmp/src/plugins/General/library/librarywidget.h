@@ -33,6 +33,7 @@ class QContextMenuEvent;
 class QCloseEvent;
 class QLabel;
 class LibraryModel;
+class QStandardItemModel;
 
 class LibraryWidget : public QWidget
 {
@@ -60,6 +61,10 @@ private slots:
     void setMostPlayedView();
     void setRecentlyPlayedView();
     void setUnratedView();
+    void refreshSummaryViews();
+    void refreshArtists();
+    void refreshAlbums();
+    void updateTrackFilter();
 
 private:
     Ui::LibraryWidget *m_ui;
@@ -67,6 +72,10 @@ private:
     QMenu *m_menu;
     QAction *m_filterAction;
     QLabel *m_busyIndicator = nullptr;
+    QStandardItemModel *m_artistsModel;
+    QStandardItemModel *m_albumsModel;
+    QString m_selectedArtist;
+    QString m_selectedAlbum;
 };
 
 #endif // LIBRARYWIDGET_H

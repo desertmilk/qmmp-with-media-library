@@ -51,6 +51,7 @@ public:
     void clear()
     {
         name.clear();
+        album.clear();
         track = 0;
         id = -1;
         year = 0;
@@ -64,6 +65,7 @@ public:
 
     QString name;
     QString artist;
+    QString album;
     qint64 id = -1;
     int track = 0;
     int year = 0;
@@ -235,12 +237,16 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const
             return item->name;
         if(item->type == Qmmp::ALBUM)
             return item->artist.isEmpty() && item->parent ? item->parent->name : item->artist;
+        if(item->type == Qmmp::TITLE && m_viewMode == TrackView)
+            return item->artist;
         if(item->type == Qmmp::TITLE && item->parent && item->parent->parent)
             return item->parent->artist.isEmpty() ? item->parent->parent->name : item->parent->artist;
         return QString();
     case 2:
         if(item->type == Qmmp::ALBUM)
             return item->name;
+        if(item->type == Qmmp::TITLE && !item->album.isEmpty())
+            return item->album;
         if(item->type == Qmmp::TITLE && item->parent)
             return item->parent->name;
         return QString();
@@ -250,6 +256,8 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const
         if(!m_showYear)
             return QString();
         if(item->type == Qmmp::ALBUM)
+            return item->year > 0 ? QString::number(item->year) : QString();
+        if(item->type == Qmmp::TITLE && m_viewMode == TrackView)
             return item->year > 0 ? QString::number(item->year) : QString();
         if(item->type == Qmmp::TITLE && item->parent)
             return item->parent->year > 0 ? QString::number(item->parent->year) : QString();
@@ -364,6 +372,14 @@ void LibraryModel::setFilter(const QString &filter)
     m_filter = filter;
 }
 
+void LibraryModel::setTrackFilter(const QString &artist, const QString &album)
+{
+    m_viewMode = TrackView;
+    m_artistFilter = artist;
+    m_albumFilter = album;
+    refresh();
+}
+
 void LibraryModel::setViewMode(ViewMode mode)
 {
     if(m_viewMode == mode)
@@ -411,6 +427,9 @@ void LibraryModel::refresh()
     {
         switch(m_viewMode)
         {
+        case TrackView:
+            sql = u"SELECT ID, Title, Artist, Album, Year, Track FROM track_library"_s;
+            break;
         case ArtistView:
             sql = u"SELECT DISTINCT Artist FROM track_library ORDER BY Artist"_s;
             break;
@@ -432,6 +451,9 @@ void LibraryModel::refresh()
     {
         switch(m_viewMode)
         {
+        case TrackView:
+            sql = u"SELECT ID, Title, Artist, Album, Year, Track FROM track_library WHERE SearchString LIKE :filter"_s;
+            break;
         case ArtistView:
             sql = u"SELECT DISTINCT Artist FROM track_library WHERE SearchString LIKE :filter ORDER BY Artist"_s;
             break;
@@ -452,7 +474,28 @@ void LibraryModel::refresh()
         query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
     }
 
+    if(m_viewMode == TrackView)
+    {
+        QStringList conditions;
+        if(!m_artistFilter.isEmpty())
+            conditions << u"Artist = :artist"_s;
+        if(!m_albumFilter.isEmpty())
+            conditions << u"Album = :album"_s;
+        if(!conditions.isEmpty())
+            sql += (sql.contains(u" WHERE "_s) ? u" AND "_s : u" WHERE "_s) + conditions.join(u" AND "_s);
+        sql += u" ORDER BY DiscNumber, Track, ID"_s;
+    }
+
     query.prepare(sql);
+    if(m_viewMode == TrackView && !m_filter.isEmpty())
+        query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
+    if(m_viewMode == TrackView)
+    {
+        if(!m_artistFilter.isEmpty())
+            query.bindValue(u":artist"_s, m_artistFilter);
+        if(!m_albumFilter.isEmpty())
+            query.bindValue(u":album"_s, m_albumFilter);
+    }
     if(!query.exec())
         qCWarning(plugin, "exec error: %s", qPrintable(query.lastError().text()));
 
@@ -460,6 +503,16 @@ void LibraryModel::refresh()
     {
         LibraryTreeItem *item = new LibraryTreeItem;
         item->name = query.value(u"Artist"_s).toString();
+        if(m_viewMode == TrackView)
+        {
+            item->id = query.value(u"ID"_s).toLongLong();
+            item->name = query.value(u"Title"_s).toString();
+            item->artist = query.value(u"Artist"_s).toString();
+            item->album = query.value(u"Album"_s).toString();
+            item->track = query.value(u"Track"_s).toInt();
+            item->year = query.value(u"Year"_s).toInt();
+            item->type = Qmmp::TITLE;
+        }
         if(m_viewMode == AlbumView)
         {
             item->name = query.value(u"Album"_s).toString();

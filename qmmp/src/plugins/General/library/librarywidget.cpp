@@ -24,6 +24,10 @@
 #include <QIcon>
 #include <QLabel>
 #include <QHeaderView>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QStandardItemModel>
+#include <QItemSelectionModel>
 #include <qmmp/qmmp.h>
 #include "librarymodel.h"
 #include "librarysettingsdialog.h"
@@ -37,6 +41,17 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_ui->setupUi(this);
     m_model = new LibraryModel(this);
     m_ui->treeView->setModel(m_model);
+        m_artistsModel = new QStandardItemModel(this);
+        m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
+        m_ui->artistsTableView->setModel(m_artistsModel);
+        m_albumsModel = new QStandardItemModel(this);
+        m_albumsModel->setHorizontalHeaderLabels({tr("Album"), tr("Year"), tr("Tracks")});
+        m_ui->albumsTableView->setModel(m_albumsModel);
+        connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, &LibraryWidget::refreshAlbums);
+        connect(m_ui->albumsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, &LibraryWidget::updateTrackFilter);
+        refreshSummaryViews();
     m_ui->treeView->header()->setSectionResizeMode(QHeaderView::Interactive);
     m_ui->treeView->header()->setStretchLastSection(false);
     m_ui->treeView->setColumnWidth(0, 60);
@@ -93,6 +108,7 @@ void LibraryWidget::refresh()
 {
     m_ui->filterLineEdit->clear();
     m_model->refresh();
+    refreshSummaryViews();
 }
 
 void LibraryWidget::setBusyMode(bool enabled)
@@ -140,8 +156,115 @@ void LibraryWidget::on_filterLineEdit_textChanged(const QString &text)
 {
     m_model->setFilter(text);
     m_model->refresh();
+    refreshSummaryViews();
     if(m_model->rowCount() <= 4)
         m_ui->treeView->expandAll();
+}
+
+void LibraryWidget::refreshSummaryViews()
+{
+    refreshArtists();
+    refreshAlbums();
+    updateTrackFilter();
+}
+
+void LibraryWidget::refreshArtists()
+{
+    QSqlDatabase db = QSqlDatabase::database(u"qmmp_library_view"_s);
+    if(!db.isOpen())
+        return;
+
+    m_artistsModel->removeRows(0, m_artistsModel->rowCount());
+    QSqlQuery query(db);
+    QString filter = m_ui->filterLineEdit->text();
+    query.prepare(u"SELECT Artist, COUNT(DISTINCT Album), COUNT(*) FROM track_library "
+                  "WHERE SearchString LIKE :filter GROUP BY Artist ORDER BY Artist"_s);
+    query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(filter.toLower()));
+    if(!query.exec())
+        return;
+
+    int artists = 0;
+    int albums = 0;
+    int tracks = 0;
+    QList<QVariantList> rows;
+    while(query.next())
+    {
+        ++artists;
+        albums += query.value(1).toInt();
+        tracks += query.value(2).toInt();
+        rows << QVariantList{query.value(0), query.value(1), query.value(2)};
+    }
+
+    QList<QStandardItem *> allRow;
+    allRow << new QStandardItem(tr("All (%n artists)", "", artists));
+    allRow << new QStandardItem(QString::number(albums));
+    allRow << new QStandardItem(QString::number(tracks));
+    m_artistsModel->appendRow(allRow);
+    for(const QVariantList &row : rows)
+    {
+        QList<QStandardItem *> items;
+        items << new QStandardItem(row.at(0).toString());
+        items << new QStandardItem(row.at(1).toString());
+        items << new QStandardItem(row.at(2).toString());
+        items.first()->setData(row.at(0), Qt::UserRole);
+        m_artistsModel->appendRow(items);
+    }
+    m_ui->artistsTableView->resizeColumnsToContents();
+    m_ui->artistsTableView->selectRow(0);
+}
+
+void LibraryWidget::refreshAlbums()
+{
+    QSqlDatabase db = QSqlDatabase::database(u"qmmp_library_view"_s);
+    if(!db.isOpen())
+        return;
+
+    QModelIndex artistIndex = m_ui->artistsTableView->currentIndex();
+    m_selectedArtist = artistIndex.isValid() && artistIndex.row() > 0 ?
+                artistIndex.siblingAtColumn(0).data(Qt::UserRole).toString() : QString();
+    m_albumsModel->removeRows(0, m_albumsModel->rowCount());
+
+    QSqlQuery query(db);
+    QString filter = m_ui->filterLineEdit->text();
+    query.prepare(u"SELECT Album, MAX(Year), COUNT(*) FROM track_library "
+                  "WHERE SearchString LIKE :filter AND (:artist = '' OR Artist = :artist) "
+                  "GROUP BY Album ORDER BY Album"_s);
+    query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(filter.toLower()));
+    query.bindValue(u":artist"_s, m_selectedArtist);
+    if(!query.exec())
+        return;
+
+    QList<QVariantList> rows;
+    int tracks = 0;
+    while(query.next())
+    {
+        tracks += query.value(2).toInt();
+        rows << QVariantList{query.value(0), query.value(1), query.value(2)};
+    }
+    QList<QStandardItem *> allRow;
+    allRow << new QStandardItem(tr("All (%n albums)", "", rows.count()));
+    allRow << new QStandardItem;
+    allRow << new QStandardItem(QString::number(tracks));
+    m_albumsModel->appendRow(allRow);
+    for(const QVariantList &row : rows)
+    {
+        QList<QStandardItem *> items;
+        items << new QStandardItem(row.at(0).toString());
+        items << new QStandardItem(row.at(1).toInt() > 0 ? row.at(1).toString() : QString());
+        items << new QStandardItem(row.at(2).toString());
+        items.first()->setData(row.at(0), Qt::UserRole);
+        m_albumsModel->appendRow(items);
+    }
+    m_ui->albumsTableView->resizeColumnsToContents();
+    m_ui->albumsTableView->selectRow(0);
+}
+
+void LibraryWidget::updateTrackFilter()
+{
+    QModelIndex albumIndex = m_ui->albumsTableView->currentIndex();
+    m_selectedAlbum = albumIndex.isValid() && albumIndex.row() > 0 ?
+                albumIndex.siblingAtColumn(0).data(Qt::UserRole).toString() : QString();
+    m_model->setTrackFilter(m_selectedArtist, m_selectedAlbum);
 }
 
 void LibraryWidget::addSelected()

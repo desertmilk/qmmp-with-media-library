@@ -42,7 +42,8 @@ public:
         AlbumView,
         MostPlayedView,
         RecentlyPlayedView,
-        UnratedView
+        UnratedView,
+        TrackView
     };
 
     LibraryModel(QObject *parent = nullptr);
@@ -61,6 +62,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     void setFilter(const QString &filter);
+    void setTrackFilter(const QString &artist, const QString &album);
     void setViewMode(ViewMode mode);
     ViewMode viewMode() const;
     void refresh();
@@ -76,6 +78,8 @@ private:
 
     LibraryTreeItem *m_rootItem;
     QString m_filter;
+    QString m_artistFilter;
+    QString m_albumFilter;
     bool m_showYear;
     ViewMode m_viewMode = ArtistView;
     int m_sortColumn = -1;

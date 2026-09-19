@@ -24,16 +24,67 @@
     <number>6</number>
    </property>
    <item>
-    <widget class="QLineEdit" name="filterLineEdit">
-     <property name="placeholderText">
-      <string>Search artists, albums and tracks</string>
-     </property>
-     <property name="clearButtonEnabled">
-      <bool>true</bool>
-     </property>
-    </widget>
+      <widget class="QSplitter" name="summarySplitter">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <widget class="QWidget" name="artistsPanel">
+        <layout class="QVBoxLayout" name="artistsLayout">
+         <property name="leftMargin"><number>0</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>3</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+         <widget class="QLabel" name="artistsLabel">
+          <property name="text"><string>Artists</string></property>
+          <property name="font"><font><weight>Bold</weight></font></property>
+         </widget>
+         </item>
+         <item>
+         <widget class="QTableView" name="artistsTableView">
+          <property name="alternatingRowColors"><bool>true</bool></property>
+          <property name="sortingEnabled"><bool>true</bool></property>
+          <property name="selectionBehavior"><enum>QAbstractItemView::SelectRows</enum></property>
+          <property name="selectionMode"><enum>QAbstractItemView::SingleSelection</enum></property>
+          <attribute name="horizontalHeaderVisible"><bool>true</bool></attribute>
+          <attribute name="verticalHeaderVisible"><bool>false</bool></attribute>
+         </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="albumsPanel">
+        <layout class="QVBoxLayout" name="albumsLayout">
+         <property name="leftMargin"><number>3</number></property>
+         <property name="topMargin"><number>0</number></property>
+         <property name="rightMargin"><number>0</number></property>
+         <property name="bottomMargin"><number>0</number></property>
+         <item>
+         <widget class="QLabel" name="albumsLabel">
+          <property name="text"><string>Albums</string></property>
+          <property name="font"><font><weight>Bold</weight></font></property>
+         </widget>
+         </item>
+         <item>
+         <widget class="QTableView" name="albumsTableView">
+          <property name="alternatingRowColors"><bool>true</bool></property>
+          <property name="sortingEnabled"><bool>true</bool></property>
+          <property name="selectionBehavior"><enum>QAbstractItemView::SelectRows</enum></property>
+          <property name="selectionMode"><enum>QAbstractItemView::SingleSelection</enum></property>
+          <attribute name="horizontalHeaderVisible"><bool>true</bool></attribute>
+          <attribute name="verticalHeaderVisible"><bool>false</bool></attribute>
+         </widget>
+         </item>
+        </layout>
+       </widget>
+      </widget>
    </item>
    <item>
+      <widget class="QLineEdit" name="filterLineEdit">
+       <property name="placeholderText"><string>Filter artists, albums and tracks</string></property>
+       <property name="clearButtonEnabled"><bool>true</bool></property>
+      </widget>
+      </item>
+      <item>
     <widget class="QTreeView" name="treeView">
      <property name="alternatingRowColors">
       <bool>true</bool>
