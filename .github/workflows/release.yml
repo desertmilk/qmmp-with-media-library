@@ -149,6 +149,7 @@ jobs:
             qt6-l10n-tools \
             libgl1-mesa-dev \
             libmad0-dev \
+            libmpg123-dev \
             libvorbis-dev \
             libogg-dev \
             libasound2-dev \
@@ -158,7 +159,6 @@ jobs:
       - name: Install optional dependencies
         run: |
           sudo apt-get install -y \
-            libmpg123-dev \
             qtmultimedia6-dev \
             libflac-dev \
             libmpcdec-dev \
@@ -334,6 +334,7 @@ jobs:
 
       - name: Configure with CMake for AppImage
         run: |
+          pkg-config --modversion taglib libmpg123
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
           cmake .. \
             -G Ninja \
@@ -363,9 +364,13 @@ jobs:
           cd qmmp-src/qmmp/build
           DESTDIR=${{ github.workspace }}/AppDir ninja install
           MPEG_PLUGIN=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libmpeg.so' -print -quit)
+          VORBIS_PLUGIN=$(find ${{ github.workspace }}/AppDir/usr -type f,l -name 'libvorbis.so' -print -quit)
           test -n "$MPEG_PLUGIN"
+          test -n "$VORBIS_PLUGIN"
           ldd "$MPEG_PLUGIN"
           ! ldd "$MPEG_PLUGIN" | grep -q 'not found'
+          ldd "$VORBIS_PLUGIN"
+          ! ldd "$VORBIS_PLUGIN" | grep -q 'not found'
 
       - name: Download linuxdeploy
         run: |
@@ -451,6 +456,7 @@ jobs:
             -v2
 
           test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libmpeg.so' -print -quit)"
+          test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libvorbis.so' -print -quit)"
           test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libQt6Sql.so.6' -print -quit)"
 
           # Create the final AppImage with a FUSE 2-independent runtime.
