@@ -110,7 +110,9 @@ install(TARGETS libqmmp LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 if(APPLE)
     target_link_libraries(libqmmp PRIVATE iconv)
 elseif(WIN32 OR MINGW)
-    find_library(ICONV_LIBRARY iconv REQUIRED)
+    find_library(ICONV_LIBRARY iconv
+        PATHS "$ENV{MINGW_PREFIX}/lib"
+        REQUIRED)
     target_link_libraries(libqmmp PRIVATE ${ICONV_LIBRARY})
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
     target_link_directories(libqmmp PRIVATE /usr/local/lib)

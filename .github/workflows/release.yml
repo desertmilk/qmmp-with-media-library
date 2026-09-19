@@ -584,7 +584,8 @@ jobs:
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
             -DQMMP_DEFAULT_UI=qsui \
-            -DQMMP_DEFAULT_OUTPUT=wasapi
+            -DQMMP_DEFAULT_OUTPUT=wasapi \
+            -DICONV_LIBRARY:FILEPATH="$MINGW_PREFIX/lib/libiconv.dll.a"
 
       - name: Build
         run: |
