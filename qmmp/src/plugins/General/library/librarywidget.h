@@ -23,6 +23,7 @@
 
 #include <QWidget>
 #include <QPixmap>
+#include <optional>
 
 namespace Ui {
 class LibraryWidget;
