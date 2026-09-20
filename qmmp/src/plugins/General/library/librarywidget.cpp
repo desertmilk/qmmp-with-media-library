@@ -197,7 +197,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     viewMenu->addAction(tr("Unrated"), this, &LibraryWidget::setUnratedView);
 
     m_filterAction = m_menu->addAction(tr("Quick Search"), m_ui->filterLineEdit, &QLineEdit::setVisible);
-    m_menu->addAction(QIcon::fromTheme(u"preferences-system"_s), tr("&Library Settings"), this, &LibraryWidget::showSettings);
+    m_settingsAction = m_menu->addAction(QIcon::fromTheme(u"preferences-system"_s), tr("&Library Settings"), this, &LibraryWidget::showSettings);
     m_menu->addAction(tr("&Library Information"), this, &LibraryWidget::showLibraryInformation);
     m_filterAction->setCheckable(true);
 
@@ -664,6 +664,13 @@ void LibraryWidget::refresh()
     m_ui->filterLineEdit->clear();
     m_model->refresh();
     refreshSummaryViews();
+}
+
+void LibraryWidget::addMenuAction(QAction *action)
+{
+    if(!action || m_menu->actions().contains(action))
+        return;
+    m_menu->insertAction(m_settingsAction, action); // shown just above "Library Settings"
 }
 
 void LibraryWidget::setBusyMode(bool enabled)

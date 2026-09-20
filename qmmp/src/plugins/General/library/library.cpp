@@ -41,6 +41,12 @@
 
 #define CONNECTION_NAME u"qmmp_library"_s
 
+void Library::attachWidgetActions()
+{
+    if(!m_libraryWidget->isNull() && m_refreshAction)
+        m_libraryWidget->data()->addMenuAction(m_refreshAction);
+}
+
 Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
     QThread(parent),
     m_libraryWidget(libraryWidget)
@@ -76,9 +82,10 @@ Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
     if(!m_libraryWidget->isNull() && !m_libraryWidget->data()->isWindow())
         m_showAction->setVisible(false);
 
-    QAction *refreshAction = new QAction(QIcon::fromTheme(u"view-refresh"_s), tr("Update library"), this);
-    UiHelper::instance()->addAction(refreshAction, UiHelper::TOOLS_MENU);
-    connect(refreshAction, &QAction::triggered, this, &Library::startDirectoryScanning);
+    m_refreshAction = new QAction(QIcon::fromTheme(u"view-refresh"_s), tr("Update library"), this);
+    UiHelper::instance()->addAction(m_refreshAction, UiHelper::TOOLS_MENU);
+    connect(m_refreshAction, &QAction::triggered, this, &Library::startDirectoryScanning);
+    attachWidgetActions(); // covers a widget that already exists (embedded, non-dialog case)
 
     SoundCore *core = SoundCore::instance();
     if(core)
@@ -150,6 +157,7 @@ void Library::showLibraryWindow()
         connect(m_libraryWidget->data(), &LibraryWidget::closed, m_showAction, [this] {
             m_showAction->setChecked(false);
         });
+        attachWidgetActions();
     }
 
     if(m_libraryWidget->data()->isWindow())

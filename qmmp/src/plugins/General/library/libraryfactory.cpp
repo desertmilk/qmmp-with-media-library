@@ -63,6 +63,7 @@ QWidget *LibraryFactory::createWidget(int id, QWidget *parent)
                 m_libraryWidget->setBusyMode(true);
 
             m_library->showAction()->setVisible(false);
+            m_library->attachWidgetActions();
         }
         connect(m_libraryWidget, &QObject::destroyed, this, [=]() {
             if(!m_library.isNull())

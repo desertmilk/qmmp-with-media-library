@@ -52,7 +52,7 @@ public:
     explicit LibraryWidget(bool dialog, QWidget *parent = nullptr);
     ~LibraryWidget();
     void refresh();
-
+    void addMenuAction(QAction *action);
     void setBusyMode(bool enabled);
 
 signals:
@@ -102,6 +102,7 @@ private:
     QMenu *m_menu;
     QWidget *m_contextSource = nullptr;
     QAction *m_filterAction;
+    QAction *m_settingsAction = nullptr;
     QLabel *m_busyIndicator = nullptr;
     QStandardItemModel *m_artistsModel;
     QStandardItemModel *m_albumsModel;

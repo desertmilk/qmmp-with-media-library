@@ -42,6 +42,7 @@ public:
     ~Library();
 
     QAction *showAction() const;
+    void attachWidgetActions();
 
 private slots:
     void startDirectoryScanning();
@@ -63,6 +64,7 @@ private:
     void updateIgnoredFiles(const QStringList &paths);
     void readIgnoredFiles();
 
+    QAction *m_refreshAction = nullptr;
     QStringList m_filters, m_dirs;
     std::atomic_bool m_stopped = ATOMIC_VAR_INIT(false);
     QPointer<LibraryWidget> *m_libraryWidget;
