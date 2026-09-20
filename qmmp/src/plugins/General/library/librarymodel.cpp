@@ -38,7 +38,12 @@
 #include "librarymodel.h"
 
 #define CONNECTION_NAME u"qmmp_library_view"_s
-
+QString LibraryModel::likePattern(const QString &text)
+{
+    QString escaped = text.toLower();
+    escaped.replace(u'\\', u"\\\\"_s).replace(u'%', u"\\%"_s).replace(u'_', u"\\_"_s);
+    return u"%"_s + escaped + u"%"_s;
+}
 class LibraryTreeItem
 {
 public:
@@ -155,8 +160,9 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
         }
         else
         {
-            query.prepare(u"SELECT DISTINCT Album, Year from track_library WHERE Artist = :artist AND SearchString LIKE :filter ORDER BY Album, Year"_s);
-            query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
+            query.prepare(u"SELECT DISTINCT Album, Year from track_library WHERE Artist = :artist "
+                          "AND SearchString LIKE :filter ESCAPE '\\' ORDER BY Album, Year"_s);
+            query.bindValue(u":filter"_s, LibraryModel::likePattern(m_filter));
         }
         query.bindValue(u":artist"_s, parentItem->name);
 
@@ -190,8 +196,8 @@ void LibraryModel::fetchMore(const QModelIndex &parent)
         else
         {
             query.prepare(u"SELECT ID, Title, Track from track_library WHERE Artist = :artist AND Album = :album "
-                          "AND SearchString LIKE :filter ORDER BY DiscNumber, Track, ID"_s);
-            query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
+                          "AND SearchString LIKE :filter ESCAPE '\\' ORDER BY DiscNumber, Track, ID"_s);
+            query.bindValue(u":filter"_s, LibraryModel::likePattern(m_filter));
         }
         query.bindValue(u":artist"_s, parentItem->artist.isEmpty() ? parentItem->parent->name : parentItem->artist);
         query.bindValue(u":album"_s, parentItem->name);
@@ -372,7 +378,7 @@ void LibraryModel::setFilter(const QString &filter)
     m_filter = filter;
 }
 
-void LibraryModel::setTrackFilter(const QString &artist, const QString &album)
+void LibraryModel::setTrackFilter(const std::optional<QString> &artist, const std::optional<QString> &album)
 {
     m_viewMode = TrackView;
     m_artistFilter = artist;
@@ -385,10 +391,8 @@ void LibraryModel::setViewMode(ViewMode mode)
     if(m_viewMode == mode)
         return;
 
-    beginResetModel();
     m_viewMode = mode;
-    refresh();
-    endResetModel();
+    refresh(); // performs its own model reset
 }
 
 LibraryModel::ViewMode LibraryModel::viewMode() const
@@ -471,15 +475,15 @@ void LibraryModel::refresh()
             sql = u"SELECT DISTINCT Artist FROM track_library WHERE SearchString LIKE :filter AND Rating = 0 ORDER BY Artist"_s;
             break;
         }
-        query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
+        sql.replace(u"LIKE :filter"_s, u"LIKE :filter ESCAPE '\\'"_s);
     }
 
     if(m_viewMode == TrackView)
     {
         QStringList conditions;
-        if(!m_artistFilter.isEmpty())
+        if(m_artistFilter)
             conditions << u"Artist = :artist"_s;
-        if(!m_albumFilter.isEmpty())
+        if(m_albumFilter)
             conditions << u"Album = :album"_s;
         if(!conditions.isEmpty())
             sql += (sql.contains(u" WHERE "_s) ? u" AND "_s : u" WHERE "_s) + conditions.join(u" AND "_s);
@@ -487,14 +491,14 @@ void LibraryModel::refresh()
     }
 
     query.prepare(sql);
-    if(m_viewMode == TrackView && !m_filter.isEmpty())
-        query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
+    if(!m_filter.isEmpty())
+        query.bindValue(u":filter"_s, LibraryModel::likePattern(m_filter));
     if(m_viewMode == TrackView)
     {
-        if(!m_artistFilter.isEmpty())
-            query.bindValue(u":artist"_s, m_artistFilter);
-        if(!m_albumFilter.isEmpty())
-            query.bindValue(u":album"_s, m_albumFilter);
+        if(m_artistFilter)
+            query.bindValue(u":artist"_s, *m_artistFilter);
+        if(m_albumFilter)
+            query.bindValue(u":album"_s, *m_albumFilter);
     }
     if(!query.exec())
         qCWarning(plugin, "exec error: %s", qPrintable(query.lastError().text()));
@@ -780,19 +784,40 @@ QList<PlayListTrack *> LibraryModel::getFilteredTracks() const
 
     if(m_viewMode == TrackView)
     {
-        for(int row = 0; row < m_rootItem->children.count(); ++row)
+        QList<qint64> ids;
+        ids.reserve(m_rootItem->children.count());
+        for(const LibraryTreeItem *item : std::as_const(m_rootItem->children))
+            ids << item->id;
+
+        QHash<qint64, PlayListTrack *> byId;
+        constexpr int chunkSize = 500; // stays below SQLite's bound-variable limit
+        for(int start = 0; start < ids.size(); start += chunkSize)
         {
-            const QModelIndex index = createIndex(row, 0, m_rootItem->children.at(row));
-            tracks << getTracks(index);
+            const QList<qint64> part = ids.mid(start, chunkSize);
+            const QStringList marks(part.size(), u"?"_s);
+            QSqlQuery query(db);
+            query.prepare(u"SELECT * FROM track_library WHERE ID IN ("_s + marks.join(u","_s) + u")"_s);
+            for(qint64 id : part)
+                query.addBindValue(id);
+            if(!query.exec())
+            {
+                qCWarning(plugin, "exec error: %s", qPrintable(query.lastError().text()));
+                break;
+            }
+            while(query.next())
+                byId.insert(query.value(u"ID"_s).toLongLong(), createTrack(query));
         }
+
+        for(qint64 id : ids)
+        {
+            if(PlayListTrack *track = byId.take(id))
+                tracks << track;
+        }
+        qDeleteAll(byId); // normally empty
         return tracks;
     }
 
-    QString sql = u"SELECT * from track_library WHERE SearchString LIKE :filter"_s;
-    if(m_viewMode == TrackView && !m_artistFilter.isEmpty())
-        sql += u" AND Artist = :artist"_s;
-    if(m_viewMode == TrackView && !m_albumFilter.isEmpty())
-        sql += u" AND Album = :album"_s;
+    QString sql = u"SELECT * from track_library WHERE SearchString LIKE :filter ESCAPE '\\'"_s;
     QString order = u"Artist, Album, DiscNumber, Track, ID"_s;
     if(m_sortColumn >= 0)
     {
@@ -823,12 +848,7 @@ QList<PlayListTrack *> LibraryModel::getFilteredTracks() const
 
     QSqlQuery query(db);
     query.prepare(sql);
-    query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(m_filter.toLower()));
-    if(m_viewMode == TrackView && !m_artistFilter.isEmpty())
-        query.bindValue(u":artist"_s, m_artistFilter);
-    if(m_viewMode == TrackView && !m_albumFilter.isEmpty())
-        query.bindValue(u":album"_s, m_albumFilter);
-
+    query.bindValue(u":filter"_s, LibraryModel::likePattern(m_filter));
     if(!query.exec())
     {
         qCWarning(plugin, "exec error: %s", qPrintable(query.lastError().text()));

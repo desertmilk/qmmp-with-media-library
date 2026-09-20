@@ -25,6 +25,8 @@
 #include <QContextMenuEvent>
 #include <QIcon>
 #include <QLabel>
+#include <QDateTime> 
+#include <QLocale>
 #include <QHeaderView>
 #include <QPalette>
 #include <QFont>
@@ -39,6 +41,7 @@
 #include <QItemSelectionModel>
 #include <QAbstractItemView>
 #include <QTableView>
+#include <QScopedValueRollback>
 #include <QSortFilterProxyModel>
 #include <QTimer>
 #include <qmmp/qmmp.h>
@@ -80,7 +83,6 @@ protected:
 private:
     Qt::SortOrder m_sortOrder = Qt::AscendingOrder;
 };
-
 LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     QWidget(parent),
     m_ui(new Ui::LibraryWidget)
@@ -105,11 +107,11 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_ui->artistsTableView->horizontalHeader()->setMinimumSectionSize(
             QFontMetrics(m_ui->artistsTableView->font()).horizontalAdvance(tr("Tracks")) + 16);
         m_ui->artistsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        m_ui->artistsTableView->installEventFilter(this);
+        m_ui->artistsTableView->viewport()->installEventFilter(this);
         connect(m_ui->artistsTableView->horizontalHeader(), &QHeaderView::sectionResized,
-            this, [this](int column, int oldSize, int newSize)
+            this, [this](int column)
             {
-                adjustSummaryColumnSpace(m_ui->artistsTableView, column, newSize - oldSize);
+                adjustSummaryColumnSpace(m_ui->artistsTableView, column);
             });
             m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
@@ -122,17 +124,29 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_ui->albumsTableView->horizontalHeader()->setMinimumSectionSize(
             QFontMetrics(m_ui->albumsTableView->font()).horizontalAdvance(tr("Album")) + 16);
         m_ui->albumsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        m_ui->albumsTableView->installEventFilter(this);
+        m_ui->albumsTableView->viewport()->installEventFilter(this);
         connect(m_ui->albumsTableView->horizontalHeader(), &QHeaderView::sectionResized,
-            this, [this](int column, int oldSize, int newSize)
+            this, [this](int column)
             {
-                adjustSummaryColumnSpace(m_ui->albumsTableView, column, newSize - oldSize);
+                adjustSummaryColumnSpace(m_ui->albumsTableView, column);
             });
         m_ui->albumsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-        connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &LibraryWidget::refreshAlbums);
+        connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this]
+        {
+            if(m_refreshingSummary)
+                return;
+            {
+                QScopedValueRollback<bool> guard(m_refreshingSummary, true);
+                refreshAlbums();
+            }
+            updateTrackFilter();
+        });
         connect(m_ui->albumsTableView->selectionModel(), &QItemSelectionModel::selectionChanged,
-            this, &LibraryWidget::updateTrackFilter);
+            this, [this]
+        {
+            if(!m_refreshingSummary)
+                updateTrackFilter();
+        });
         connect(m_ui->artistsTableView, &QTableView::doubleClicked,
             this, &LibraryWidget::replaceArtists);
         connect(m_ui->albumsTableView, &QTableView::doubleClicked,
@@ -148,9 +162,9 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_ui->treeView->setColumnWidth(4, 60);
     m_ui->treeView->viewport()->installEventFilter(this);
     connect(m_ui->treeView->header(), &QHeaderView::sectionResized,
-            this, [this](int column, int oldSize, int newSize)
+            this, [this](int column)
     {
-        adjustColumnSpace(m_ui->treeView, m_ui->treeView->header(), column, newSize - oldSize);
+        adjustColumnSpace(m_ui->treeView, m_ui->treeView->header(), column);
     });
     if(dialog)
     {
@@ -239,10 +253,8 @@ void LibraryWidget::applyPalette()
     QPalette panelPalette = applicationPalette;
     const QColor background = QmmpUiSkin::backgroundColor();
     const QColor foreground = QmmpUiSkin::foregroundColor();
-    QColor selectedBackground;
-    selectedBackground.setNamedColor(QmmpUiSkin::playlistValue(u"SelectedBG"_s));
-    QColor current;
-    current.setNamedColor(QmmpUiSkin::playlistValue(u"Current"_s));
+    const QColor selectedBackground(QmmpUiSkin::playlistValue(u"SelectedBG"_s));
+    const QColor current(QmmpUiSkin::playlistValue(u"Current"_s));
     if(QmmpUiSkin::isSkinnedUi() && background.isValid() && foreground.isValid())
     {
         panelPalette.setColor(QPalette::Window, background);
@@ -483,14 +495,13 @@ void LibraryWidget::mouseReleaseEvent(QMouseEvent *event)
 
 bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
 {
-    if((watched == m_ui->artistsTableView || watched == m_ui->albumsTableView) &&
-            event->type() == QEvent::Resize)
+    if((watched == m_ui->artistsTableView->viewport() ||
+        watched == m_ui->albumsTableView->viewport()) && event->type() == QEvent::Resize)
     {
-        if(watched == m_ui->artistsTableView && !m_artistsColumnsInitialized)
-            initializeSummaryColumnWidths(m_ui->artistsTableView);
-        else if(watched == m_ui->albumsTableView && !m_albumsColumnsInitialized)
-            initializeSummaryColumnWidths(m_ui->albumsTableView);
-        adjustSummaryColumnSpace(static_cast<QTableView *>(watched));
+        QTableView *table = watched == m_ui->artistsTableView->viewport() ?
+                    m_ui->artistsTableView : m_ui->albumsTableView;
+        initializeSummaryColumnWidths(table); // already returns early once initialized
+        adjustSummaryColumnSpace(table);
     }
     if(watched == m_resizeWidget && event->type() == QEvent::MouseButtonPress)
     {
@@ -520,21 +531,22 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
     return QWidget::eventFilter(watched, event);
 }
 
-void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn,
-                                              int sectionDelta)
+void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn)
 {
-    adjustColumnSpace(tableView, tableView->horizontalHeader(), excludedColumn, sectionDelta);
+    adjustColumnSpace(tableView, tableView->horizontalHeader(), excludedColumn);
 }
 
 void LibraryWidget::adjustColumnSpace(QAbstractItemView *view, QHeaderView *header,
-                                      int excludedColumn, int sectionDelta)
+                                      int excludedColumn)
 {
     if(m_distributingColumnSpace)
         return;
 
     const int difference = view->viewport()->width() - header->length();
-    if((difference == 0 && sectionDelta == 0) || header->count() == 0)
+    if(difference == 0 || header->count() == 0)
+    {
         return;
+    }
 
     // Hidden sections are not part of header->length(), so they must never receive space.
     auto usable = [&](int column)
@@ -575,25 +587,6 @@ void LibraryWidget::adjustColumnSpace(QAbstractItemView *view, QHeaderView *head
         if(target >= 0)
             header->resizeSection(target, header->sectionSize(target) + difference);
     }
-    else if(difference == 0 && sectionDelta != 0)
-    {
-        int remaining = qAbs(sectionDelta);
-        while(remaining > 0)
-        {
-            const int target = pickTarget();
-            if(target < 0)
-                break;
-            const int available = header->sectionSize(target);
-            const int amount = sectionDelta > 0 ?
-                        qMin(remaining, available - header->minimumSectionSize()) : remaining;
-            header->resizeSection(target, sectionDelta > 0 ?
-                                  qMax(header->minimumSectionSize(), available - amount) :
-                                  available + amount);
-            remaining -= amount;
-            if(amount <= 0)
-                break;
-        }
-    }
     else
     {
         int remaining = -difference;
@@ -613,6 +606,11 @@ void LibraryWidget::adjustColumnSpace(QAbstractItemView *view, QHeaderView *head
                                        header->sectionSize(widest) - header->minimumSectionSize());
             header->resizeSection(widest, header->sectionSize(widest) - reduction);
             remaining -= reduction;
+        }
+        // Everything else is at its minimum: don't let the dragged column overflow the panel.
+        if(remaining > 0 && excludedColumn >= 0 && !header->isSectionHidden(excludedColumn))
+        {
+            header->resizeSection(excludedColumn, qMax(header->minimumSectionSize(), header->sectionSize(excludedColumn) - remaining));
         }
     }
     m_distributingColumnSpace = false;
@@ -725,8 +723,11 @@ void LibraryWidget::on_filterLineEdit_textChanged(const QString &text)
 
 void LibraryWidget::refreshSummaryViews()
 {
-    refreshArtists();
-    refreshAlbums();
+    {
+        QScopedValueRollback<bool> guard(m_refreshingSummary, true);
+        refreshArtists();
+        refreshAlbums();
+    }
     updateTrackFilter();
 }
 
@@ -740,8 +741,8 @@ void LibraryWidget::refreshArtists()
     QSqlQuery query(db);
     QString filter = m_ui->filterLineEdit->text();
     query.prepare(u"SELECT Artist, COUNT(DISTINCT Album), COUNT(*) FROM track_library "
-                  "WHERE SearchString LIKE :filter GROUP BY Artist ORDER BY Artist"_s);
-    query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(filter.toLower()));
+                 "WHERE SearchString LIKE :filter ESCAPE '\\' GROUP BY Artist ORDER BY Artist"_s);
+    query.bindValue(u":filter"_s, LibraryModel::likePattern(filter));
     if(!query.exec())
         return;
 
@@ -782,21 +783,22 @@ void LibraryWidget::refreshAlbums()
         return;
 
     QModelIndex artistIndex = m_ui->artistsTableView->currentIndex();
-    m_selectedArtist = artistIndex.isValid() && artistIndex.row() > 0 ?
-                artistIndex.siblingAtColumn(0).data(Qt::UserRole).toString() : QString();
+    m_selectedArtist.reset();
+    if(artistIndex.isValid() && artistIndex.row() > 0)
+        m_selectedArtist = artistIndex.siblingAtColumn(0).data(Qt::UserRole).toString();
     m_albumsModel->removeRows(0, m_albumsModel->rowCount());
 
     QSqlQuery query(db);
     QString filter = m_ui->filterLineEdit->text();
     QString sql = u"SELECT Album, MAX(Year), COUNT(*) FROM track_library "
-                  "WHERE SearchString LIKE :filter"_s;
-    if(!m_selectedArtist.isEmpty())
+                  "WHERE SearchString LIKE :filter ESCAPE '\\'"_s;
+    if(m_selectedArtist)
         sql += u" AND Artist = :artist"_s;
     sql += u" GROUP BY Album ORDER BY Album"_s;
     query.prepare(sql);
-    query.bindValue(u":filter"_s, QStringLiteral("%%1%").arg(filter.toLower()));
-    if(!m_selectedArtist.isEmpty())
-        query.bindValue(u":artist"_s, m_selectedArtist);
+    query.bindValue(u":filter"_s, LibraryModel::likePattern(filter));
+    if(m_selectedArtist)
+        query.bindValue(u":artist"_s, *m_selectedArtist);
     if(!query.exec())
         return;
 
@@ -828,8 +830,9 @@ void LibraryWidget::refreshAlbums()
 void LibraryWidget::updateTrackFilter()
 {
     QModelIndex albumIndex = m_ui->albumsTableView->currentIndex();
-    m_selectedAlbum = albumIndex.isValid() && albumIndex.row() > 0 ?
-                albumIndex.siblingAtColumn(0).data(Qt::UserRole).toString() : QString();
+    m_selectedAlbum.reset();
+    if(albumIndex.isValid() && albumIndex.row() > 0)
+        m_selectedAlbum = albumIndex.siblingAtColumn(0).data(Qt::UserRole).toString();
     m_model->setTrackFilter(m_selectedArtist, m_selectedAlbum);
 }
 
@@ -889,29 +892,29 @@ void LibraryWidget::showSettings()
 void LibraryWidget::setArtistView()
 {
     m_model->setViewMode(LibraryModel::ArtistView);
-    m_model->refresh();
+    m_model->refresh(); // (seems superfluous)
 }
 
 void LibraryWidget::setAlbumView()
 {
     m_model->setViewMode(LibraryModel::AlbumView);
-    m_model->refresh();
+    m_model->refresh(); // (seems superfluous)
 }
 
 void LibraryWidget::setMostPlayedView()
 {
     m_model->setViewMode(LibraryModel::MostPlayedView);
-    m_model->refresh();
+    m_model->refresh(); // (seems superfluous)
 }
 
 void LibraryWidget::setRecentlyPlayedView()
 {
     m_model->setViewMode(LibraryModel::RecentlyPlayedView);
-    m_model->refresh();
+    m_model->refresh(); // (seems superfluous)
 }
 
 void LibraryWidget::setUnratedView()
 {
     m_model->setViewMode(LibraryModel::UnratedView);
-    m_model->refresh();
+    m_model->refresh(); // (seems superfluous)
 }

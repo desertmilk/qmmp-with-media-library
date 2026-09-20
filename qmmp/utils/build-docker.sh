@@ -31,7 +31,7 @@ docker run --rm \
             libopusfile-dev \
             libtag1-dev \
             libvorbis-dev
-
+c
         cmake -S /worktree -B "$QMMP_BUILD_DIR" -G Ninja \
             -DCMAKE_BUILD_TYPE=Debug \
             -DUSE_LIBRARY=ON \

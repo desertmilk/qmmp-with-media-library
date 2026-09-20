@@ -91,12 +91,11 @@ private:
     void mouseReleaseEvent(QMouseEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
     void applyPalette();
-    void adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn = -1,
-                                  int sectionDelta = 0);
+    void adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn = -1);
     void initializeSummaryColumnWidths(QTableView *tableView);
     bool loadSkinChrome();
     void toggleShade();
-    void adjustColumnSpace(QAbstractItemView *view, QHeaderView *header, int excludedColumn = -1, int sectionDelta = 0);
+    void adjustColumnSpace(QAbstractItemView *view, QHeaderView *header, int excludedColumn = -1);
     Ui::LibraryWidget *m_ui;
     LibraryModel *m_model;
     QMenu *m_menu;
@@ -107,8 +106,8 @@ private:
     QStandardItemModel *m_albumsModel;
     QSortFilterProxyModel *m_artistsProxy;
     QSortFilterProxyModel *m_albumsProxy;
-    QString m_selectedArtist;
-    QString m_selectedAlbum;
+    std::optional<QString> m_selectedArtist;
+    std::optional<QString> m_selectedAlbum;
     QPixmap m_skinPlaylist;
     QWidget *m_resizeWidget = nullptr;
     QPoint m_dragOffset;
@@ -120,6 +119,7 @@ private:
     bool m_distributingColumnSpace = false;
     bool m_artistsColumnsInitialized = false;
     bool m_albumsColumnsInitialized = false;
+    bool m_refreshingSummary = false;
     int m_unshadedHeight = 0;
 };
 
