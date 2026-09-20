@@ -48,15 +48,6 @@
 #include "ui_librarywidget.h"
 #include "librarywidget.h"
 
-// Exposes the protected QTableView::sizeHintForColumn() for column-space distribution.
-class SummaryTableAccessor : public QTableView
-{
-public:
-    static int columnSizeHint(const QTableView *view, int column)
-    {
-        return static_cast<const SummaryTableAccessor *>(view)->sizeHintForColumn(column);
-    }
-};
 class LibrarySummarySortModel : public QSortFilterProxyModel
 {
 public:
@@ -155,7 +146,12 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_ui->treeView->setColumnWidth(2, 180);
     m_ui->treeView->setColumnWidth(3, 240);
     m_ui->treeView->setColumnWidth(4, 60);
-
+    m_ui->treeView->viewport()->installEventFilter(this);
+    connect(m_ui->treeView->header(), &QHeaderView::sectionResized,
+            this, [this](int column, int oldSize, int newSize)
+    {
+        adjustColumnSpace(m_ui->treeView, m_ui->treeView->header(), column, newSize - oldSize);
+    });
     if(dialog)
     {
         if(loadSkinChrome())
@@ -199,9 +195,10 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         QAction *action = columnsMenu->addAction(columnNames.at(column));
         action->setCheckable(true);
         action->setChecked(!treeHeader->isSectionHidden(column));
-        connect(action, &QAction::toggled, this, [treeHeader, column](bool visible)
+        connect(action, &QAction::toggled, this, [this, treeHeader, column](bool visible)
         {
             treeHeader->setSectionHidden(column, !visible);
+            adjustColumnSpace(m_ui->treeView, treeHeader);
         });
     }
 
@@ -217,6 +214,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         initializeSummaryColumnWidths(m_ui->albumsTableView);
         adjustSummaryColumnSpace(m_ui->artistsTableView);
         adjustSummaryColumnSpace(m_ui->albumsTableView);
+        adjustColumnSpace(m_ui->treeView, m_ui->treeView->header());
     });
 }
 
@@ -515,82 +513,84 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
         setCursor(Qt::ArrowCursor);
         return true;
     }
+    if(watched == m_ui->treeView->viewport() && event->type() == QEvent::Resize)
+    {
+        adjustColumnSpace(m_ui->treeView, m_ui->treeView->header());
+    }
     return QWidget::eventFilter(watched, event);
 }
 
 void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn,
                                               int sectionDelta)
 {
+    adjustColumnSpace(tableView, tableView->horizontalHeader(), excludedColumn, sectionDelta);
+}
+
+void LibraryWidget::adjustColumnSpace(QAbstractItemView *view, QHeaderView *header,
+                                      int excludedColumn, int sectionDelta)
+{
     if(m_distributingColumnSpace)
         return;
 
-    QHeaderView *header = tableView->horizontalHeader();
-    const int difference = tableView->viewport()->width() - header->length();
+    const int difference = view->viewport()->width() - header->length();
     if((difference == 0 && sectionDelta == 0) || header->count() == 0)
         return;
+
+    // Hidden sections are not part of header->length(), so they must never receive space.
+    auto usable = [&](int column)
+    {
+        return column != excludedColumn && !header->isSectionHidden(column);
+    };
+    auto pickTarget = [&]
+    {
+        int target = -1;
+        int largestDeficit = 0;
+        for(int column = 0; column < header->count(); ++column)
+        {
+            if(!usable(column))
+                continue;
+            const int deficit = view->sizeHintForColumn(column) - header->sectionSize(column);
+            if(deficit > largestDeficit)
+            {
+                largestDeficit = deficit;
+                target = column;
+            }
+        }
+        if(target < 0)
+        {
+            for(int column = 0; column < header->count(); ++column)
+            {
+                if(usable(column) &&
+                   (target < 0 || header->sectionSize(column) > header->sectionSize(target)))
+                    target = column;
+            }
+        }
+        return target;
+    };
 
     m_distributingColumnSpace = true;
     if(difference > 0)
     {
-        int targetColumn = -1;
-        int largestDeficit = 0;
-        for(int column = 0; column < header->count(); ++column)
-        {
-            const int deficit = SummaryTableAccessor::columnSizeHint(tableView, column) - header->sectionSize(column);
-            if(deficit > largestDeficit)
-            {
-                largestDeficit = deficit;
-                targetColumn = column;
-            }
-        }
-        if(targetColumn < 0)
-        {
-            targetColumn = 0;
-            for(int column = 1; column < header->count(); ++column)
-            {
-                if(header->sectionSize(column) > header->sectionSize(targetColumn))
-                    targetColumn = column;
-            }
-        }
-        header->resizeSection(targetColumn, header->sectionSize(targetColumn) + difference);
+        const int target = pickTarget();
+        if(target >= 0)
+            header->resizeSection(target, header->sectionSize(target) + difference);
     }
     else if(difference == 0 && sectionDelta != 0)
     {
         int remaining = qAbs(sectionDelta);
         while(remaining > 0)
         {
-            int targetColumn = -1;
-            int largestDeficit = 0;
-            for(int column = 0; column < header->count(); ++column)
-            {
-                if(column == excludedColumn)
-                    continue;
-                const int deficit = SummaryTableAccessor::columnSizeHint(tableView, column) - header->sectionSize(column);
-                if(deficit > largestDeficit)
-                {
-                    largestDeficit = deficit;
-                    targetColumn = column;
-                }
-            }
-            if(targetColumn < 0)
-            {
-                for(int column = 0; column < header->count(); ++column)
-                {
-                    if(column != excludedColumn &&
-                            (targetColumn < 0 || header->sectionSize(column) > header->sectionSize(targetColumn)))
-                        targetColumn = column;
-                }
-            }
-            if(targetColumn < 0)
+            const int target = pickTarget();
+            if(target < 0)
                 break;
-            const int available = header->sectionSize(targetColumn);
+            const int available = header->sectionSize(target);
             const int amount = sectionDelta > 0 ?
                         qMin(remaining, available - header->minimumSectionSize()) : remaining;
-            header->resizeSection(targetColumn, sectionDelta > 0 ?
+            header->resizeSection(target, sectionDelta > 0 ?
                                   qMax(header->minimumSectionSize(), available - amount) :
                                   available + amount);
             remaining -= amount;
-            if(amount == 0)
+            if(amount <= 0)
                 break;
         }
     }
@@ -599,25 +599,24 @@ void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excluded
         int remaining = -difference;
         while(remaining > 0)
         {
-            int widestColumn = -1;
+            int widest = -1;
             for(int column = 0; column < header->count(); ++column)
             {
-                if(column == excludedColumn || header->sectionSize(column) <= header->minimumSectionSize())
+                if(!usable(column) || header->sectionSize(column) <= header->minimumSectionSize())
                     continue;
-                if(widestColumn < 0 || header->sectionSize(column) > header->sectionSize(widestColumn))
-                    widestColumn = column;
+                if(widest < 0 || header->sectionSize(column) > header->sectionSize(widest))
+                    widest = column;
             }
-            if(widestColumn < 0)
+            if(widest < 0)
                 break;
             const int reduction = qMin(remaining,
-                                       header->sectionSize(widestColumn) - header->minimumSectionSize());
-            header->resizeSection(widestColumn, header->sectionSize(widestColumn) - reduction);
+                                       header->sectionSize(widest) - header->minimumSectionSize());
+            header->resizeSection(widest, header->sectionSize(widest) - reduction);
             remaining -= reduction;
         }
     }
     m_distributingColumnSpace = false;
 }
-
 void LibraryWidget::initializeSummaryColumnWidths(QTableView *tableView)
 {
     if((tableView == m_ui->artistsTableView && m_artistsColumnsInitialized) ||

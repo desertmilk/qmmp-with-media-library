@@ -41,6 +41,8 @@ class LibraryModel;
 class QStandardItemModel;
 class QTableView;
 class QSortFilterProxyModel;
+class QAbstractItemView;
+class QHeaderView;
 
 class LibraryWidget : public QWidget
 {
@@ -94,6 +96,7 @@ private:
     void initializeSummaryColumnWidths(QTableView *tableView);
     bool loadSkinChrome();
     void toggleShade();
+    void adjustColumnSpace(QAbstractItemView *view, QHeaderView *header, int excludedColumn = -1, int sectionDelta = 0);
     Ui::LibraryWidget *m_ui;
     LibraryModel *m_model;
     QMenu *m_menu;
