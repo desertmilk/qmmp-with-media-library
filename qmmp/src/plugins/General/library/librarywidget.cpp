@@ -48,6 +48,15 @@
 #include "ui_librarywidget.h"
 #include "librarywidget.h"
 
+// Exposes the protected QTableView::sizeHintForColumn() for column-space distribution.
+class SummaryTableAccessor : public QTableView
+{
+public:
+    static int columnSizeHint(const QTableView *view, int column)
+    {
+        return static_cast<const SummaryTableAccessor *>(view)->sizeHintForColumn(column);
+    }
+};
 class LibrarySummarySortModel : public QSortFilterProxyModel
 {
 public:
@@ -527,7 +536,7 @@ void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excluded
         int largestDeficit = 0;
         for(int column = 0; column < header->count(); ++column)
         {
-            const int deficit = tableView->sizeHintForColumn(column) - header->sectionSize(column);
+            const int deficit = SummaryTableAccessor::columnSizeHint(tableView, column) - header->sectionSize(column);
             if(deficit > largestDeficit)
             {
                 largestDeficit = deficit;
@@ -556,7 +565,7 @@ void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excluded
             {
                 if(column == excludedColumn)
                     continue;
-                const int deficit = tableView->sizeHintForColumn(column) - header->sectionSize(column);
+                const int deficit = SummaryTableAccessor::columnSizeHint(tableView, column) - header->sectionSize(column);
                 if(deficit > largestDeficit)
                 {
                     largestDeficit = deficit;
