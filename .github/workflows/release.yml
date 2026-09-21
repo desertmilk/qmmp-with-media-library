@@ -502,7 +502,7 @@ jobs:
 
   
   # Job 4: Build on macOS
-  
+
   build-macos:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -519,7 +519,7 @@ jobs:
           ref: ${{ needs.check-for-updates.outputs.commit_sha }}
           fetch-depth: 1
           path: qmmp-src
-
+ 
       - name: Install Homebrew dependencies
         run: |
           brew update
@@ -551,14 +551,14 @@ jobs:
             libshout \
             enca \
             pkg-config || true
-
+ 
       - name: Set up ccache
         uses: actions/cache@v4
         with:
           path: ~/Library/Caches/ccache
           key: ccache-macos-${{ github.run_id }}
           restore-keys: ccache-macos-
-
+ 
       - name: Configure with CMake
         run: |
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
@@ -590,34 +590,34 @@ jobs:
         run: |
           cd qmmp-src/qmmp/build
           ninja -j$(sysctl -n hw.ncpu)
-
+ 
       - name: Install to staging directory
         run: |
           cd qmmp-src/qmmp/build
           DESTDIR=${{ github.workspace }}/staging-macos ninja install
-
+ 
       # - name: Create tarball
       #   run: |
       #     cd ${{ github.workspace }}
       #     tar -czf qmmp-${VERSION}-macos-arm64.tar.gz -C staging-macos .
-
+ 
       - name: Create and sign macOS app bundle
         run: |
           APP_BUNDLE=${{ github.workspace }}/Qmmp.app
           CONTENTS="$APP_BUNDLE/Contents"
           STAGING=${{ github.workspace }}/staging-macos
-
+ 
           mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources" "$CONTENTS/lib" "$CONTENTS/share"
           cp "$STAGING/usr/local/bin/qmmp" "$CONTENTS/MacOS/qmmp"
           chmod +x "$CONTENTS/MacOS/qmmp"
-
+ 
           if [ -d "$STAGING/usr/local/lib" ]; then
             cp -R "$STAGING/usr/local/lib/." "$CONTENTS/lib/"
           fi
           if [ -d "$STAGING/usr/local/share/qmmp" ]; then
             cp -R "$STAGING/usr/local/share/qmmp" "$CONTENTS/share/"
           fi
-
+ 
           # LSMinimumSystemVersion is a placeholder here; it is replaced below with the highest minimum OS version found among the bundled binaries. CFBundleVersion must be numeric, so use the run number (the short SHA is hex).
           cat > "$CONTENTS/Info.plist" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -647,7 +647,7 @@ jobs:
           </dict>
           </plist>
           EOF
-
+ 
           # macdeployqt only fixes up the main executable and Qt plugins by itself. Qmmp's own plugins/libraries were copied into Contents/lib, so pass them explicitly; otherwise they keep pointing at the runner's Homebrew paths.
           MACDEPLOYQT="$(brew --prefix qt@6)/bin/macdeployqt"
           test -x "$MACDEPLOYQT"
@@ -658,11 +658,13 @@ jobs:
               EXEC_ARGS+=("-executable=$f")
             fi
           done < <(find "$CONTENTS/lib" -type f -print0)
-          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite ${EXEC_ARGS[@]+"${EXEC_ARGS[@]}"}
-
+          # -libpath lets macdeployqt resolve @rpath/libqmmp*.2.dylib (which live in Contents/lib) instead of only searching /opt/homebrew/lib; it then copies them into Contents/Frameworks and rewrites the plugins' references.
+          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -libpath="$CONTENTS/lib" \
+            ${EXEC_ARGS[@]+"${EXEC_ARGS[@]}"}
+ 
           file "$APP_BUNDLE/Contents/MacOS/qmmp"
           [[ "$(file -b "$CONTENTS/MacOS/qmmp")" == *arm64* ]]
-
+ 
           # Fail if any bundled binary still references the runner's Homebrew install; such a bundle works on CI and crashes on every user's Mac.
           BAD=0
           while IFS= read -r -d '' f; do
@@ -675,7 +677,7 @@ jobs:
             fi
           done < <(find "$APP_BUNDLE" -type f -print0)
           [ "$BAD" -eq 0 ]
-
+ 
           # Compute the real minimum macOS version: the highest minos among all bundled
           # Mach-O files (Homebrew bottles are built for the runner's macOS version).
           MINOS=$(
@@ -694,7 +696,7 @@ jobs:
             plutil -replace LSMinimumSystemVersion -string "$MINOS" "$CONTENTS/Info.plist"
           fi
           plutil -lint "$CONTENTS/Info.plist"
-
+ 
           # Ad-hoc signing allows the downloaded nightly app to launch locally.
           # It is not a Developer ID signature and does not provide notarization.
           # Sign inside-out: every Mach-O first (--deep does not reach Contents/lib), then frameworks, then the app itself. Hardened runtime (--options runtime) is intentionally NOT used: its library validation rejects ad-hoc-signed plugins.
@@ -708,17 +710,17 @@ jobs:
           done < <(find "$APP_BUNDLE" -name '*.framework' -type d -print0)
           codesign --force --sign - "$APP_BUNDLE"
           codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
-
+ 
           # Smoke test: catches dyld/plugin loading failures before we ship. (Adjust the flag if Qmmp's CLI differs.)
           QT_QPA_PLATFORM=offscreen "$CONTENTS/MacOS/qmmp" --help
-
+ 
           # DMG generation is intentionally disabled for these nightly builds.
           # mv Qmmp.dmg qmmp-${VERSION}-macos-arm64.dmg
           ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" \
             qmmp-${VERSION}-macos-arm64.app.zip
           # test -s qmmp-${VERSION}-macos-arm64.dmg
           test -s qmmp-${VERSION}-macos-arm64.app.zip
-
+ 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
