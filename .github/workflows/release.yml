@@ -1044,10 +1044,9 @@ jobs:
           
           ### 🪟 Windows
           
-          | Architecture | File | Runtime |
-          |--------------|------|---------|
-          | x86_64 | `qmmp-*-windows-x86_64.7z` | MSYS2 UCRT64 |
-          
+          | Architecture | File | Notes |
+          |--------------|------|-------|
+          | x86_64 | `qmmp-*-windows-x86_64.7z` | Self-contained (built with MSYS2 UCRT64) |          
           ---
           
           MIDEOF
@@ -1116,9 +1115,10 @@ jobs:
           ```
           
           ### Windows
-          1. Extract `qmmp-*-windows-x86_64.7z` to a folder
-          2. Ensure MSYS2 UCRT64 `bin` directory is in PATH, or copy required DLLs
-          3. Run `bin\qmmp.exe`
+          1. Extract `qmmp-*-windows-x86_64.7z` to a folder (7-Zip, or Windows 11's built-in extractor)
+          2. Run `bin\qmmp.exe`
+          
+          The executable is not code-signed, so SmartScreen may show "Windows protected your PC": click More info → Run anyway.
           
           ---
           
