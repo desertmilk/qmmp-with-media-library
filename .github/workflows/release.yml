@@ -593,12 +593,12 @@ jobs:
           cd qmmp-src/qmmp/build
           DESTDIR=${{ github.workspace }}/staging-macos ninja install
 
-      - name: Create tarball
-        run: |
-          cd ${{ github.workspace }}
-          tar -czf qmmp-${VERSION}-macos-arm64.tar.gz -C staging-macos .
+      # - name: Create tarball
+      #   run: |
+      #     cd ${{ github.workspace }}
+      #     tar -czf qmmp-${VERSION}-macos-arm64.tar.gz -C staging-macos .
 
-      - name: Create macOS app bundle and DMG
+      - name: Create and sign macOS app bundle
         run: |
           APP_BUNDLE=${{ github.workspace }}/Qmmp.app
           CONTENTS="$APP_BUNDLE/Contents"
@@ -640,12 +640,18 @@ jobs:
 
           MACDEPLOYQT="$(brew --prefix qt@6)/bin/macdeployqt"
           test -x "$MACDEPLOYQT"
-          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -dmg
+          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite
 
-          mv Qmmp.dmg qmmp-${VERSION}-macos-arm64.dmg
+          # Ad-hoc signing allows the downloaded nightly app to launch locally.
+          # It is not a Developer ID signature and does not provide notarization.
+          codesign --force --deep --sign - "$APP_BUNDLE"
+          codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+
+          # DMG generation is intentionally disabled for these nightly builds.
+          # mv Qmmp.dmg qmmp-${VERSION}-macos-arm64.dmg
           ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" \
             qmmp-${VERSION}-macos-arm64.app.zip
-          test -s qmmp-${VERSION}-macos-arm64.dmg
+          # test -s qmmp-${VERSION}-macos-arm64.dmg
           test -s qmmp-${VERSION}-macos-arm64.app.zip
 
       - name: Upload artifact
@@ -653,8 +659,6 @@ jobs:
         with:
           name: qmmp-macos
           path: |
-            qmmp-*-macos-arm64.tar.gz
-            qmmp-*-macos-arm64.dmg
             qmmp-*-macos-arm64.app.zip
           retention-days: 7
           if-no-files-found: error
@@ -898,8 +902,6 @@ jobs:
           
           | Architecture | File |
           |--------------|------|
-          | Apple Silicon (ARM64) | \`qmmp-*-macos-arm64.tar.gz\` |
-          | Apple Silicon (ARM64) | \`qmmp-*-macos-arm64.dmg\` |
           | Apple Silicon (ARM64) | \`qmmp-*-macos-arm64.app.zip\` |
           
           ### 🪟 Windows
@@ -953,16 +955,11 @@ jobs:
           
           ### macOS
           \`\`\`bash
-          # Open the DMG and drag Qmmp.app to Applications
-          open qmmp-*-macos-arm64.dmg
 
-          # Or extract and run the app bundle directly
           unzip qmmp-*-macos-arm64.app.zip
+          # First launch: either right-click the app → Open → Open, or if that option isn't offered, go to System Settings → Privacy & Security → scroll down → click Open Anyway (on recent macOS (Sequoia/Tahoe) the right-click override is less consistently available)
+          # You can also use the terminal: `xattr -cr Qmmp.app`.
           open Qmmp.app
-
-          # Legacy Unix-style installation
-          tar -xzf qmmp-*-macos-arm64.tar.gz
-          sudo cp -r usr/local/* /usr/local/
           \`\`\`
           
           ### Windows
