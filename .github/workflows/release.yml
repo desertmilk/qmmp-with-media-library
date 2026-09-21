@@ -565,6 +565,7 @@ jobs:
           export LDFLAGS="-L$(brew --prefix qt@6)/lib -L$(brew --prefix libiconv)/lib -L$(brew --prefix libogg)/lib -L$(brew --prefix libvorbis)/lib"
           export CPPFLAGS="-I$(brew --prefix qt@6)/include -I$(brew --prefix libiconv)/include -I$(brew --prefix libogg)/include -I$(brew --prefix libvorbis)/include -I$(brew --prefix opusfile)/include"
           export PKG_CONFIG_PATH="$(brew --prefix qt@6)/lib/pkgconfig:$(brew --prefix libiconv)/lib/pkgconfig:$(brew --prefix libogg)/lib/pkgconfig:$(brew --prefix libvorbis)/lib/pkgconfig"
+          # NOTE: CMAKE_OSX_DEPLOYMENT_TARGET only affects Qmmp's own code. Homebrew bottles (Qt, ffmpeg, ...) are built for the runner's macOS version, so the real minimum version of the bundle is computed later from the bundled binaries.
           cmake .. \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
@@ -617,11 +618,14 @@ jobs:
             cp -R "$STAGING/usr/local/share/qmmp" "$CONTENTS/share/"
           fi
 
+          # LSMinimumSystemVersion is a placeholder here; it is replaced below with the highest minimum OS version found among the bundled binaries. CFBundleVersion must be numeric, so use the run number (the short SHA is hex).
           cat > "$CONTENTS/Info.plist" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
           <dict>
+              <key>CFBundleInfoDictionaryVersion</key>
+              <string>6.0</string>
               <key>CFBundleDisplayName</key>
               <string>Qmmp</string>
               <key>CFBundleExecutable</key>
@@ -635,24 +639,78 @@ jobs:
               <key>CFBundleShortVersionString</key>
               <string>${{ needs.check-for-updates.outputs.build_date }}</string>
               <key>CFBundleVersion</key>
-              <string>${{ needs.check-for-updates.outputs.short_sha }}</string>
+              <string>${{ github.run_number }}</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>13.0</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
           </dict>
           </plist>
           EOF
 
+          # macdeployqt only fixes up the main executable and Qt plugins by itself. Qmmp's own plugins/libraries were copied into Contents/lib, so pass them explicitly; otherwise they keep pointing at the runner's Homebrew paths.
           MACDEPLOYQT="$(brew --prefix qt@6)/bin/macdeployqt"
           test -x "$MACDEPLOYQT"
           export PATH="$(brew --prefix qt@6)/bin:$PATH"
-          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite
+          EXEC_ARGS=()
+          while IFS= read -r -d '' f; do
+            if file -b "$f" | grep -q 'Mach-O'; then
+              EXEC_ARGS+=("-executable=$f")
+            fi
+          done < <(find "$CONTENTS/lib" -type f -print0)
+          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite ${EXEC_ARGS[@]+"${EXEC_ARGS[@]}"}
 
           file "$APP_BUNDLE/Contents/MacOS/qmmp"
-          test "$(file -b "$APP_BUNDLE/Contents/MacOS/qmmp")" = *"arm64"*
+          [[ "$(file -b "$CONTENTS/MacOS/qmmp")" == *arm64* ]]
+
+          # Fail if any bundled binary still references the runner's Homebrew install; such a bundle works on CI and crashes on every user's Mac.
+          BAD=0
+          while IFS= read -r -d '' f; do
+            if file -b "$f" | grep -q 'Mach-O'; then
+              if otool -L "$f" | tail -n +2 | grep -Eq '/opt/homebrew|/usr/local/(Cellar|opt|lib)'; then
+                echo "::error::External dependency in ${f#$APP_BUNDLE/}"
+                otool -L "$f" | grep -E '/opt/homebrew|/usr/local/' || true
+                BAD=1
+              fi
+            fi
+          done < <(find "$APP_BUNDLE" -type f -print0)
+          [ "$BAD" -eq 0 ]
+
+          # Compute the real minimum macOS version: the highest minos among all bundled
+          # Mach-O files (Homebrew bottles are built for the runner's macOS version).
+          MINOS=$(
+            while IFS= read -r -d '' f; do
+              if file -b "$f" | grep -q 'Mach-O'; then
+                otool -l "$f" | awk '
+                  /^ *cmd LC_BUILD_VERSION/ {b=1; next}
+                  /^ *cmd LC_VERSION_MIN_MACOSX/ {v=1; next}
+                  b && /^ *minos / {print $2; b=0}
+                  v && /^ *version / {print $2; v=0}'
+              fi
+            done < <(find "$APP_BUNDLE" -type f -print0) | sort -V | tail -n 1
+          )
+          echo "Highest minimum macOS version in bundle: ${MINOS:-unknown}"
+          if [ -n "$MINOS" ]; then
+            plutil -replace LSMinimumSystemVersion -string "$MINOS" "$CONTENTS/Info.plist"
+          fi
           plutil -lint "$CONTENTS/Info.plist"
 
           # Ad-hoc signing allows the downloaded nightly app to launch locally.
           # It is not a Developer ID signature and does not provide notarization.
-          codesign --force --deep --sign - "$APP_BUNDLE"
+          # Sign inside-out: every Mach-O first (--deep does not reach Contents/lib), then frameworks, then the app itself. Hardened runtime (--options runtime) is intentionally NOT used: its library validation rejects ad-hoc-signed plugins.
+          while IFS= read -r -d '' f; do
+            if file -b "$f" | grep -q 'Mach-O'; then
+              codesign --force --sign - "$f"
+            fi
+          done < <(find "$APP_BUNDLE" -type f ! -path '*/Contents/MacOS/qmmp' -print0)
+          while IFS= read -r -d '' fw; do
+            codesign --force --sign - "$fw"
+          done < <(find "$APP_BUNDLE" -name '*.framework' -type d -print0)
+          codesign --force --sign - "$APP_BUNDLE"
           codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+
+          # Smoke test: catches dyld/plugin loading failures before we ship. (Adjust the flag if Qmmp's CLI differs.)
+          QT_QPA_PLATFORM=offscreen "$CONTENTS/MacOS/qmmp" --help
 
           # DMG generation is intentionally disabled for these nightly builds.
           # mv Qmmp.dmg qmmp-${VERSION}-macos-arm64.dmg
@@ -823,7 +881,7 @@ jobs:
         run: |
           # Get changes since last nightly if exists
           LAST_SHA=""
-          if gh release view nightly --json body -q '.body' 2>/dev/null; then
+          if gh release view nightly --json body -q '.body' >/dev/null 2>&1; then
             LAST_SHA=$(gh release view nightly --json body -q '.body' | grep -oP 'Commit SHA: \K[a-f0-9]{40}' || echo "")
           fi
           
@@ -872,11 +930,13 @@ jobs:
             exit 1
           fi
           
-          # Create release body
-          cat > release_body.md << RELEASEEOF
+          # Create release body.
+          # Static text goes through quoted heredocs; dynamic values (commit message, author, changes list) come from env vars and are written with printf '%s', so nothing from a commit message is ever evaluated by the shell.
+          {
+            cat << 'HEADEREOF'
           # 🌙 Qmmp Nightly Build
           
-          > **⚠️ Warning:** This is an automated nightly build from the \`master\` branch.
+          > **⚠️ Warning:** This is an automated nightly build from the `master` branch.
           > It may contain bugs, incomplete features, or breaking changes.
           > **Use at your own risk!** For stable releases, visit the [Releases](https://github.com/qmmp-dev/qmmp/releases) page.
           
@@ -886,13 +946,15 @@ jobs:
           
           | Property | Value |
           |----------|-------|
-          | **Build Date** | ${{ needs.check-for-updates.outputs.build_date }} |
-          | **Commit SHA** | \`${{ needs.check-for-updates.outputs.short_sha }}\` |
-          | **Full SHA** | \`${{ needs.check-for-updates.outputs.commit_sha }}\` |
-          | **Last Commit** | ${{ needs.check-for-updates.outputs.commit_message }} |
-          | **Author** | ${{ needs.check-for-updates.outputs.commit_author }} |
-          | **Commit Date** | ${{ needs.check-for-updates.outputs.commit_date }} |
-          | **Commits Since Last** | ${{ needs.check-for-updates.outputs.commits_count }} |
+          HEADEREOF
+            printf '| **Build Date** | %s |\n' "$BUILD_DATE"
+            printf '| **Commit SHA** | `%s` |\n' "$SHORT_SHA"
+            printf '| **Full SHA** | `%s` |\n' "$COMMIT_SHA"
+            printf '| **Last Commit** | %s |\n' "$COMMIT_MESSAGE"
+            printf '| **Author** | %s |\n' "$COMMIT_AUTHOR"
+            printf '| **Commit Date** | %s |\n' "$COMMIT_DATE"
+            printf '| **Commits Since Last** | %s |\n' "$COMMITS_COUNT"
+            cat << 'MIDEOF'
           
           ---
           
@@ -902,24 +964,26 @@ jobs:
           
           | Format | File | Description |
           |--------|------|-------------|
-          | **Binary** | \`qmmp-*-linux-x86_64-binary.tar.gz\` | Pre-built binaries for installation to \`/usr\` |
-          | **AppImage** | \`qmmp-*-linux-x86_64.AppImage\` | Portable, no installation required |
+          | **Binary** | `qmmp-*-linux-x86_64-binary.tar.gz` | Pre-built binaries for installation to `/usr` |
+          | **AppImage** | `qmmp-*-linux-x86_64.AppImage` | Portable, no installation required |
           
           ### 🍎 macOS
           
           | Architecture | File |
           |--------------|------|
-          | Apple Silicon (ARM64) | \`qmmp-*-macos-arm64.app.zip\` |
+          | Apple Silicon (ARM64) | `qmmp-*-macos-arm64.app.zip` |
           
           ### 🪟 Windows
           
           | Architecture | File | Runtime |
           |--------------|------|---------|
-          | x86_64 | \`qmmp-*-windows-x86_64.7z\` | MSYS2 UCRT64 |
+          | x86_64 | `qmmp-*-windows-x86_64.7z` | MSYS2 UCRT64 |
           
           ---
           
-          ${{ steps.changes.outputs.changes_content }}
+          MIDEOF
+            printf '%s\n' "$CHANGES_CONTENT"
+            cat << 'FOOTEREOF'
           
           ---
           
@@ -948,31 +1012,44 @@ jobs:
           ## 📥 Installation
           
           ### Linux - Binary Tarball
-          \`\`\`bash
+          ```bash
           tar -xzf qmmp-*-linux-x86_64-binary.tar.gz
           sudo cp -r usr / && sudo cp -r etc / 2>/dev/null || true
           sudo ldconfig
-          \`\`\`
+          ```
           
           ### Linux - AppImage
-          \`\`\`bash
+          ```bash
           chmod +x qmmp-*-linux-x86_64.AppImage
           ./qmmp-*-linux-x86_64.AppImage
-          \`\`\`
+          ```
           
           ### macOS
-          \`\`\`bash
-
-          unzip qmmp-*-macos-arm64.app.zip
-          # First launch: either right-click the app → Open → Open, or if that option isn't offered, go to System Settings → Privacy & Security → scroll down → click Open Anyway (on recent macOS (Sequoia/Tahoe) the right-click override is less consistently available)
-          # You can also use the terminal: `xattr -cr Qmmp.app`.
+          The app is ad-hoc signed but **not notarized**, so Gatekeeper blocks it on first launch
+          if it was downloaded with a browser.
+          
+          **Downloaded in a browser (and unzipped by double-clicking):**
+          1. Unzip `qmmp-*-macos-arm64.app.zip`
+          2. Either right-click `Qmmp.app` → Open → Open, or, if that option isn't offered
+             (on recent macOS (Sequoia/Tahoe) the right-click override is less consistently available),
+             go to System Settings → Privacy & Security → scroll down → click Open Anyway
+          3. Alternatively, remove the quarantine flag in a terminal and open the app:
+          ```bash
+          xattr -dr com.apple.quarantine Qmmp.app
           open Qmmp.app
-          \`\`\`
+          ```
+          
+          **Downloaded via terminal (no Gatekeeper prompt):**
+          ```bash
+          curl -L -o qmmp.zip "<URL of the qmmp-*-macos-arm64.app.zip asset>"
+          unzip qmmp.zip
+          open Qmmp.app
+          ```
           
           ### Windows
-          1. Extract \`qmmp-*-windows-x86_64.7z\` to a folder
-          2. Ensure MSYS2 UCRT64 \`bin\` directory is in PATH, or copy required DLLs
-          3. Run \`bin\qmmp.exe\`
+          1. Extract `qmmp-*-windows-x86_64.7z` to a folder
+          2. Ensure MSYS2 UCRT64 `bin` directory is in PATH, or copy required DLLs
+          3. Run `bin\qmmp.exe`
           
           ---
           
@@ -982,17 +1059,27 @@ jobs:
           
           ---
           
-          *🤖 Auto-generated by [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) on ${{ needs.check-for-updates.outputs.build_date }}*
-          RELEASEEOF
+          FOOTEREOF
+            printf '*🤖 Auto-generated by [GitHub Actions](%s) on %s*\n' "$RUN_URL" "$BUILD_DATE"
+          } > release_body.md
           
           # Create the release
           gh release create nightly \
-            --title "🌙 Nightly Build - ${{ needs.check-for-updates.outputs.build_date }}" \
+            --title "🌙 Nightly Build - ${BUILD_DATE}" \
             --notes-file release_body.md \
             --prerelease \
             "${ARCHIVES[@]}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_DATE: ${{ needs.check-for-updates.outputs.build_date }}
+          SHORT_SHA: ${{ needs.check-for-updates.outputs.short_sha }}
+          COMMIT_SHA: ${{ needs.check-for-updates.outputs.commit_sha }}
+          COMMIT_MESSAGE: ${{ needs.check-for-updates.outputs.commit_message }}
+          COMMIT_AUTHOR: ${{ needs.check-for-updates.outputs.commit_author }}
+          COMMIT_DATE: ${{ needs.check-for-updates.outputs.commit_date }}
+          COMMITS_COUNT: ${{ needs.check-for-updates.outputs.commits_count }}
+          CHANGES_CONTENT: ${{ steps.changes.outputs.changes_content }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Verify release
         run: |
