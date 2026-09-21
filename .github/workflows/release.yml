@@ -29,9 +29,9 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  # ==========================================================================
+  
   # Job 1: Check if there are new commits since the last build
-  # ==========================================================================
+  
   check-for-updates:
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -112,9 +112,9 @@ jobs:
           echo "Last Nightly SHA: ${LAST_NIGHTLY_SHA:-None}"
           echo "Commits Since Last: ${COMMITS_COUNT}"
           echo "========================================"
-  # ==========================================================================
+  
   # Job 2: Build on Linux (Ubuntu) - Binary Tarball
-  # ==========================================================================
+  
   build-linux-binary:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -240,9 +240,9 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # ==========================================================================
+  
   # Job 3: Build on Linux (Ubuntu) - AppImage
-  # ==========================================================================
+  
   build-linux-appimage:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -500,9 +500,9 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # ==========================================================================
+  
   # Job 4: Build on macOS
-  # ==========================================================================
+  
   build-macos:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -728,9 +728,8 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # ==========================================================================
+  
   # Job 5: Build on Windows (MSYS2/UCRT64)
-  # ==========================================================================
   build-windows:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -825,10 +824,80 @@ jobs:
           cd qmmp-src/qmmp/build
           ninja -j$(nproc)
 
+      # --prefix installs straight into the staging directory, so the layout is staging-windows/bin, staging-windows/lib, ... instead of a mangled DESTDIR + "C:/msys64/ucrt64" path.
       - name: Install to staging directory
         run: |
-          cd qmmp-src/qmmp/build
-          DESTDIR="$PWD/../../../staging-windows" ninja install
+          cmake --install qmmp-src/qmmp/build --prefix "$PWD/staging-windows"
+          test -f staging-windows/bin/qmmp.exe
+
+      # Step 1: let windeployqt deploy the Qt DLLs and Qt plugins (platforms/qwindows.dll, styles, imageformats, multimedia, tls, ...). Qmmp's own DLLs and plugins are passed as extra binaries so windeployqt also sees the Qt modules they use (e.g. Multimedia).
+      # Step 2: copy every remaining non-system dependency from the MSYS2 prefix next to qmmp.exe (Windows searches the application directory when loading plugin DLLs).
+      - name: Bundle runtime dependencies
+        run: |
+          STAGING="$PWD/staging-windows"
+          export PATH="$STAGING/bin:$PATH"
+
+          WINDEPLOYQT=$(command -v windeployqt6 || command -v windeployqt-qt6 || command -v windeployqt)
+          test -n "$WINDEPLOYQT"
+
+          QMMP_BINARIES=()
+          while IFS= read -r -d '' f; do
+            QMMP_BINARIES+=("$f")
+          done < <(find "$STAGING" -type f -name '*.dll' -print0)
+
+          "$WINDEPLOYQT" --release --no-translations --no-opengl-sw \
+            --no-system-d3d-compiler --no-compiler-runtime \
+            --dir "$STAGING/bin" \
+            "$STAGING/bin/qmmp.exe" "${QMMP_BINARIES[@]}"
+
+          # Copy dependencies until a fixed point is reached (copied DLLs have deps too).
+          for pass in 1 2 3 4 5 6; do
+            COPIED=0
+            while IFS= read -r dep; do
+              if [ ! -e "$STAGING/bin/$(basename "$dep")" ]; then
+                cp -v "$dep" "$STAGING/bin/"
+                COPIED=1
+              fi
+            done < <(
+              find "$STAGING" -type f \( -name '*.exe' -o -name '*.dll' \) -print0 \
+                | xargs -0 -n 20 ldd 2>/dev/null \
+                | awk -v p="$MINGW_PREFIX/" 'index($3, p) == 1 {print $3}' \
+                | sort -u
+            )
+            if [ "$COPIED" -eq 0 ]; then
+              break
+            fi
+          done
+
+      # Resolves every exe/DLL with a PATH that contains only the bundle and Windows itself. Anything still pointing into the MSYS2 prefix (or unresolved) fails the build.
+      - name: Verify bundle is self-contained
+        run: |
+          STAGING="$PWD/staging-windows"
+          test -f "$STAGING/bin/platforms/qwindows.dll"
+
+          export PATH="$STAGING/bin:/usr/bin:/c/Windows/System32:/c/Windows"
+          BAD=0
+          while IFS= read -r -d '' f; do
+            OUT=$(ldd "$f" 2>/dev/null || true)
+            # api-ms-win-* / ext-ms-win-* are virtual DLLs resolved by Windows itself.
+            NOTFOUND=$(grep 'not found' <<<"$OUT" | grep -Ev '^\s*(api|ext)-ms-' || true)
+            LEAK=$(awk '$2 == "=>" {print $3}' <<<"$OUT" | grep -E '^/(ucrt64|mingw64|mingw32|clang64|usr)/' || true)
+            if [ -n "$NOTFOUND" ] || [ -n "$LEAK" ]; then
+              echo "::error::Unresolved or external dependency in ${f#$STAGING/}"
+              echo "$NOTFOUND"
+              echo "$LEAK"
+              BAD=1
+            fi
+          done < <(find "$STAGING" -type f \( -name '*.exe' -o -name '*.dll' \) -print0)
+          [ "$BAD" -eq 0 ]
+
+      - name: List bundle contents for debugging
+        if: always()
+        run: |
+          echo "=== Bundle top level ==="
+          ls -la staging-windows staging-windows/bin 2>/dev/null | head -100 || true
+          echo "=== Total size ==="
+          du -sh staging-windows 2>/dev/null || true
 
       - name: Create 7z archive
         run: |
@@ -842,9 +911,9 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-  # ==========================================================================
+  
   # Job 6: Create GitHub Release with all artifacts
-  # ==========================================================================
+  
   create-release:
     needs:
       - check-for-updates
