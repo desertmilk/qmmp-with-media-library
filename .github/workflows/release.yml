@@ -506,7 +506,7 @@ jobs:
   build-macos:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 120
     env:
       HOMEBREW_NO_AUTO_UPDATE: '1'
@@ -568,6 +568,8 @@ jobs:
           cmake .. \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt@6)" \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
@@ -640,7 +642,12 @@ jobs:
 
           MACDEPLOYQT="$(brew --prefix qt@6)/bin/macdeployqt"
           test -x "$MACDEPLOYQT"
+          export PATH="$(brew --prefix qt@6)/bin:$PATH"
           "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite
+
+          file "$APP_BUNDLE/Contents/MacOS/qmmp"
+          test "$(file -b "$APP_BUNDLE/Contents/MacOS/qmmp")" = *"arm64"*
+          plutil -lint "$CONTENTS/Info.plist"
 
           # Ad-hoc signing allows the downloaded nightly app to launch locally.
           # It is not a Developer ID signature and does not provide notarization.
