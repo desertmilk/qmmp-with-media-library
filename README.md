@@ -9,9 +9,7 @@ Fork of [Qmmp](https://qmmp.ylsoftware.com/), a Qt-based multimedia player that 
 
 ---
 
-## Features
-
-Goals for this fork (check the box when implemented):
+## TODO
 
 - [x] **Artist pane**: list of all artists in the library, with an "All (N Artists)" entry at the top
 - [x] **Album pane**: shows albums for the selected artist(s), with an "All (N Albums)" entry
