@@ -978,7 +978,11 @@ jobs:
             --no-system-d3d-compiler --no-compiler-runtime \
             --dir "$STAGING/bin" \
             "$STAGING/bin/qmmp.exe" "${QMMP_BINARIES[@]}"
-
+          # Qmmp only uses the SQLite backend. windeployqt bundles every SQL driver Qt6Sql was built with, including ones that need external client libraries (Firebird/MariaDB/PostgreSQL) we don't install. Those can't be resolved or copied, so drop them rather than ship broken plugins.
+          rm -f "$STAGING/bin/sqldrivers/qsqlibase.dll" \
+                "$STAGING/bin/sqldrivers/qsqlmysql.dll" \
+                "$STAGING/bin/sqldrivers/qsqlpsql.dll" \
+                "$STAGING/bin/sqldrivers/qsqlodbc.dll"
           # Copy dependencies until a fixed point is reached (copied DLLs have deps too).
           for pass in 1 2 3 4 5 6; do
             COPIED=0
