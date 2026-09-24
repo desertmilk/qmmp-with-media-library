@@ -1,4 +1,4 @@
-name: Release Build
+name: Continuous Build
 
 on:
   # schedule:
@@ -15,7 +15,9 @@ on:
         default: false
         type: boolean
 
-# Never stack nightly builds: a newer run cancels a still-running one.
+# Never stack overlapping builds: a newer run cancels a still-running one
+# (including a create-release in progress; a cancelled run just means the
+# next run publishes instead).
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -23,15 +25,17 @@ concurrency:
 # Jobs use read-only access by default; the release job grants write access below.
 permissions:
   contents: read
-  actions: read
 
 env:
   BUILD_TYPE: Release
+  # Tag/release name used for these on-demand builds. Not "nightly" since
+  # this doesn't run on a fixed schedule - just whenever it's triggered.
+  RELEASE_TAG: continuous
 
 jobs:
-  
+
   # Job 1: Check if there are new commits since the last build
-  
+
   check-for-updates:
     runs-on: ubuntu-latest
     timeout-minutes: 50
@@ -45,6 +49,7 @@ jobs:
       commit_author: ${{ steps.check.outputs.commit_author }}
       commit_date: ${{ steps.check.outputs.commit_date }}
       commits_count: ${{ steps.check.outputs.commits_count }}
+      branch: ${{ steps.check.outputs.branch }}
     steps:
       - name: Check for new commits
         id: check
@@ -53,6 +58,7 @@ jobs:
           FORCE_BUILD: ${{ inputs.force_build }}
           REPO: ${{ github.repository }}
           REF: ${{ github.ref }}
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
         run: |
           set -euo pipefail
           BRANCH="${REF#refs/heads/}"
@@ -65,36 +71,37 @@ jobs:
           COMMIT_AUTHOR=$(jq -r '"\(.commit.author.name) <\(.commit.author.email)>"' <<<"$JSON")
           COMMIT_DATE=$(jq -r '.commit.author.date' <<<"$JSON")
 
-          LAST_NIGHTLY_SHA=$(gh api "repos/$REPO/commits/nightly" --jq '.sha' 2>/dev/null || true)
-          if [ -z "$LAST_NIGHTLY_SHA" ]; then
-            LAST_NIGHTLY_SHA=$(gh release view nightly --repo "$REPO" --json body -q .body 2>/dev/null \
-              | grep -oP 'Commit SHA: \K[a-f0-9]{40}' || true)
-          fi
-          if [ -n "${LAST_NIGHTLY_SHA}" ]; then
-            COMMITS_COUNT=$(gh api "repos/$REPO/compare/${LAST_NIGHTLY_SHA}...${CURRENT_SHA}" \
+          # The tag and its release are always created/deleted together (see
+          # create-release), so resolving the tag's commit is the only source
+          # of truth for "what did we last build" - no release-body parsing
+          # needed here.
+          LAST_BUILD_SHA=$(gh api "repos/$REPO/commits/$RELEASE_TAG" --jq '.sha' 2>/dev/null || true)
+
+          if [ -n "${LAST_BUILD_SHA}" ]; then
+            COMMITS_COUNT=$(gh api "repos/$REPO/compare/${LAST_BUILD_SHA}...${CURRENT_SHA}" \
               --jq '.total_commits' 2>/dev/null || echo "unknown")
           else
-            COMMITS_COUNT="N/A (first nightly)"
+            COMMITS_COUNT="N/A (first build)"
           fi
-          
+
           # Determine if we should build
           if [ "${FORCE_BUILD}" = "true" ]; then
             SHOULD_BUILD="true"
             REASON="Manual force build triggered"
-          elif [ -z "${LAST_NIGHTLY_SHA}" ]; then
+          elif [ -z "${LAST_BUILD_SHA}" ]; then
             SHOULD_BUILD="true"
-            REASON="First nightly build (no previous release found)"
-          elif [ "${CURRENT_SHA}" != "${LAST_NIGHTLY_SHA}" ]; then
+            REASON="First build (no previous release found)"
+          elif [ "${CURRENT_SHA}" != "${LAST_BUILD_SHA}" ]; then
             SHOULD_BUILD="true"
             REASON="New commits detected (${COMMITS_COUNT} commit(s) since last build)"
           else
             SHOULD_BUILD="false"
             REASON="No new commits since last build"
           fi
-          
+
           # Set outputs
           echo "should_build=${SHOULD_BUILD}" >> $GITHUB_OUTPUT
-          echo "last_sha=${LAST_NIGHTLY_SHA}" >> $GITHUB_OUTPUT
+          echo "last_sha=${LAST_BUILD_SHA}" >> $GITHUB_OUTPUT
           echo "commit_sha=${CURRENT_SHA}" >> $GITHUB_OUTPUT
           echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
           echo "build_date=${BUILD_DATE}" >> $GITHUB_OUTPUT
@@ -102,19 +109,20 @@ jobs:
           echo "commit_author=${COMMIT_AUTHOR}" >> $GITHUB_OUTPUT
           echo "commit_date=${COMMIT_DATE}" >> $GITHUB_OUTPUT
           echo "commits_count=${COMMITS_COUNT}" >> $GITHUB_OUTPUT
-          
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+
           echo "========================================"
-          echo "Nightly Build Check Results"
+          echo "Build Check Results"
           echo "========================================"
           echo "Should Build: ${SHOULD_BUILD}"
           echo "Reason: ${REASON}"
           echo "Current SHA: ${CURRENT_SHA}"
-          echo "Last Nightly SHA: ${LAST_NIGHTLY_SHA:-None}"
+          echo "Last Build SHA: ${LAST_BUILD_SHA:-None}"
           echo "Commits Since Last: ${COMMITS_COUNT}"
           echo "========================================"
-  
+
   # Job 2: Build on Linux (Ubuntu) - Binary Tarball
-  
+
   build-linux-binary:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -124,7 +132,7 @@ jobs:
       VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ needs.check-for-updates.outputs.commit_sha }}
           fetch-depth: 1
@@ -158,43 +166,58 @@ jobs:
             libtag1-dev \
             libcurl4-openssl-dev
 
+      # Installed one at a time: `apt-get install a b c` resolves the whole
+      # list before installing anything, so one missing/renamed package used
+      # to silently drop every optional plugin behind `|| true`. This keeps
+      # whatever is available and reports the rest instead of hiding it.
       - name: Install optional dependencies
         run: |
-          sudo apt-get install -y \
-            qtmultimedia6-dev \
-            libmpcdec-dev \
-            libjack-jackd2-dev \
-            libsoxr-dev \
-            libxmp-dev \
-            libsndfile1-dev \
-            libwavpack-dev \
-            libpulse-dev \
-            libpipewire-0.3-dev \
-            libavcodec-dev \
-            libavformat-dev \
-            libavutil-dev \
-            libswresample-dev \
-            libcdio-dev \
-            libcdio-paranoia-dev \
-            libcddb2-dev \
-            libgme-dev \
-            libopus-dev \
-            libopusfile-dev \
-            libwildmidi-dev \
-            libsidplayfp-dev \
-            libbs2b-dev \
-            libprojectm-dev \
-            libenca-dev \
-            libarchive-dev \
-            libshout3-dev \
-            libx11-dev \
-            libxcb1-dev \
-            x11proto-dev \
-            librcd0-dev \
-            libmms-dev || true
+          OPTIONAL_PKGS=(
+            qtmultimedia6-dev
+            libmpcdec-dev
+            libjack-jackd2-dev
+            libsoxr-dev
+            libxmp-dev
+            libsndfile1-dev
+            libwavpack-dev
+            libpulse-dev
+            libpipewire-0.3-dev
+            libavcodec-dev
+            libavformat-dev
+            libavutil-dev
+            libswresample-dev
+            libcdio-dev
+            libcdio-paranoia-dev
+            libcddb2-dev
+            libgme-dev
+            libopus-dev
+            libopusfile-dev
+            libwildmidi-dev
+            libsidplayfp-dev
+            libbs2b-dev
+            libprojectm-dev
+            libenca-dev
+            libarchive-dev
+            libshout3-dev
+            libx11-dev
+            libxcb1-dev
+            x11proto-dev
+            librcd0-dev
+            libmms-dev
+          )
+          MISSING=()
+          for pkg in "${OPTIONAL_PKGS[@]}"; do
+            if ! sudo apt-get install -y "$pkg"; then
+              MISSING+=("$pkg")
+              echo "::warning::optional package '$pkg' unavailable - continuing without it"
+            fi
+          done
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            echo "Missing optional packages: ${MISSING[*]}"
+          fi
 
       - name: Set up ccache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/ccache
           key: ccache-linux-binary-${{ github.run_id }}
@@ -215,7 +238,7 @@ jobs:
             -DUSE_LIBCDDB=TRUE \
             -DUSE_FLAC=TRUE \
             -DUSE_AAC=TRUE \
-            -DQMMP_DEFAULT_UI=qsui
+            -DQMMP_DEFAULT_UI=skinned
 
       - name: Build
         run: |
@@ -233,16 +256,16 @@ jobs:
           tar -czf qmmp-${VERSION}-linux-x86_64-binary.tar.gz -C staging-binary .
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: qmmp-linux-binary
           path: qmmp-*-linux-x86_64-binary.tar.gz
           retention-days: 7
           if-no-files-found: error
+          compression-level: 0
 
-  
   # Job 3: Build on Linux (Ubuntu) - AppImage
-  
+
   build-linux-appimage:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -252,7 +275,7 @@ jobs:
       VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ needs.check-for-updates.outputs.commit_sha }}
           fetch-depth: 1
@@ -292,44 +315,54 @@ jobs:
 
       - name: Install optional dependencies
         run: |
-          sudo apt-get install -y \
-            qtmultimedia6-dev \
-            libmpcdec-dev \
-            libjack-jackd2-dev \
-            libsoxr-dev \
-            libxmp-dev \
-            libsndfile1-dev \
-            libwavpack-dev \
-            libpulse-dev \
-            libpipewire-0.3-dev \
-            libavcodec-dev \
-            libavformat-dev \
-            libavutil-dev \
-            libswresample-dev \
-            libcdio-dev \
-            libcdio-paranoia-dev \
-            libcddb2-dev \
-            libgme-dev \
-            libopus-dev \
-            libopusfile-dev \
-            libwildmidi-dev \
-            libsidplayfp-dev \
-            libbs2b-dev \
-            libprojectm-dev \
-            libenca-dev \
-            libarchive-dev \
-            libshout3-dev \
-            libx11-dev \
-            libxcb1-dev \
-            x11proto-dev \
-            librcd0-dev \
-            libmms-dev \
-            libgl1-mesa-dev \
-            libgstreamer1.0-dev \
-            libgstreamer-plugins-base1.0-dev || true
+          OPTIONAL_PKGS=(
+            qtmultimedia6-dev
+            libmpcdec-dev
+            libjack-jackd2-dev
+            libsoxr-dev
+            libxmp-dev
+            libsndfile1-dev
+            libwavpack-dev
+            libpulse-dev
+            libpipewire-0.3-dev
+            libavcodec-dev
+            libavformat-dev
+            libavutil-dev
+            libswresample-dev
+            libcdio-dev
+            libcdio-paranoia-dev
+            libcddb2-dev
+            libgme-dev
+            libopus-dev
+            libopusfile-dev
+            libwildmidi-dev
+            libsidplayfp-dev
+            libbs2b-dev
+            libprojectm-dev
+            libenca-dev
+            libarchive-dev
+            libshout3-dev
+            libx11-dev
+            libxcb1-dev
+            x11proto-dev
+            librcd0-dev
+            libmms-dev
+            libgstreamer1.0-dev
+            libgstreamer-plugins-base1.0-dev
+          )
+          MISSING=()
+          for pkg in "${OPTIONAL_PKGS[@]}"; do
+            if ! sudo apt-get install -y "$pkg"; then
+              MISSING+=("$pkg")
+              echo "::warning::optional package '$pkg' unavailable - continuing without it"
+            fi
+          done
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            echo "Missing optional packages: ${MISSING[*]}"
+          fi
 
       - name: Set up ccache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.cache/ccache
           key: ccache-linux-appimage-${{ github.run_id }}
@@ -390,17 +423,17 @@ jobs:
 
       - name: Download linuxdeploy
         run: |
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q --tries=3 https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage
-          
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+
+          wget -q --tries=3 https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy-plugin-qt-x86_64.AppImage
-          
+
           # Use a statically linked runtime so the produced AppImage does not require libfuse.so.2 on the target system.
-          wget -q https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
+          wget -q --tries=3 https://github.com/AppImage/type2-runtime/releases/download/continuous/runtime-x86_64
           chmod +x runtime-x86_64
 
-          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          wget -q --tries=3 https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool-x86_64.AppImage
 
       - name: Create AppImage
@@ -418,10 +451,10 @@ jobs:
           Terminal=false
           StartupNotify=true
           EOF
-          
+
           # Copy desktop file to AppDir root
           cp ${{ github.workspace }}/AppDir/usr/share/applications/qmmp.desktop ${{ github.workspace }}/AppDir/
-          
+
           # Find and copy icon
           if [ -f ${{ github.workspace }}/AppDir/usr/share/icons/hicolor/128x128/apps/qmmp.png ]; then
             cp ${{ github.workspace }}/AppDir/usr/share/icons/hicolor/128x128/apps/qmmp.png ${{ github.workspace }}/AppDir/qmmp.png
@@ -434,7 +467,7 @@ jobs:
               cp "$ICON" ${{ github.workspace }}/AppDir/qmmp.png
             fi
           fi
-          
+
           # Set QT_PLUGIN_PATH for linuxdeploy
           export QT_PLUGIN_PATH=/usr/lib/qt6/plugins
           export EXTRA_QT_MODULES="multimedia,multimediawidgets"
@@ -452,7 +485,7 @@ jobs:
           QMMP_LIB_DIR=$(dirname "$QMMP_LIB")
           QMMPUI_LIB_DIR=$(dirname "$QMMPUI_LIB")
           export LD_LIBRARY_PATH="$QMMP_LIB_DIR:$QMMPUI_LIB_DIR:${LD_LIBRARY_PATH:-}"
-          
+
           # Deploy dependencies and plugins into AppDir. AppImage creation is done separately below so the custom runtime is always selected.
           ./linuxdeploy-x86_64.AppImage \
             --appdir ${{ github.workspace }}/AppDir \
@@ -484,6 +517,11 @@ jobs:
         env:
           QMAKE: /usr/lib/qt6/bin/qmake
 
+      - name: Smoke test AppImage
+        run: |
+          chmod +x qmmp-${VERSION}-linux-x86_64.AppImage
+          QT_QPA_PLATFORM=offscreen ./qmmp-${VERSION}-linux-x86_64.AppImage --appimage-extract-and-run --help
+
       - name: List AppDir contents for debugging
         if: always()
         run: |
@@ -493,14 +531,14 @@ jobs:
           ls -la *.AppImage 2>/dev/null || echo "No AppImage files found"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: qmmp-linux-appimage
           path: qmmp-*-linux-x86_64.AppImage
           retention-days: 7
           if-no-files-found: error
+          compression-level: 0
 
-  
   # Job 4: Build on macOS
 
   build-macos:
@@ -514,51 +552,66 @@ jobs:
       VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ needs.check-for-updates.outputs.commit_sha }}
           fetch-depth: 1
           path: qmmp-src
- 
+
       - name: Install Homebrew dependencies
         run: |
           brew update
-          
+
           # Required dependencies
           brew install cmake ninja ccache qt@6 libmad libvorbis libogg taglib libiconv curl
-          
-          # Optional dependencies (install what's available)
-          brew install \
-            mpg123 \
-            flac \
-            jack \
-            libsoxr \
-            libxmp \
-            libsndfile \
-            wavpack \
-            ffmpeg \
-            libcdio \
-            libcddb \
-            faad2 \
-            game-music-emu \
-            opus \
-            opusfile \
-            wildmidi \
-            libsidplayfp \
-            libbs2b \
-            projectm \
-            libarchive \
-            libshout \
-            enca \
-            pkg-config || true
- 
+
+          # Optional dependencies, installed one at a time: `brew install a b c`
+          # resolves the whole list before installing anything, so one
+          # renamed/removed formula used to silently drop every optional
+          # plugin behind `|| true`. This keeps whatever is available and
+          # reports the rest instead of hiding it.
+          OPTIONAL_FORMULAE=(
+            mpg123
+            flac
+            jack
+            libsoxr
+            libxmp
+            libsndfile
+            wavpack
+            ffmpeg
+            libcdio
+            libcddb
+            faad2
+            game-music-emu
+            opus
+            opusfile
+            wildmidi
+            libsidplayfp
+            libbs2b
+            projectm
+            libarchive
+            libshout
+            enca
+            pkg-config
+          )
+          MISSING=()
+          for f in "${OPTIONAL_FORMULAE[@]}"; do
+            if ! brew install "$f"; then
+              MISSING+=("$f")
+              echo "::warning::optional formula '$f' unavailable - continuing without it"
+            fi
+          done
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            echo "Missing optional formulae: ${MISSING[*]}"
+          fi
+
       - name: Set up ccache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/Library/Caches/ccache
           key: ccache-macos-${{ github.run_id }}
           restore-keys: ccache-macos-
- 
+
       - name: Configure with CMake
         run: |
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
@@ -583,41 +636,41 @@ jobs:
             -DUSE_QTMULTIMEDIA=TRUE \
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
-            -DQMMP_DEFAULT_UI=qsui \
+            -DQMMP_DEFAULT_UI=skinned \
             -DCMAKE_CXX_FLAGS="-I$(brew --prefix libbs2b)/include -I$(brew --prefix opusfile)/include -I$(brew --prefix opus)/include" \
             -DCMAKE_SHARED_LINKER_FLAGS="-Wl,-needed_library,$(brew --prefix libiconv)/lib/libiconv.dylib"
       - name: Build
         run: |
           cd qmmp-src/qmmp/build
           ninja -j$(sysctl -n hw.ncpu)
- 
+
       - name: Install to staging directory
         run: |
           cd qmmp-src/qmmp/build
           DESTDIR=${{ github.workspace }}/staging-macos ninja install
- 
+
       # - name: Create tarball
       #   run: |
       #     cd ${{ github.workspace }}
       #     tar -czf qmmp-${VERSION}-macos-arm64.tar.gz -C staging-macos .
- 
+
       - name: Create and sign macOS app bundle
         run: |
           APP_BUNDLE=${{ github.workspace }}/Qmmp.app
           CONTENTS="$APP_BUNDLE/Contents"
           STAGING=${{ github.workspace }}/staging-macos
- 
+
           mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources" "$CONTENTS/lib" "$CONTENTS/share"
           cp "$STAGING/usr/local/bin/qmmp" "$CONTENTS/MacOS/qmmp"
           chmod +x "$CONTENTS/MacOS/qmmp"
- 
+
           if [ -d "$STAGING/usr/local/lib" ]; then
             cp -R "$STAGING/usr/local/lib/." "$CONTENTS/lib/"
           fi
           if [ -d "$STAGING/usr/local/share/qmmp" ]; then
             cp -R "$STAGING/usr/local/share/qmmp" "$CONTENTS/share/"
           fi
- 
+
           # LSMinimumSystemVersion is a placeholder here; it is replaced below with the highest minimum OS version found among the bundled binaries. CFBundleVersion must be numeric, so use the run number (the short SHA is hex).
           cat > "$CONTENTS/Info.plist" << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
@@ -647,7 +700,7 @@ jobs:
           </dict>
           </plist>
           EOF
- 
+
           # macdeployqt only fixes up the main executable and Qt plugins by itself. Qmmp's own plugins/libraries were copied into Contents/lib, so pass them explicitly; otherwise they keep pointing at the runner's Homebrew paths.
           MACDEPLOYQT="$(brew --prefix qt@6)/bin/macdeployqt"
           test -x "$MACDEPLOYQT"
@@ -661,10 +714,10 @@ jobs:
           # -libpath lets macdeployqt resolve @rpath/libqmmp*.2.dylib (which live in Contents/lib) instead of only searching /opt/homebrew/lib; it then copies them into Contents/Frameworks and rewrites the plugins' references.
           "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -libpath="$CONTENTS/lib" \
             ${EXEC_ARGS[@]+"${EXEC_ARGS[@]}"}
- 
+
           file "$APP_BUNDLE/Contents/MacOS/qmmp"
           [[ "$(file -b "$CONTENTS/MacOS/qmmp")" == *arm64* ]]
- 
+
           # Fail if any bundled binary still references the runner's Homebrew install; such a bundle works on CI and crashes on every user's Mac.
           BAD=0
           while IFS= read -r -d '' f; do
@@ -677,7 +730,7 @@ jobs:
             fi
           done < <(find "$APP_BUNDLE" -type f -print0)
           [ "$BAD" -eq 0 ]
- 
+
           # Compute the real minimum macOS version: the highest minos among all bundled
           # Mach-O files (Homebrew bottles are built for the runner's macOS version).
           MINOS=$(
@@ -696,8 +749,8 @@ jobs:
             plutil -replace LSMinimumSystemVersion -string "$MINOS" "$CONTENTS/Info.plist"
           fi
           plutil -lint "$CONTENTS/Info.plist"
- 
-          # Ad-hoc signing allows the downloaded nightly app to launch locally.
+
+          # Ad-hoc signing allows the downloaded build to launch locally.
           # It is not a Developer ID signature and does not provide notarization.
           # Sign inside-out: every Mach-O first (--deep does not reach Contents/lib), then frameworks, then the app itself. Hardened runtime (--options runtime) is intentionally NOT used: its library validation rejects ad-hoc-signed plugins.
           while IFS= read -r -d '' f; do
@@ -710,27 +763,27 @@ jobs:
           done < <(find "$APP_BUNDLE" -name '*.framework' -type d -print0)
           codesign --force --sign - "$APP_BUNDLE"
           codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
- 
+
           # Smoke test: catches dyld/plugin loading failures before we ship. (Adjust the flag if Qmmp's CLI differs.)
           QT_QPA_PLATFORM=offscreen "$CONTENTS/MacOS/qmmp" --help
- 
-          # DMG generation is intentionally disabled for these nightly builds.
+
+          # DMG generation is intentionally disabled for these builds.
           # mv Qmmp.dmg qmmp-${VERSION}-macos-arm64.dmg
           ditto -c -k --sequesterRsrc --keepParent "$APP_BUNDLE" \
             qmmp-${VERSION}-macos-arm64.app.zip
           # test -s qmmp-${VERSION}-macos-arm64.dmg
           test -s qmmp-${VERSION}-macos-arm64.app.zip
- 
+
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: qmmp-macos
           path: |
             qmmp-*-macos-arm64.app.zip
           retention-days: 7
           if-no-files-found: error
+          compression-level: 0
 
-  
   # Job 5: Build on Windows (MSYS2/UCRT64)
   build-windows:
     needs: check-for-updates
@@ -740,19 +793,20 @@ jobs:
     env:
       VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
       CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 500M
     defaults:
       run:
         shell: msys2 {0}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ needs.check-for-updates.outputs.commit_sha }}
           fetch-depth: 1
           path: qmmp-src
 
       - name: Setup MSYS2 with UCRT64
-        uses: msys2/setup-msys2@v2
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
         with:
           msystem: UCRT64
           update: true
@@ -792,7 +846,7 @@ jobs:
             mingw-w64-ucrt-x86_64-7zip
 
       - name: Set up ccache
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ github.workspace }}/.ccache
           key: ccache-windows-${{ github.run_id }}
@@ -804,6 +858,8 @@ jobs:
           cmake .. \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DUSE_ALSA=FALSE \
             -DUSE_OSS=FALSE \
             -DUSE_OSS4=FALSE \
@@ -817,7 +873,7 @@ jobs:
             -DUSE_QTMULTIMEDIA=TRUE \
             -DUSE_PROJECTM=TRUE \
             -DUSE_LIBCDDB=TRUE \
-            -DQMMP_DEFAULT_UI=qsui \
+            -DQMMP_DEFAULT_UI=skinned \
             -DQMMP_DEFAULT_OUTPUT=wasapi \
             -DICONV_LIBRARY:FILEPATH="$MINGW_PREFIX/lib/libiconv.dll.a"
 
@@ -893,6 +949,11 @@ jobs:
           done < <(find "$STAGING" -type f \( -name '*.exe' -o -name '*.dll' \) -print0)
           [ "$BAD" -eq 0 ]
 
+      - name: Smoke test qmmp.exe
+        run: |
+          STAGING="$PWD/staging-windows"
+          QT_QPA_PLATFORM=offscreen "$STAGING/bin/qmmp.exe" --help
+
       - name: List bundle contents for debugging
         if: always()
         run: |
@@ -906,16 +967,16 @@ jobs:
           7z a -mx=9 qmmp-${VERSION}-windows-x86_64.7z ./staging-windows/*
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: qmmp-windows
           path: qmmp-*.7z
           retention-days: 7
           if-no-files-found: error
+          compression-level: 0
 
-  
   # Job 6: Create GitHub Release with all artifacts
-  
+
   create-release:
     needs:
       - check-for-updates
@@ -930,13 +991,13 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ needs.check-for-updates.outputs.commit_sha }}
           fetch-depth: 0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
           merge-multiple: false
@@ -949,38 +1010,51 @@ jobs:
 
       - name: Get recent changes
         id: changes
+        env:
+          # Reuse the SHA already resolved in check-for-updates instead of
+          # re-parsing it out of the previous release body (which looked for
+          # a 40-char "Commit SHA:" field that the release body only ever
+          # wrote as an 8-char short SHA, so it never matched and every
+          # release reported itself as "first build").
+          LAST_SHA: ${{ needs.check-for-updates.outputs.last_sha }}
         run: |
-          # Get changes since last nightly if exists
-          LAST_SHA=""
-          if gh release view nightly --json body -q '.body' >/dev/null 2>&1; then
-            LAST_SHA=$(gh release view nightly --json body -q '.body' | grep -oP 'Commit SHA: \K[a-f0-9]{40}' || echo "")
-          fi
-          
           {
             echo "changes_content<<CHANGEEOF"
             if [ -n "${LAST_SHA}" ]; then
               echo "## 📝 Recent Changes"
               echo ""
-              git log "${LAST_SHA}..HEAD" --pretty=format:"- %s (%h)" --no-merges || echo "- Unable to retrieve changes"
+              git log "${LAST_SHA}..HEAD" --pretty=format:"- %s (%h)" --no-merges -n 50 || echo "- Unable to retrieve changes"
               echo ""
             else
               echo "## 📝 Recent Changes"
               echo ""
-              echo "First nightly build - showing last 15 commits:"
+              echo "First build - showing last 15 commits:"
               echo ""
               git log -15 --pretty=format:"- %s (%h)" --no-merges || echo "- Unable to retrieve changes"
               echo ""
             fi
             echo "CHANGEEOF"
           } >> $GITHUB_OUTPUT
+
+      - name: Delete existing release
+        run: |
+          gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Delete existing nightly release
+      - name: Create checksums file
         run: |
-          gh release delete nightly --yes --cleanup-tag || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARCHIVES=()
+          shopt -s nullglob
+          for artifact_dir in artifacts/*/; do
+            for file in "${artifact_dir}"*.tar.gz "${artifact_dir}"*.7z "${artifact_dir}"*.AppImage "${artifact_dir}"*.dmg "${artifact_dir}"*.app.zip; do
+              [ -f "$file" ] && ARCHIVES+=("$file")
+            done
+          done
+          if [ "${#ARCHIVES[@]}" -gt 0 ]; then
+            sha256sum "${ARCHIVES[@]}" | sed 's#artifacts/[^/]*/##' > SHA256SUMS.txt
+            cat SHA256SUMS.txt
+          fi
 
       - name: Create GitHub release
         run: |
@@ -994,110 +1068,128 @@ jobs:
               fi
             done
           done
-          
+          if [ -s SHA256SUMS.txt ]; then
+            ARCHIVES+=("SHA256SUMS.txt")
+          fi
+
           if [ ${#ARCHIVES[@]} -eq 0 ]; then
             echo "ERROR: No archives found!"
             find artifacts -type f | head -20
             exit 1
           fi
-          
+
+          # Table fields that can contain "|" or "<...>" (a pipe breaks the
+          # table; angle brackets get swallowed as HTML) are escaped/quoted
+          # before being written out.
+          COMMIT_MESSAGE_SAFE=${COMMIT_MESSAGE//|/\\|}
+          COMMIT_AUTHOR_SAFE=${COMMIT_AUTHOR//|/\\|}
+
           # Create release body.
           # Static text goes through quoted heredocs; dynamic values (commit message, author, changes list) come from env vars and are written with printf '%s', so nothing from a commit message is ever evaluated by the shell.
           {
             cat << 'HEADEREOF'
-          # 🌙 Qmmp Nightly Build
-          
-          > **⚠️ Warning:** This is an automated nightly build from the `master` branch.
+          # 🚀 Qmmp Continuous Build
+
+          > **⚠️ Warning:** This is an automated build, built on demand rather than on a fixed release schedule.
           > It may contain bugs, incomplete features, or breaking changes.
           > **Use at your own risk!** For stable releases, visit the [Releases](https://github.com/qmmp-dev/qmmp/releases) page.
-          
+
           ---
-          
+
           ## 📋 Build Information
-          
+
           | Property | Value |
           |----------|-------|
           HEADEREOF
             printf '| **Build Date** | %s |\n' "$BUILD_DATE"
+            printf '| **Branch** | `%s` |\n' "$BRANCH"
             printf '| **Commit SHA** | `%s` |\n' "$SHORT_SHA"
             printf '| **Full SHA** | `%s` |\n' "$COMMIT_SHA"
-            printf '| **Last Commit** | %s |\n' "$COMMIT_MESSAGE"
-            printf '| **Author** | %s |\n' "$COMMIT_AUTHOR"
+            printf '| **Last Commit** | `%s` |\n' "$COMMIT_MESSAGE_SAFE"
+            printf '| **Author** | `%s` |\n' "$COMMIT_AUTHOR_SAFE"
             printf '| **Commit Date** | %s |\n' "$COMMIT_DATE"
             printf '| **Commits Since Last** | %s |\n' "$COMMITS_COUNT"
             cat << 'MIDEOF'
-          
+
           ---
-          
+
           ## 📦 Downloads
-          
+
           ### 🐧 Linux
-          
+
           | Format | File | Description |
           |--------|------|-------------|
           | **Binary** | `qmmp-*-linux-x86_64-binary.tar.gz` | Pre-built binaries for installation to `/usr` |
           | **AppImage** | `qmmp-*-linux-x86_64.AppImage` | Portable, no installation required |
-          
+
           ### 🍎 macOS
-          
+
           | Architecture | File |
           |--------------|------|
           | Apple Silicon (ARM64) | `qmmp-*-macos-arm64.app.zip` |
-          
+
           ### 🪟 Windows
-          
+
           | Architecture | File | Notes |
           |--------------|------|-------|
-          | x86_64 | `qmmp-*-windows-x86_64.7z` | Self-contained (built with MSYS2 UCRT64) |          
+          | x86_64 | `qmmp-*-windows-x86_64.7z` | Self-contained (built with MSYS2 UCRT64) |
+
+          ### ✅ Checksums
+
+          `SHA256SUMS.txt` contains the SHA-256 checksum of every archive above. Verify with:
+          ```bash
+          sha256sum -c SHA256SUMS.txt
+          ```
+
           ---
-          
+
           MIDEOF
             printf '%s\n' "$CHANGES_CONTENT"
             cat << 'FOOTEREOF'
-          
+
           ---
-          
+
           ## 🔧 Included Features
-          
+
           ### Decoders
           MP3 (MAD/MPG123) • FLAC • OGG Vorbis • Musepack • WavPack • AAC/FAAD • Opus • XMP • Game Music Emu • SID • FFmpeg • sndfile • WildMidi • CUE
-          
+
           ### Output Plugins
           ALSA • PipeWire • PulseAudio • Qt Multimedia • WASAPI • DirectSound • WaveOut • Null
-          
+
           ### Effects
           Sample Rate Converter (SoX) • BS2B • LADSPA • Crossfade • Stereo Tools • Mono to Stereo
-          
+
           ### Visualization
           Analyzer • projectM
-          
+
           ### General Plugins
           MPRIS2 • Scrobbler • ListenBrainz • System Tray • Notifications • Lyrics • Hotkeys • Cover Art • ReplayGain • Tag Editor • And more...
-          
+
           ### User Interfaces
-          Skinned UI (classic Winamp-style; default) • Simple UI
-          
+          Skinned UI (classic Winamp-style; default on every platform) • Simple UI
+
           ---
-          
+
           ## 📥 Installation
-          
+
           ### Linux - Binary Tarball
           ```bash
           tar -xzf qmmp-*-linux-x86_64-binary.tar.gz
           sudo cp -r usr / && sudo cp -r etc / 2>/dev/null || true
           sudo ldconfig
           ```
-          
+
           ### Linux - AppImage
           ```bash
           chmod +x qmmp-*-linux-x86_64.AppImage
           ./qmmp-*-linux-x86_64.AppImage
           ```
-          
+
           ### macOS
           The app is ad-hoc signed but **not notarized**, so Gatekeeper blocks it on first launch
           if it was downloaded with a browser.
-          
+
           **Downloaded in a browser (and unzipped by double-clicking):**
           1. Unzip `qmmp-*-macos-arm64.app.zip`
           2. Either right-click `Qmmp.app` → Open → Open, or, if that option isn't offered
@@ -1108,41 +1200,46 @@ jobs:
           xattr -dr com.apple.quarantine Qmmp.app
           open Qmmp.app
           ```
-          
+
           **Downloaded via terminal (no Gatekeeper prompt):**
           ```bash
           curl -L -o qmmp.zip "<URL of the qmmp-*-macos-arm64.app.zip asset>"
           unzip qmmp.zip
           open Qmmp.app
           ```
-          
+
           ### Windows
           1. Extract `qmmp-*-windows-x86_64.7z` to a folder (7-Zip, or Windows 11's built-in extractor)
           2. Run `bin\qmmp.exe`
-          
+
           The executable is not code-signed, so SmartScreen may show "Windows protected your PC": click More info → Run anyway.
-          
+
           ---
-          
+
           ## 🔗 Links
-          
+
           [Website](http://qmmp.ylsoftware.com/) • [Source](https://github.com/qmmp-dev/qmmp) • [Issues](https://github.com/qmmp-dev/qmmp/issues) • [Wiki](https://github.com/qmmp-dev/qmmp/wiki) • [Stable Releases](https://github.com/qmmp-dev/qmmp/releases)
-          
+
           ---
-          
+
           FOOTEREOF
             printf '*🤖 Auto-generated by [GitHub Actions](%s) on %s*\n' "$RUN_URL" "$BUILD_DATE"
           } > release_body.md
-          
-          # Create the release
-          gh release create nightly \
-            --title "🌙 Nightly Build - ${BUILD_DATE}" \
+
+          # Create the release, tagging the exact commit that was built
+          # (rather than whatever the branch head is at release time, which
+          # can already be ahead of it) so `check-for-updates` always
+          # compares against the right SHA next run.
+          gh release create "$RELEASE_TAG" \
+            --title "🚀 Continuous Build - ${BUILD_DATE}" \
             --notes-file release_body.md \
+            --target "$COMMIT_SHA" \
             --prerelease \
             "${ARCHIVES[@]}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUILD_DATE: ${{ needs.check-for-updates.outputs.build_date }}
+          BRANCH: ${{ needs.check-for-updates.outputs.branch }}
           SHORT_SHA: ${{ needs.check-for-updates.outputs.short_sha }}
           COMMIT_SHA: ${{ needs.check-for-updates.outputs.commit_sha }}
           COMMIT_MESSAGE: ${{ needs.check-for-updates.outputs.commit_message }}
@@ -1155,7 +1252,7 @@ jobs:
       - name: Verify release
         run: |
           echo "=== Release Created Successfully ==="
-          gh release view nightly --json tagName,name,assets --jq '{tag: .tagName, name: .name, assets: [.assets[] | {name: .name, size: (.size / 1048576 | floor | tostring + " MB")}]}'
+          gh release view "$RELEASE_TAG" --json tagName,name,assets --jq '{tag: .tagName, name: .name, assets: [.assets[] | {name: .name, size: (.size / 1048576 | floor | tostring + " MB")}]}'
           echo "====================================="
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
