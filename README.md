@@ -1,6 +1,6 @@
 # Qmmp fork with media library
 
-Fork of [Qmmp](https://qmmp.ylsoftware.com/), a Qt-based multimedia player that supports Winamp-like skins. This fork adds support for Artist / Album filtering to the Media Library so that it behaves more like the Media Library in Winamp 2. When running in skinned mode, this fork also applies the loaded skin to the widget window and enables Winamp-like snapping, just like with the Playlist window.
+Fork of [Qmmp](https://qmmp.ylsoftware.com/), a Qt-based multimedia player that supports Winamp-like skins. This fork adds support for Artist / Album filtering to the Media Library so that it behaves more like the Media Library in Winamp 2. When running in skinned mode, this fork also applies the loaded skin to the widget window and enables snapping to group the secondary windows together, just like with the Equalizer and Playlist windows.
 
 <img width="1582" height="1048" alt="Qmmp with media library" src="https://github.com/user-attachments/assets/dff220e6-3577-448c-945b-5800e4c48b45" />
 
