@@ -23,7 +23,7 @@ Fork of [Qmmp](https://qmmp.ylsoftware.com/), a Qt-based multimedia player that 
 
 ## Download
 
-Visit the [Releases](releases) tab to download pre-built binaries for Linux (binary or AppImage), Windows, or MacOS.
+Visit the [Releases](https://github.com/desertmilk/qmmp-with-media-library/releases) tab to download pre-built binaries for Linux (binary or AppImage), Windows, or MacOS.
 
 ## Building
 
