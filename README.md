@@ -35,7 +35,7 @@ For inspiration, refer to to the automated build script in the [Github Action](.
 
 ## Upstream
 
-- Qmmp homepage: [<https://qmmp.ru/>](https://qmmp.ylsoftware.com/)
+- Qmmp homepage: [https://qmmp.ylsoftware.com/](https://qmmp.ylsoftware.com/)
 - This fork periodically merges upstream changes; conflicts are resolved in favor of upstream outside the Media Library plugin.
 
 ## License
