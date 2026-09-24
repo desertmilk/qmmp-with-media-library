@@ -611,7 +611,6 @@ jobs:
           compression-level: 0
 
   # Job 4: Build on macOS
-
   build-macos:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -676,6 +675,37 @@ jobs:
             echo "Missing optional formulae: ${MISSING[*]}"
           fi
 
+      # Homebrew's Qt frameworks set their own install name (LC_ID_DYLIB) to an absolute /opt/homebrew path instead of @rpath/Name.framework/... like the official Qt.io builds do. macdeployqt's dependency walker assumes the @rpath style; against the Homebrew style it silently fails to fully relink several frameworks when resolving plugin dependencies (QtWidgets, QtSql, QtDBus, QtMultimedia, QtQml* have all been seen left pointing at the runner's Homebrew install as a result), and macdeployqt still exits 0 when this happens.
+      # Known upstream issue: https://github.com/orgs/Homebrew/discussions/2823
+      # Runner is ephemeral, so it's safe to rewrite Homebrew's own copies in place instead of working on a scratch copy. Doing this before the build/link step (rather than only before macdeployqt) means qmmp itself and its plugins get linked with @rpath references too, which is the layout macdeployqt is actually designed to handle.
+      - name: Normalize Homebrew Qt install names for macdeployqt
+        run: |
+          set -euo pipefail
+          FRAMEWORKS=$(find /opt/homebrew/opt -maxdepth 4 -type d -path '*/lib/Qt*.framework')
+          test -n "$FRAMEWORKS"
+
+          # Pass 1: give every framework an @rpath-style id.
+          while IFS= read -r fw; do
+            name=$(basename "$fw" .framework)
+            bin="$fw/Versions/A/$name"
+            [ -f "$bin" ] || continue
+            install_name_tool -id "@rpath/${name}.framework/Versions/A/${name}" "$bin"
+          done <<< "$FRAMEWORKS"
+
+          # Pass 2: rewrite each framework's references to *other* Qt
+          # frameworks (still absolute at this point) to the same @rpath style,
+          # then re-sign since install_name_tool invalidates the signature.
+          while IFS= read -r fw; do
+            name=$(basename "$fw" .framework)
+            bin="$fw/Versions/A/$name"
+            [ -f "$bin" ] || continue
+            otool -L "$bin" | awk 'NR>1{print $1}' | grep -E '^/opt/homebrew/.*/Qt.*\.framework/' | while read -r dep; do
+              dep_name=$(basename "$(dirname "$(dirname "$(dirname "$dep")")")" .framework)
+              install_name_tool -change "$dep" "@rpath/${dep_name}.framework/Versions/A/${dep_name}" "$bin"
+            done
+            codesign --force --sign - "$bin"
+          done <<< "$FRAMEWORKS"
+
       - name: Set up ccache
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
@@ -720,13 +750,9 @@ jobs:
           cd qmmp-src/qmmp/build
           DESTDIR=${{ github.workspace }}/staging-macos ninja install
 
-      # - name: Create tarball
-      #   run: |
-      #     cd ${{ github.workspace }}
-      #     tar -czf qmmp-${VERSION}-macos-arm64.tar.gz -C staging-macos .
-
       - name: Create and sign macOS app bundle
         run: |
+          set -euo pipefail
           APP_BUNDLE=${{ github.workspace }}/Qmmp.app
           CONTENTS="$APP_BUNDLE/Contents"
           STAGING=${{ github.workspace }}/staging-macos
@@ -783,7 +809,7 @@ jobs:
             fi
           done < <(find "$CONTENTS/lib" -type f -print0)
           # -libpath lets macdeployqt resolve @rpath/libqmmp*.2.dylib (which live in Contents/lib) instead of only searching /opt/homebrew/lib; it then copies them into Contents/Frameworks and rewrites the plugins' references.
-          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -libpath="$CONTENTS/lib" \
+          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -verbose=3 -libpath="$CONTENTS/lib" \
             ${EXEC_ARGS[@]+"${EXEC_ARGS[@]}"}
 
           file "$APP_BUNDLE/Contents/MacOS/qmmp"
