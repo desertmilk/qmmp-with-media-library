@@ -130,6 +130,7 @@ jobs:
     timeout-minutes: 90
     env:
       VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
+      TAGLIB_VERSION: '2.3.2'
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -163,8 +164,9 @@ jobs:
             libvorbis-dev \
             libogg-dev \
             libasound2-dev \
-            libtag1-dev \
-            libcurl4-openssl-dev
+            libcurl4-openssl-dev \
+            zlib1g-dev \
+            libutfcpp-dev
 
       # Installed one at a time: `apt-get install a b c` resolves the whole
       # list before installing anything, so one missing/renamed package used
@@ -223,8 +225,42 @@ jobs:
           key: ccache-linux-binary-${{ github.run_id }}
           restore-keys: ccache-linux-binary-
 
+      # Ubuntu 22.04's apt-provided TagLib is 1.11.1. Qmmp's sndfile plugin (AIFF/WAV cover-art editing) uses TagLib::ID3v2::v4 and the File::isSupported() statics, which only exist from TagLib 2.0 onward, so building against the system package fails as soon as that plugin's optional dependency (libsndfile1-dev) is actually present. Built as a static PIC library so the result needs no matching shared TagLib on the machine that runs the tarball.
+      - name: Cache TagLib ${{ env.TAGLIB_VERSION }} (static)
+        id: taglib-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ github.workspace }}/taglib-install
+          key: taglib-${{ env.TAGLIB_VERSION }}-linux-binary-static-v1
+
+      - name: Build TagLib ${{ env.TAGLIB_VERSION }} from source
+        if: steps.taglib-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o taglib.tar.gz \
+            "https://github.com/taglib/taglib/archive/refs/tags/v${TAGLIB_VERSION}.tar.gz"
+          mkdir -p taglib-src
+          tar -xzf taglib.tar.gz -C taglib-src --strip-components=1
+          cmake -S taglib-src -B taglib-build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/taglib-install \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DBUILD_TESTING=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build taglib-build -j$(nproc)
+          cmake --install taglib-build
+
+      - name: Add local TagLib to PKG_CONFIG_PATH
+        run: |
+          echo "PKG_CONFIG_PATH=${{ github.workspace }}/taglib-install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" >> $GITHUB_ENV
+
       - name: Configure with CMake
         run: |
+          pkg-config --modversion taglib
           mkdir -p qmmp-src/qmmp/build && cd qmmp-src/qmmp/build
           cmake .. \
             -G Ninja \
@@ -273,6 +309,7 @@ jobs:
     timeout-minutes: 90
     env:
       VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
+      TAGLIB_VERSION: '2.3.2'
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -307,8 +344,9 @@ jobs:
             libvorbis-dev \
             libogg-dev \
             libasound2-dev \
-            libtag1-dev \
             libcurl4-openssl-dev \
+            zlib1g-dev \
+            libutfcpp-dev \
             file \
             fuse \
             patchelf
@@ -367,6 +405,39 @@ jobs:
           path: ~/.cache/ccache
           key: ccache-linux-appimage-${{ github.run_id }}
           restore-keys: ccache-linux-appimage-
+
+      # Ubuntu 22.04's apt-provided TagLib is 1.11.1. Qmmp's sndfile plugin (AIFF/WAV cover-art editing) uses TagLib::ID3v2::v4 and the File::isSupported() statics, which only exist from TagLib 2.0 onward, so building against the system package fails as soon as that plugin's optional dependency (libsndfile1-dev) is actually present. Built as a static PIC library so there's no separate libtag .so for linuxdeploy to worry about bundling.
+      - name: Cache TagLib ${{ env.TAGLIB_VERSION }} (static)
+        id: taglib-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ github.workspace }}/taglib-install
+          key: taglib-${{ env.TAGLIB_VERSION }}-linux-appimage-static-v1
+
+      - name: Build TagLib ${{ env.TAGLIB_VERSION }} from source
+        if: steps.taglib-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o taglib.tar.gz \
+            "https://github.com/taglib/taglib/archive/refs/tags/v${TAGLIB_VERSION}.tar.gz"
+          mkdir -p taglib-src
+          tar -xzf taglib.tar.gz -C taglib-src --strip-components=1
+          cmake -S taglib-src -B taglib-build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/taglib-install \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DBUILD_TESTING=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build taglib-build -j$(nproc)
+          cmake --install taglib-build
+
+      - name: Add local TagLib to PKG_CONFIG_PATH
+        run: |
+          echo "PKG_CONFIG_PATH=${{ github.workspace }}/taglib-install/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}" >> $GITHUB_ENV
 
       - name: Configure with CMake for AppImage
         run: |
