@@ -1004,6 +1004,11 @@ jobs:
             --no-system-d3d-compiler --no-compiler-runtime \
             --dir "$STAGING/bin" \
             "$STAGING/bin/qmmp.exe" "${QMMP_BINARIES[@]}"
+          # windeployqt only deploys qwindows.dll; the smoke test runs with QT_QPA_PLATFORM=offscreen, so bundle the offscreen plugin too.
+          QOFFSCREEN=$(find "$MINGW_PREFIX" -type f -name 'qoffscreen.dll' -print -quit)
+          test -n "$QOFFSCREEN"   # normally $MINGW_PREFIX/share/qt6/plugins/platforms/qoffscreen.dll
+          mkdir -p "$STAGING/bin/platforms"
+          cp -v "$QOFFSCREEN" "$STAGING/bin/platforms/"
           # Qmmp only uses the SQLite backend. windeployqt bundles every SQL driver Qt6Sql was built with, including ones that need external client libraries (Firebird/MariaDB/PostgreSQL) we don't install. Those can't be resolved or copied, so drop them rather than ship broken plugins.
           rm -f "$STAGING/bin/sqldrivers/qsqlibase.dll" \
                 "$STAGING/bin/sqldrivers/qsqlmysql.dll" \
@@ -1053,7 +1058,8 @@ jobs:
       - name: Smoke test qmmp.exe
         run: |
           STAGING="$PWD/staging-windows"
-          QT_QPA_PLATFORM=offscreen "$STAGING/bin/qmmp.exe" --help
+          test -f "$STAGING/bin/platforms/qoffscreen.dll"
+          timeout 90 env QT_QPA_PLATFORM=offscreen "$STAGING/bin/qmmp.exe" --help
 
       - name: List bundle contents for debugging
         if: always()
