@@ -33,9 +33,9 @@ FFmpegMetaDataModel::FFmpegMetaDataModel(const QString &path, bool readOnly) : M
     m_path = path.contains(u"://"_s) ? TrackInfo::pathFromUrl(path) : path;
 
 #ifdef Q_OS_WIN
-    if (avformat_open_input(&in, m_path.toUtf8().constData(), nullptr, nullptr) < 0)
+    if(avformat_open_input(&in, m_path.toUtf8().constData(), nullptr, nullptr) < 0)
 #else
-    if (avformat_open_input(&in, m_path.toLocal8Bit().constData(), nullptr, nullptr) < 0)
+    if(avformat_open_input(&in, m_path.toLocal8Bit().constData(), nullptr, nullptr) < 0)
 #endif
         return;
 
@@ -50,10 +50,10 @@ FFmpegMetaDataModel::FFmpegMetaDataModel(const QString &path, bool readOnly) : M
         {
             c = in->streams[idx]->codecpar;
 
-            if (c->codec_type == AVMEDIA_TYPE_VIDEO && c->codec_id == AV_CODEC_ID_MJPEG)
+            if(c->codec_type == AVMEDIA_TYPE_VIDEO && c->codec_id == AV_CODEC_ID_MJPEG)
                 break;
         }
-        if (c)
+        if(c)
         {
             AVPacket pkt;
             av_read_frame(in, &pkt);

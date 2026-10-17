@@ -83,7 +83,7 @@ void CrossfadePlugin::applyEffect(Buffer *b)
             m_state = PROCESSING;
         break;
     case PROCESSING:
-        if (m_buffer_at > 0)
+        if(m_buffer_at > 0)
         {
             double volume = (double)m_buffer_at/m_buffer_size;
             size_t samples = qMin(m_buffer_at, b->samples);

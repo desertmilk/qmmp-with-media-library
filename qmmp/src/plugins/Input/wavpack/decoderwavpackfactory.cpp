@@ -79,7 +79,7 @@ QList<TrackInfo> DecoderWavPackFactory::createPlayList(const QString &path, Trac
     WavpackContext *ctx = WavpackOpenFileInput (filePath.toLocal8Bit().constData(),
                                                 err, OPEN_WVC | OPEN_TAGS, 0);
 #endif
-    if (!ctx)
+    if(!ctx)
     {
         qCWarning(plugin, "error: %s", err);
         return QList<TrackInfo>();

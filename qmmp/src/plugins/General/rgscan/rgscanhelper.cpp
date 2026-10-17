@@ -42,7 +42,7 @@ void RGScanHelper::openRGScaner()
 {
     PlayListManager *pl_manager = MediaPlayer::instance()->playListManager();
     QList<PlayListTrack *> tracks = pl_manager->selectedPlayList()->selectedTracks();
-    if (tracks.isEmpty())
+    if(tracks.isEmpty())
         return;
 
     RGScanDialog *d = new RGScanDialog(tracks, qApp->activeWindow());

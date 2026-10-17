@@ -36,7 +36,7 @@ ArchiveInputDevice::ArchiveInputDevice(const QString &url, QObject *parent)  : Q
     archive_read_support_format_all(m_archive);
 
     int r = archive_read_open_filename(m_archive, archivePath.toLocal8Bit().constData(), 10240);
-    if (r != ARCHIVE_OK)
+    if(r != ARCHIVE_OK)
     {
         qCWarning(plugin, "unable to open file '%s', libarchive error: %s",
                  qPrintable(archivePath), archive_error_string(m_archive));

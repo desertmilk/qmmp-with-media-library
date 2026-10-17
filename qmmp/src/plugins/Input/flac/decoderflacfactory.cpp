@@ -154,13 +154,13 @@ QList<TrackInfo> DecoderFLACFactory::createPlayList(const QString &path, TrackIn
     if((parts & TrackInfo::ReplayGainInfo) && tag && !tag->isEmpty())
     {
         TagLib::Ogg::FieldListMap items = tag->fieldListMap();
-        if (items.contains("REPLAYGAIN_TRACK_GAIN"))
+        if(items.contains("REPLAYGAIN_TRACK_GAIN"))
             info.setValue(Qmmp::REPLAYGAIN_TRACK_GAIN,TStringToQString(items["REPLAYGAIN_TRACK_GAIN"].front()));
-        if (items.contains("REPLAYGAIN_TRACK_PEAK"))
+        if(items.contains("REPLAYGAIN_TRACK_PEAK"))
             info.setValue(Qmmp::REPLAYGAIN_TRACK_PEAK,TStringToQString(items["REPLAYGAIN_TRACK_PEAK"].front()));
-        if (items.contains("REPLAYGAIN_ALBUM_GAIN"))
+        if(items.contains("REPLAYGAIN_ALBUM_GAIN"))
             info.setValue(Qmmp::REPLAYGAIN_ALBUM_GAIN,TStringToQString(items["REPLAYGAIN_ALBUM_GAIN"].front()));
-        if (items.contains("REPLAYGAIN_ALBUM_PEAK"))
+        if(items.contains("REPLAYGAIN_ALBUM_PEAK"))
             info.setValue(Qmmp::REPLAYGAIN_ALBUM_PEAK,TStringToQString(items["REPLAYGAIN_ALBUM_PEAK"].front()));
     }
 
@@ -262,7 +262,7 @@ QList<TrackInfo> DecoderFLACFactory::createPlayList(const QString &path, TrackIn
 
 MetaDataModel* DecoderFLACFactory::createMetaDataModel(const QString &path, bool readOnly)
 {
-    if (!path.contains(u"://"_s) || path.startsWith(u"flac://"_s))
+    if(!path.contains(u"://"_s) || path.startsWith(u"flac://"_s))
         return new FLACMetaDataModel(path, readOnly);
 
     return nullptr;

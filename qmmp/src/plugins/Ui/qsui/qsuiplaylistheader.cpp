@@ -89,7 +89,7 @@ QSUiPlayListHeader::~QSUiPlayListHeader()
 
 void QSUiPlayListHeader::readSettings()
 {
-    if (m_metrics)
+    if(m_metrics)
     {
         delete m_metrics;
         m_metrics = nullptr;

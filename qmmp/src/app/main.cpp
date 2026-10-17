@@ -44,7 +44,7 @@ static int setupUnixSignalHandlers()
     sigemptyset(&term.sa_mask);
     term.sa_flags |= SA_RESTART;
 
-    if (sigaction(SIGTERM, &term, nullptr))
+    if(sigaction(SIGTERM, &term, nullptr))
         return 2;
 
     return 0;

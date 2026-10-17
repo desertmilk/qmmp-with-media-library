@@ -226,7 +226,7 @@ void SkinnedDisplay::updateMask()
     m_mw->clearMask();
     m_mw->setMask(QRegion(0, 0, m_mw->width(), m_mw->height()));
     QRegion region = skin()->getRegion(m_shaded? Skin::WINDOW_SHADE : Skin::NORMAL);
-    if (!region.isEmpty())
+    if(!region.isEmpty())
         m_mw->setMask(region);
 }
 

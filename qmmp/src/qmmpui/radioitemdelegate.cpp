@@ -92,7 +92,7 @@ bool RadioItemDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
                     return true;
             }
 
-            if (!index.data(Qt::CheckStateRole).toBool())
+            if(!index.data(Qt::CheckStateRole).toBool())
             {
                 model->setData(index, Qt::Checked, Qt::CheckStateRole);
                 QModelIndex parentItem = index.parent();
@@ -100,7 +100,7 @@ bool RadioItemDelegate::editorEvent(QEvent *event, QAbstractItemModel *model,
                 {
                     QModelIndex childIndex = model->index(i, 0, parentItem);
 
-                    if (childIndex != index)
+                    if(childIndex != index)
                         model->setData(childIndex, Qt::Unchecked, Qt::CheckStateRole);
                 }
             }

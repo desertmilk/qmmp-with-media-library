@@ -34,7 +34,7 @@ static int opusread (void *src, unsigned char *buf,int size)
 static int opusseek(void *src, opus_int64 offset, int whence)
 {
     DecoderOpus *d = static_cast<DecoderOpus *>(src);
-    if (d->input()->isSequential())
+    if(d->input()->isSequential())
         return -1;
     long start = 0;
     switch (whence)
@@ -52,7 +52,7 @@ static int opusseek(void *src, opus_int64 offset, int whence)
         start = 0;
     }
 
-    if (d->input()->seek(start + offset))
+    if(d->input()->seek(start + offset))
         return 0;
     return -1;
 }
@@ -70,7 +70,7 @@ DecoderOpus::DecoderOpus(const QString &url, QIODevice *i) : Decoder(i),
 
 DecoderOpus::~DecoderOpus()
 {
-    if (m_opusfile)
+    if(m_opusfile)
         op_free(m_opusfile);
     m_opusfile = nullptr;
 }
@@ -81,7 +81,7 @@ bool DecoderOpus::initialize()
     m_chan = 0;
     m_totalTime = 0;
 
-    if (!input())
+    if(!input())
     {
         qCDebug(plugin, "cannot initialize.  No input");
         return false;
@@ -96,7 +96,7 @@ bool DecoderOpus::initialize()
     };
     m_opusfile = op_open_callbacks(this, &opuscb, nullptr, 0, nullptr);
 
-    if (!m_opusfile)
+    if(!m_opusfile)
     {
         qCWarning(plugin, "cannot open stream");
         return false;
@@ -108,7 +108,7 @@ bool DecoderOpus::initialize()
         m_totalTime = 0;
 
     const OpusHead *head = op_head(m_opusfile, -1);
-    if (!head)
+    if(!head)
     {
         qCWarning(plugin, "unable to read header");
         return false;
@@ -129,7 +129,7 @@ bool DecoderOpus::initialize()
 
 qint64 DecoderOpus::totalTime() const
 {
-    if (!m_opusfile)
+    if(!m_opusfile)
         return 0;
     return m_totalTime;
 }

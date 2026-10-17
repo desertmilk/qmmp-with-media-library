@@ -58,7 +58,7 @@ void SkinnedPlayListSelector::readSettings()
     QSettings settings;
     settings.beginGroup("Skinned"_L1);
     m_font.fromString(settings.value("pl_font"_L1, QApplication::font().toString()).toString());
-    if (m_metrics)
+    if(m_metrics)
     {
         delete m_metrics;
         m_metrics = nullptr;
@@ -439,7 +439,7 @@ int SkinnedPlayListSelector::findButton(QPoint pos)
     {
         if(pos.x() > width() - 20)
             return BUTTON_RIGHT;
-        if ((width() - 40 < pos.x()) && (pos.x() <= width() - 20))
+        if((width() - 40 < pos.x()) && (pos.x() <= width() - 20))
             return BUTTON_LEFT;
     }
 

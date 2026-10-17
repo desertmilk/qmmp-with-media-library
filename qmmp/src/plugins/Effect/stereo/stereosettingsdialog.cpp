@@ -47,7 +47,7 @@ void StereoSettingsDialog::accept()
 
 void StereoSettingsDialog::StereoSettingsDialog::reject()
 {
-    if (StereoPlugin::instance()) //restore settings
+    if(StereoPlugin::instance()) //restore settings
         StereoPlugin::instance()->setIntensity(m_level);
     QDialog::reject();
 }
@@ -56,6 +56,6 @@ void StereoSettingsDialog::on_intensitySlider_valueChanged (int value)
 {
     double level = value * 10.0 / 100;
     m_ui->intensityLabel->setText(QString::number(level));
-    if (StereoPlugin::instance())
+    if(StereoPlugin::instance())
         StereoPlugin::instance()->setIntensity(level);
 }

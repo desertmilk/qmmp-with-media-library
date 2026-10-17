@@ -165,7 +165,7 @@ QString AboutDialog::getStringFromResource(const QString &res_file)
     for(const QString &path : std::as_const(paths))
     {
         QFile file(path);
-        if (file.open(QIODevice::ReadOnly))
+        if(file.open(QIODevice::ReadOnly))
         {
             QTextStream ts(&file);
             ret_string = ts.readAll();

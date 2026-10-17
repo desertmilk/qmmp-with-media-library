@@ -69,16 +69,16 @@ public:
             {
                 QPluginLoader loader(filePath);
                 QObject *plugin = loader.instance();
-                if (loader.isLoaded())
+                if(loader.isLoaded())
                     qCDebug(core) << "loaded plugin" << QFileInfo(filePath).fileName();
                 else
                     qCWarning(core) << loader.errorString();
 
                 VisualFactory *factory = nullptr;
-                if (plugin)
+                if(plugin)
                     factory = qobject_cast<VisualFactory *>(plugin);
 
-                if (factory)
+                if(factory)
                 {
                     factories->append(factory);
                     files->insert(factory, filePath);
@@ -242,18 +242,18 @@ QString Visual::file(const VisualFactory *factory)
 void Visual::setEnabled(VisualFactory *factory, bool enable)
 {
     VisualPrivate::checkFactories();
-    if (!VisualPrivate::factories->contains(factory))
+    if(!VisualPrivate::factories->contains(factory))
         return;
 
     QString name = factory->properties().shortName;
     QSettings settings;
     QStringList visList = settings.value(u"Visualization/enabled_plugins"_s).toStringList();
 
-    if (enable)
+    if(enable)
     {
-        if (!visList.contains(name))
+        if(!visList.contains(name))
             visList << name;
-        if (!VisualPrivate::visualMap.value(factory) && VisualPrivate::parentWidget)
+        if(!VisualPrivate::visualMap.value(factory) && VisualPrivate::parentWidget)
         {
             VisualPrivate::createVisualization(factory, VisualPrivate::parentWidget);
         }
@@ -261,7 +261,7 @@ void Visual::setEnabled(VisualFactory *factory, bool enable)
     else
     {
         visList.removeAll(name);
-        if (VisualPrivate::visualMap.value(factory))
+        if(VisualPrivate::visualMap.value(factory))
         {
             VisualPrivate::visuals.removeAll(VisualPrivate::visualMap.value(factory));
             VisualPrivate::visualMap.value(factory)->close();
@@ -282,7 +282,7 @@ bool Visual::isEnabled(const VisualFactory *factory)
 
 void Visual::add(Visual *visual)
 {
-    if (!VisualPrivate::visuals.contains(visual))
+    if(!VisualPrivate::visuals.contains(visual))
     {
         Qmmp::State st = StateHandler::instance() ? StateHandler::instance()->state() : Qmmp::Stopped;
         if(st == Qmmp::Playing || st == Qmmp::Buffering || st == Qmmp::Paused)
@@ -304,10 +304,10 @@ const QList<Visual *> &Visual::visuals()
 void Visual::showSettings(VisualFactory *factory, QWidget *parent)
 {
     QDialog *dialog = factory->createSettings(parent);
-    if (!dialog)
+    if(!dialog)
         return;
 
-    if (dialog->exec() == QDialog::Accepted && VisualPrivate::visualMap.contains(factory))
+    if(dialog->exec() == QDialog::Accepted && VisualPrivate::visualMap.contains(factory))
     {
         Visual *visual = VisualPrivate::visualMap.value(factory);
         remove(visual);

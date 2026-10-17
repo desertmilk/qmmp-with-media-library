@@ -103,7 +103,7 @@ void NotifierSettingsDialog::on_fontButton_pressed()
     bool ok;
     QFont font = m_ui->fontLabel->font();
     font = QFontDialog::getFont(&ok, font, this);
-    if (ok)
+    if(ok)
     {
         m_ui->fontLabel->setText (font.family () + QChar::Space + QString::number(font.pointSize ()));
         m_ui->fontLabel->setFont(font);

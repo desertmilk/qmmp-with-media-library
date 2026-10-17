@@ -430,7 +430,7 @@ void Skin::loadPosBar()
 {
     QPixmap *pixmap = getPixmap(u"posbar"_s);
 
-    if (pixmap->width() > 249)
+    if(pixmap->width() > 249)
     {
         m_buttons[BT_POSBAR_N] = pixmap->copy(248,0,29, pixmap->height());
         m_buttons[BT_POSBAR_P] = pixmap->copy(278,0,29, pixmap->height());
@@ -453,7 +453,7 @@ void Skin::loadNumbers()
     for(uint i = 0; i < 10; i++)
         m_numbers << pixmap->copy(i*9, 0, 9, pixmap->height());
 
-    if (pixmap->width() > 107)
+    if(pixmap->width() > 107)
         m_numbers << pixmap->copy(99, 0, 9, pixmap->height());
     else
     {
@@ -556,12 +556,12 @@ QString Skin::getPath(const QString& name)
     {
         QFileInfo fileInfo = f.at (j);
         QString fn = fileInfo.fileName().toLower();
-        if (!nameHasExt && fn.section(QLatin1Char('.'), 0, 0) == name)
+        if(!nameHasExt && fn.section(QLatin1Char('.'), 0, 0) == name)
         {
             return fileInfo.filePath();
         }
 
-        if (nameHasExt && fn == name)
+        if(nameHasExt && fn == name)
         {
             return fileInfo.filePath();
         }
@@ -596,7 +596,7 @@ void Skin::loadPLEdit()
             line.truncate(line.indexOf(u"//"_s));
 
         QStringList l = line.split(QLatin1Char('='));
-        if (l.count() == 2)
+        if(l.count() == 2)
         {
             key = l[0].toLower().toLatin1();
             value = l[1].trimmed().toLatin1();
@@ -622,7 +622,7 @@ void Skin::loadEqMain()
     m_eq_parts[EQ_TITLEBAR_A] = pixmap->copy(0,134,275,14);
     m_eq_parts[EQ_TITLEBAR_I] = pixmap->copy(0,149,275,14);
 
-    if (pixmap->height() > 295)
+    if(pixmap->height() > 295)
         m_eq_parts[EQ_GRAPH] = pixmap->copy(0,294,113,19);
     else
         m_eq_parts[EQ_GRAPH] = QPixmap();
@@ -685,11 +685,11 @@ void Skin::loadVisColor()
 {
     QString path = findFile(u"viscolor.txt"_s);
 
-    if (path.isEmpty())
+    if(path.isEmpty())
          qCFatal(plugin) << "invalid default skin";
 
     QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
          qCFatal(plugin) << "unable to open" << path;
 
     int j = 0;
@@ -704,7 +704,7 @@ void Skin::loadVisColor()
         if(i > 0)
             tmp.truncate(tmp.indexOf(u"//"_s));
         QStringList list = tmp.split(QLatin1Char(','));
-        if (list.count () >= 3)
+        if(list.count () >= 3)
         {
             //colors
             int r = list.at (0).toInt();
@@ -712,12 +712,12 @@ void Skin::loadVisColor()
             int b = list.at (2).toInt();
             m_vis_colors << QColor (r,g,b);
         }
-        else if (line.length() == 0)
+        else if(line.length() == 0)
         {
             break;
         }
     }
-    if (m_vis_colors.size() < 24)
+    if(m_vis_colors.size() < 24)
     {
         qCWarning(plugin) << "cannot parse viscolor.txt";
         while (m_vis_colors.size() < 24)
@@ -870,7 +870,7 @@ void Skin::loadVolume()
     m_volume.clear();
     for(int i = 0; i < 28; ++i)
         m_volume.append(pixmap->copy(0, i * 15, qMin(pixmap->width(), 68), 13));
-    if (pixmap->height() > 425)
+    if(pixmap->height() > 425)
     {
         m_buttons[BT_VOL_N] = pixmap->copy(15, 422, 14, pixmap->height() - 422);
         m_buttons[BT_VOL_P] = pixmap->copy(0, 422, 14, pixmap->height() - 422);
@@ -890,7 +890,7 @@ void Skin::loadBalance()
     m_balance.clear();
     for(int i = 0; i < 28; ++i)
         m_balance.append(pixmap->copy(9,i*15,38,13));
-    if (pixmap->height() > 427)
+    if(pixmap->height() > 427)
     {
         m_buttons[BT_BAL_N] = pixmap->copy(15, 422,14,pixmap->height()-422);
         m_buttons[BT_BAL_P] = pixmap->copy(0,422,14,pixmap->height()-422);
@@ -908,7 +908,7 @@ void Skin::loadRegion()
     m_regions.clear();
     QString path = findFile(u"region.txt"_s);
 
-    if (path.isEmpty())
+    if(path.isEmpty())
     {
         qCDebug(plugin) << "cannot find region.txt. Transparency disabled";
         return;

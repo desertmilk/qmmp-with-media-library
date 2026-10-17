@@ -190,7 +190,7 @@ MetaDataModel *MetaDataManager::createMetaDataModel(const QString &path, bool re
     DecoderFactory *fact = nullptr;
     EngineFactory *efact = nullptr;
 
-    if (!path.contains(u"://"_s)) //local file
+    if(!path.contains(u"://"_s)) //local file
     {
         if(!QFile::exists(path))
             return nullptr;
@@ -222,12 +222,12 @@ QStringList MetaDataManager::filters() const
     QStringList filters;
     for(const DecoderFactory *fact : Decoder::enabledFactories())
     {
-        if (!fact->properties().filters.isEmpty())
+        if(!fact->properties().filters.isEmpty())
             filters << QStringLiteral("%1 (%2)").arg(fact->properties().description, fact->properties().filters.join(QChar::Space));
     }
     for(const EngineFactory *fact : AbstractEngine::enabledFactories())
     {
-        if (!fact->properties().filters.isEmpty())
+        if(!fact->properties().filters.isEmpty())
             filters << QStringLiteral("%1 (%2)").arg(fact->properties().description, fact->properties().filters.join(QChar::Space));
     }
     return filters;
@@ -260,7 +260,7 @@ QList<QRegularExpression> MetaDataManager::regExps() const
 
 bool MetaDataManager::supports(const QString &fileName) const
 {
-    if (!fileName.contains(u"://"_s)) //local file
+    if(!fileName.contains(u"://"_s)) //local file
     {
         if(!QFile::exists(fileName))
             return false;

@@ -322,7 +322,7 @@ void SkinnedEqWidget::savePreset()
 void SkinnedEqWidget::saveAutoPreset()
 {
     PlayListTrack *track = PlayListManager::instance()->currentPlayList()->currentTrack();
-    if (!track)
+    if(!track)
         return;
 
     QString name = track->path().section(QLatin1Char('/'), -1);
@@ -402,7 +402,7 @@ void SkinnedEqWidget::importWinampEQF()
 
     char header[31];
     file.read(header, 31);
-    if (QString::fromLatin1(header).contains(u"Winamp EQ library file v1.1"_s))
+    if(QString::fromLatin1(header).contains(u"Winamp EQ library file v1.1"_s))
     {
         char name[257];
         char bands[11];
@@ -449,7 +449,7 @@ void SkinnedEqWidget::updateMask()
     clearMask();
     setMask(QRegion(0,0,width(),height()));
     QRegion region = skin()->getRegion(m_shaded ? Skin::EQUALIZER_WS : Skin::EQUALIZER);
-    if (!region.isEmpty())
+    if(!region.isEmpty())
         setMask(region);
 }
 

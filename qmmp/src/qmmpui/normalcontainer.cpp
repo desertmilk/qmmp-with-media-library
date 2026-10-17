@@ -115,7 +115,7 @@ int NormalContainer::indexOf(PlayListItem *item) const
 
 PlayListTrack *NormalContainer::track(int index) const
 {
-   if (0 <= index && index < m_tracks.count())
+   if(0 <= index && index < m_tracks.count())
        return m_tracks.at(index);
 
    return nullptr;
@@ -151,11 +151,11 @@ void NormalContainer::removeTracks(QList<PlayListTrack *> tracks)
 
 bool NormalContainer::move(const QList<int> &indexes, int from, int to)
 {
-    if (from > to)
+    if(from > to)
     {
         for(const int &i : std::as_const(indexes))
         {
-            if (i + to - from < 0)
+            if(i + to - from < 0)
                 break;
 
             m_tracks.move(i, i + to - from);
@@ -166,7 +166,7 @@ bool NormalContainer::move(const QList<int> &indexes, int from, int to)
     {
         for (int i = indexes.count() - 1; i >= 0; i--)
         {
-            if (indexes[i] + to - from >= m_tracks.count())
+            if(indexes[i] + to - from >= m_tracks.count())
                 break;
 
             m_tracks.move(indexes[i], indexes[i] + to - from);

@@ -45,7 +45,7 @@ void Recycler::configure(quint32 freq, int chan)
     m_buffer_count = buffer_count;
 
 
-    if (m_buffer_count < 4)
+    if(m_buffer_count < 4)
         m_buffer_count = 4;
 
     m_buffers = new Buffer*[m_buffer_count];
@@ -84,7 +84,7 @@ int Recycler::used() const
 
 Buffer *Recycler::get()
 {
-    if (full())
+    if(full())
         return nullptr;
     return m_buffers[m_add_index];
 }
@@ -111,7 +111,7 @@ Buffer *Recycler::next()
 void Recycler::done()
 {
     m_blocked = nullptr;
-    if (m_current_count)
+    if(m_current_count)
     {
         m_current_count--;
         m_done_index = (m_done_index + 1) % m_buffer_count;

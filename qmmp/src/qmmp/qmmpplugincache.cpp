@@ -246,7 +246,7 @@ QObject *QmmpPluginCache::instance()
         return m_instance;
     QPluginLoader loader(m_path);
     m_instance = loader.instance();
-    if (loader.isLoaded())
+    if(loader.isLoaded())
         qCDebug(core) << "loaded plugin" << QFileInfo(m_path).fileName();
     else
     {

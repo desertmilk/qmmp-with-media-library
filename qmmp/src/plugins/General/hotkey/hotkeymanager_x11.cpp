@@ -189,9 +189,9 @@ bool HotkeyManager::nativeEventFilter(const QByteArray &eventType, void *message
                 player->pause();
                 break;
             case Hotkey::PLAY_PAUSE:
-                if (core->state() == Qmmp::Stopped)
+                if(core->state() == Qmmp::Stopped)
                     player->play();
-                else if (core->state() != Qmmp::FatalError)
+                else if(core->state() != Qmmp::FatalError)
                     player->pause();
                 break;
             case Hotkey::NEXT:
@@ -276,7 +276,7 @@ xcb_screen_t *HotkeyManager::screenOfDisplay(xcb_connection_t *conn, int screen)
 {
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(xcb_get_setup(conn));
     for (; iter.rem; --screen, xcb_screen_next (&iter))
-        if (screen == 0)
+        if(screen == 0)
             return iter.data;
 
     return nullptr;

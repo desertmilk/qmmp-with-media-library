@@ -89,13 +89,13 @@ QT_BEGIN_NAMESPACE
 
 static TBPFLAG nativeProgressState(QWinTaskbarProgress *progress)
 {
-    if (!progress || !progress->isVisible())
+    if(!progress || !progress->isVisible())
         return TBPF_NOPROGRESS;
-    if (progress->isStopped())
+    if(progress->isStopped())
         return TBPF_ERROR;
-    if (progress->isPaused())
+    if(progress->isPaused())
         return TBPF_PAUSED;
-    if (progress->minimum() == 0 && progress->maximum() == 0)
+    if(progress->minimum() == 0 && progress->maximum() == 0)
         return TBPF_INDETERMINATE;
     return TBPF_NORMAL;
 }
@@ -115,10 +115,10 @@ inline wchar_t *qt_qstringToNullTerminated(const QString &src)
 QWinTaskbarButtonPrivate::QWinTaskbarButtonPrivate()
 {
     HRESULT hresult = CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER, IID_ITaskbarList4, reinterpret_cast<void **>(&pTbList));
-    if (FAILED(hresult)) {
+    if(FAILED(hresult)) {
         pTbList = nullptr;
         qCWarning(plugin, "qIID_ITaskbarList4 was not created: %#010x.", unsigned(hresult));
-    } else if (FAILED(pTbList->HrInit())) {
+    } else if(FAILED(pTbList->HrInit())) {
         pTbList->Release();
         pTbList = nullptr;
         qCWarning(plugin, "qIID_ITaskbarList4 was not initialized: %#010x.", unsigned(hresult));
@@ -127,7 +127,7 @@ QWinTaskbarButtonPrivate::QWinTaskbarButtonPrivate()
 
 QWinTaskbarButtonPrivate::~QWinTaskbarButtonPrivate()
 {
-    if (pTbList)
+    if(pTbList)
         pTbList->Release();
 }
 
@@ -143,38 +143,38 @@ int QWinTaskbarButtonPrivate::iconSize() const
 
 void QWinTaskbarButtonPrivate::updateOverlayIcon()
 {
-    if (!pTbList || !window)
+    if(!pTbList || !window)
         return;
 
     wchar_t *descrPtr = nullptr;
     HICON hicon = nullptr;
-    if (!overlayAccessibleDescription.isEmpty())
+    if(!overlayAccessibleDescription.isEmpty())
         descrPtr = qt_qstringToNullTerminated(overlayAccessibleDescription);
-    if (!overlayIcon.isNull())
+    if(!overlayIcon.isNull())
         hicon = overlayIcon.pixmap(iconSize()).toImage().toHICON();
 
-    if (hicon)
+    if(hicon)
         pTbList->SetOverlayIcon(handle(), hicon, descrPtr);
-    else if (!hicon && !overlayIcon.isNull())
+    else if(!hicon && !overlayIcon.isNull())
         pTbList->SetOverlayIcon(handle(), static_cast<HICON>(LoadImage(nullptr, IDI_APPLICATION, IMAGE_ICON, SM_CXSMICON, SM_CYSMICON, LR_SHARED)), descrPtr);
     else
         pTbList->SetOverlayIcon(handle(), nullptr, descrPtr);
 
-    if (hicon)
+    if(hicon)
         DestroyIcon(hicon);
     delete[] descrPtr;
 }
 
 void QWinTaskbarButtonPrivate::_q_updateProgress()
 {
-    if (!pTbList || !window)
+    if(!pTbList || !window)
         return;
 
-    if (progressBar) {
+    if(progressBar) {
         const int min = progressBar->minimum();
         const int max = progressBar->maximum();
         const int range = max - min;
-        if (range > 0) {
+        if(range > 0) {
             const int value = qRound(double(100) * (double(progressBar->value() - min)) / double(range));
             pTbList->SetProgressValue(handle(), ULONGLONG(value), 100);
         }
@@ -207,12 +207,12 @@ QWinTaskbarButton::~QWinTaskbarButton() = default;
 void QWinTaskbarButton::setWindow(QWindow *window)
 {
     Q_D(QWinTaskbarButton);
-    if (d->window)
+    if(d->window)
         d->window->removeEventFilter(this);
     d->window = window;
-    if (d->window) {
+    if(d->window) {
         d->window->installEventFilter(this);
-        if (d->window->isVisible()) {
+        if(d->window->isVisible()) {
             d->_q_updateProgress();
             d->updateOverlayIcon();
         }
@@ -278,7 +278,7 @@ void QWinTaskbarButton::setOverlayAccessibleDescription(const QString &descripti
 QWinTaskbarProgress *QWinTaskbarButton::progress() const
 {
     Q_D(const QWinTaskbarButton);
-    if (!d->progressBar) {
+    if(!d->progressBar) {
         auto *that = const_cast<QWinTaskbarButton *>(this);
         auto *pbar = new QWinTaskbarProgress(that);
         connect(pbar, SIGNAL(destroyed()), this, SLOT(_q_updateProgress()));
@@ -301,7 +301,7 @@ QWinTaskbarProgress *QWinTaskbarButton::progress() const
 bool QWinTaskbarButton::eventFilter(QObject *object, QEvent *event)
 {
     Q_D(QWinTaskbarButton);
-    if (object == d->window && event->type() == QWinEvent::TaskbarButtonCreated) {
+    if(object == d->window && event->type() == QWinEvent::TaskbarButtonCreated) {
         d->_q_updateProgress();
         d->updateOverlayIcon();
     }

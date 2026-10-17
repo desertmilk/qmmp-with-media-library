@@ -83,7 +83,7 @@ bool OutputQtMultimedia::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFor
         format = Qmmp::PCM_S32BE;
 #endif
 
-    if (!qformat.isValid())
+    if(!qformat.isValid())
         return false;
 
     const QSettings settings;
@@ -91,14 +91,14 @@ bool OutputQtMultimedia::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFor
     m_bytes_per_second = bytes_per_sample * freq * qformat.channelCount();
 
     QAudioDevice device_info;
-    if (!saved_device_name.isEmpty())
+    if(!saved_device_name.isEmpty())
     {
         const QList<QAudioDevice> devices = QMediaDevices::audioOutputs();
         for(const QAudioDevice &info : devices)
         {
-            if (info.id() == saved_device_name)
+            if(info.id() == saved_device_name)
             {
-                if (info.isFormatSupported(qformat))
+                if(info.isFormatSupported(qformat))
                 {
                     device_info = info;
                     break;
@@ -109,10 +109,10 @@ bool OutputQtMultimedia::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFor
         }
     }
 
-    if (device_info.isNull())
+    if(device_info.isNull())
     {
         device_info = QMediaDevices::defaultAudioOutput();
-        if (!device_info.isFormatSupported(qformat))
+        if(!device_info.isFormatSupported(qformat))
             return false;
     }
 
@@ -135,7 +135,7 @@ qint64 OutputQtMultimedia::latency()
 
 qint64 OutputQtMultimedia::writeAudio(unsigned char *data, qint64 maxSize)
 {
-    if (!m_output->bytesFree()) {
+    if(!m_output->bytesFree()) {
         //If the buffer is full, waiting for some bytes to be played:
         //trying to play maxSize bytes, but not more than half of buffer.
         usleep(qMin(maxSize, static_cast<qint64>(m_output->bufferSize() / 2)) * 1000000 / m_bytes_per_second);

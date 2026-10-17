@@ -52,7 +52,7 @@ OutputOSS::OutputOSS() : Output()
 
 OutputOSS::~OutputOSS()
 {
-    if (m_audio_fd >= 0)
+    if(m_audio_fd >= 0)
     {
         ioctl(m_audio_fd, SNDCTL_DSP_RESET, 0);
         close(m_audio_fd);
@@ -74,7 +74,7 @@ bool OutputOSS::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat forma
 {
     m_audio_fd = open(m_audio_device.toLatin1().constData(), O_WRONLY);
 
-    if (m_audio_fd < 0)
+    if(m_audio_fd < 0)
     {
         qCWarning(plugin, "failed to open output device '%s'", qPrintable(m_audio_device));
         return false;
@@ -101,7 +101,7 @@ bool OutputOSS::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat forma
         return false;
     }
 
-    if (ioctl(m_audio_fd, SNDCTL_DSP_SETFMT, &p) == -1)
+    if(ioctl(m_audio_fd, SNDCTL_DSP_SETFMT, &p) == -1)
         qCWarning(plugin, "ioctl SNDCTL_DSP_SETFMT failed: %s",strerror(errno));
 
 
@@ -117,7 +117,7 @@ bool OutputOSS::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat forma
     }
 
 
-    if (ioctl(m_audio_fd, SNDCTL_DSP_SPEED, &freq) < 0)
+    if(ioctl(m_audio_fd, SNDCTL_DSP_SPEED, &freq) < 0)
         qCWarning(plugin, "ioctl SNDCTL_DSP_SPEED failed: %s", strerror(errno));
 
     ioctl(m_audio_fd, SNDCTL_DSP_RESET, 0);
@@ -159,7 +159,7 @@ VolumeOSS::VolumeOSS()
 
 VolumeOSS::~VolumeOSS()
 {
-    if (m_mixer_fd >= 0)
+    if(m_mixer_fd >= 0)
     {
         close(m_mixer_fd);
         m_mixer_fd = -1;
@@ -168,15 +168,15 @@ VolumeOSS::~VolumeOSS()
 
 void VolumeOSS::setVolume(const VolumeSettings &vol)
 {
-    if (m_mixer_fd < 0)
+    if(m_mixer_fd < 0)
         return;
 
     long cmd;
     int devs = 0;
     ioctl(m_mixer_fd, SOUND_MIXER_READ_DEVMASK, &devs);
-    if ((devs & SOUND_MASK_PCM) && !m_master)
+    if((devs & SOUND_MASK_PCM) && !m_master)
         cmd = SOUND_MIXER_WRITE_PCM;
-    else if ((devs & SOUND_MASK_VOLUME) && m_master)
+    else if((devs & SOUND_MASK_VOLUME) && m_master)
         cmd = SOUND_MIXER_WRITE_VOLUME;
     else
     {
@@ -195,10 +195,10 @@ VolumeSettings VolumeOSS::volume() const
     int cmd;
     int v, devs = 0;
     ioctl(m_mixer_fd, SOUND_MIXER_READ_DEVMASK, &devs);
-    if ((devs & SOUND_MASK_PCM) && !m_master)
+    if((devs & SOUND_MASK_PCM) && !m_master)
         cmd = SOUND_MIXER_READ_PCM;
 
-    else if ((devs & SOUND_MASK_VOLUME) && m_master)
+    else if((devs & SOUND_MASK_VOLUME) && m_master)
         cmd = SOUND_MIXER_READ_VOLUME;
     else
         return vol;
@@ -211,10 +211,10 @@ VolumeSettings VolumeOSS::volume() const
 
 void VolumeOSS::openMixer()
 {
-    if (m_mixer_fd >= 0)
+    if(m_mixer_fd >= 0)
         return;
     m_mixer_fd = open(m_mixer_device.toLatin1().constData(), O_RDWR);
-    if (m_mixer_fd < 0)
+    if(m_mixer_fd < 0)
     {
         qCWarning(plugin, "VolumeControlOSS: unable to open mixer device '%s'", qPrintable(m_mixer_device));
         return;

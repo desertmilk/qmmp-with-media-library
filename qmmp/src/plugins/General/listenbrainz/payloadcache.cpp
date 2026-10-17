@@ -76,36 +76,36 @@ QList<TrackMetaData> PayloadCache::load()
     {
         int s = 0;
         QString line = QString::fromUtf8(file.readLine()).trimmed();
-        if ((s = line.indexOf(QLatin1Char('='))) < 0)
+        if((s = line.indexOf(QLatin1Char('='))) < 0)
             continue;
 
         QString param = line.left(s);
         QString value = line.right(line.size() - s - 1);
 
-        if (param == "title"_L1)
+        if(param == "title"_L1)
         {
             songs << TrackMetaData();
             songs.last().setValue(Qmmp::TITLE, value);
         }
-        else if (songs.isEmpty())
+        else if(songs.isEmpty())
             continue;
-        else if (param == "artist"_L1)
+        else if(param == "artist"_L1)
             songs.last().setValue(Qmmp::ARTIST, value);
-        else if (param == "album"_L1)
+        else if(param == "album"_L1)
             songs.last().setValue(Qmmp::ALBUM, value);
-        else if (param == "comment"_L1)
+        else if(param == "comment"_L1)
             songs.last().setValue(Qmmp::COMMENT, value);
-        else if (param == "genre"_L1)
+        else if(param == "genre"_L1)
             songs.last().setValue(Qmmp::GENRE, value);
-        else if (param == "year"_L1)
+        else if(param == "year"_L1)
             songs.last().setValue(Qmmp::YEAR, value);
-        else if (param == "track"_L1)
+        else if(param == "track"_L1)
             songs.last().setValue(Qmmp::TRACK, value);
-        else if (param == "length"_L1) //1.3.x config support
+        else if(param == "length"_L1) //1.3.x config support
             songs.last().setDuration(value.toInt() * 1000);
-        else if (param == "duration"_L1)
+        else if(param == "duration"_L1)
             songs.last().setDuration(value.toLongLong());
-        else if (param == "time"_L1)
+        else if(param == "time"_L1)
             songs.last().setTimeStamp(value.toUInt());
     }
     file.close();

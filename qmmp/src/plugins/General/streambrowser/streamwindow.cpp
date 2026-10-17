@@ -84,7 +84,7 @@ StreamWindow::StreamWindow(QWidget *parent)
     m_http = new QNetworkAccessManager(this);
      //load global proxy settings
     QmmpSettings *gs = QmmpSettings::instance();
-    if (gs->isProxyEnabled())
+    if(gs->isProxyEnabled())
     {
         QNetworkProxy proxy(QNetworkProxy::HttpProxy, gs->proxy().host(),  gs->proxy().port());
         if(gs->proxyType() == QmmpSettings::SOCKS5_PROXY)
@@ -150,7 +150,7 @@ StreamWindow::~StreamWindow()
 void StreamWindow::showText(QNetworkReply *reply)
 {
     m_ui->statusLabel->setText(tr("Done"));
-    if (reply->error() != QNetworkReply::NoError)
+    if(reply->error() != QNetworkReply::NoError)
     {
         m_ui->statusLabel->setText(tr("Error"));
         QMessageBox::warning (this, tr("Error"), reply->errorString());
@@ -386,13 +386,13 @@ void StreamWindow::readXml(QIODevice *input, QStandardItemModel *model)
     while (!xml.atEnd())
     {
         xml.readNext();
-        if (xml.isStartElement())
+        if(xml.isStartElement())
         {
             currentTag = xml.name().toString();
         }
-        else if (xml.isEndElement())
+        else if(xml.isEndElement())
         {
-            if (xml.name() == QLatin1String("entry"))
+            if(xml.name() == QLatin1String("entry"))
             {
                 if(server_name == "Unspecified name"_L1 || server_name.isEmpty())
                     server_name = listen_url.section(QLatin1Char('/'), -1);
@@ -414,22 +414,22 @@ void StreamWindow::readXml(QIODevice *input, QStandardItemModel *model)
                 server_type.clear();
             }
         }
-        else if (xml.isCharacters() && !xml.isWhitespace())
+        else if(xml.isCharacters() && !xml.isWhitespace())
         {
-            if (currentTag == "server_name"_L1)
+            if(currentTag == "server_name"_L1)
                 server_name += xml.text().toString();
-            else if (currentTag == "listen_url"_L1)
+            else if(currentTag == "listen_url"_L1)
                 listen_url += xml.text().toString();
-            else if (currentTag == "genre"_L1)
+            else if(currentTag == "genre"_L1)
                 genre += xml.text().toString();
-            else if (currentTag == "bitrate"_L1)
+            else if(currentTag == "bitrate"_L1)
                 bitrate += xml.text().toString();
             else if(currentTag == "server_type"_L1)
                 server_type += xml.text().toString();
         }
     }
 
-    if (xml.error() && xml.error() != QXmlStreamReader::PrematureEndOfDocumentError)
+    if(xml.error() && xml.error() != QXmlStreamReader::PrematureEndOfDocumentError)
     {
 #ifdef Q_OS_WIN
         qCWarning(plugin, "xml error: %d: %s", (int)xml.lineNumber(), qPrintable(xml.errorString()));

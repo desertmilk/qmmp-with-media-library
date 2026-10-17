@@ -36,7 +36,7 @@ CueFile::CueFile(const QString &path) : CueParser()
     m_filePath = path.contains(u"://"_s) ? TrackInfo::pathFromUrl(path) : path;
 
     QFile file(m_filePath);
-    if (!file.open(QIODevice::ReadOnly))
+    if(!file.open(QIODevice::ReadOnly))
     {
         qCDebug(plugin, "error: %s", qPrintable(file.errorString()));
         return;
@@ -122,12 +122,12 @@ QStringList CueFile::splitLine(const QString &line)
     //qCDebug(plugin, "raw string = %s",qPrintable(line));
     QStringList list;
     QString buf = line.trimmed();
-    if (buf.isEmpty())
+    if(buf.isEmpty())
         return list;
     while (!buf.isEmpty())
     {
         //qCDebug(plugin) << buf;
-        if (buf.startsWith(QLatin1Char('"')))
+        if(buf.startsWith(QLatin1Char('"')))
         {
             int end = buf.indexOf(QLatin1Char('"'), 1);
             if(end == -1) //ignore invalid line
@@ -142,7 +142,7 @@ QStringList CueFile::splitLine(const QString &line)
         else
         {
             int end = buf.indexOf(QChar::Space, 0);
-            if (end < 0)
+            if(end < 0)
                 end = buf.size();
             list << buf.mid(0, end);
             buf.remove(0, end);
@@ -172,32 +172,32 @@ QString CueFile::getDirtyPath(const QString &cue_path, const QString &path)
             candidates.push_back(f);
     }
 
-    if (candidates.isEmpty())
+    if(candidates.isEmpty())
         return path;
 
-    if (candidates.count() == 1)
+    if(candidates.count() == 1)
         return candidates.constFirst();
 
     int dot = cue_path.lastIndexOf(QLatin1Char('.'));
-    if (dot != -1)
+    if(dot != -1)
     {
         QRegularExpression r(QRegularExpression::escape(cue_path.left(dot)) + u"\\.[^\\.]+$"_s);
 
         int index = candidates.indexOf(r);
         int rindex = candidates.lastIndexOf(r);
 
-        if ((index != -1) && (index == rindex))
+        if((index != -1) && (index == rindex))
             return candidates[index];
     }
     dot = path.lastIndexOf(QLatin1Char('.'));
-    if (dot != -1)
+    if(dot != -1)
     {
         QRegularExpression r(QRegularExpression::escape(path.left(dot)) + u"\\.[^\\.]+$"_s);
 
         int index = candidates.indexOf(r);
         int rindex = candidates.lastIndexOf(r);
 
-        if ((index != -1) && (index == rindex))
+        if((index != -1) && (index == rindex))
             return candidates[index];
     }
 

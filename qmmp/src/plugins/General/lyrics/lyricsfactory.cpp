@@ -50,7 +50,7 @@ QWidget *LyricsFactory::createWidget(int id, QWidget *parent)
         if(SoundCore::instance()->state() == Qmmp::Playing || SoundCore::instance()->state() == Qmmp::Paused)
         {
             TrackInfo info = SoundCore::instance()->trackInfo();
-            if (!info.value(Qmmp::ARTIST).isEmpty() && !info.value(Qmmp::TITLE).isEmpty())
+            if(!info.value(Qmmp::ARTIST).isEmpty() && !info.value(Qmmp::TITLE).isEmpty())
                 m_lyricsWidget->fetch(&info);
         }
         return m_lyricsWidget;

@@ -80,7 +80,7 @@ StatusIcon::StatusIcon(QObject *parent) : QObject(parent)
     connect(m_core, &SoundCore::trackInfoChanged, this, &StatusIcon::showMetaData);
     connect(m_core, &SoundCore::stateChanged, this, &StatusIcon::setState);
     setState(m_core->state()); //update state
-    if (m_core->state() == Qmmp::Playing) //show test message
+    if(m_core->state() == Qmmp::Playing) //show test message
         QTimer::singleShot(1500, this, &StatusIcon::showMetaData);
 }
 
@@ -137,10 +137,10 @@ void StatusIcon::showMetaData()
     }
 
     QString message = m_messageFormatter.format(info);
-    if (message.isEmpty())
+    if(message.isEmpty())
         message = info.path().section(QLatin1Char('-'), -1);
 
-    if (m_showMessage)
+    if(m_showMessage)
         m_tray->showMessage (tr("Now Playing"), message,
                              QSystemTrayIcon::Information, m_messageDelay);
 
@@ -155,11 +155,11 @@ void StatusIcon::showMetaData()
 
 void StatusIcon::trayActivated(QSystemTrayIcon::ActivationReason reason)
 {
-    if (reason == QSystemTrayIcon::Trigger)
+    if(reason == QSystemTrayIcon::Trigger)
         UiHelper::instance()->toggleVisibility();
-    else if (reason == QSystemTrayIcon::MiddleClick)
+    else if(reason == QSystemTrayIcon::MiddleClick)
     {
-        if (SoundCore::instance()->state() == Qmmp::Stopped)
+        if(SoundCore::instance()->state() == Qmmp::Stopped)
             m_player->play();
         else
             m_player->pause();

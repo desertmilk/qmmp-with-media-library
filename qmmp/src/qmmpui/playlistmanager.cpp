@@ -141,7 +141,7 @@ private:
             {
                 line = QString::fromUtf8(buffer.readLine().constData()).trimmed();
                 int s = line.indexOf(QLatin1Char('='));
-                if (s < 0)
+                if(s < 0)
                     continue;
 
                 key = line.left(s);
@@ -160,20 +160,20 @@ private:
                     current = 0;
                     models << new PlayListModel(value, q);
                 }
-                else if (key == "current"_L1)
+                else if(key == "current"_L1)
                 {
                     current = value.toInt();
                 }
-                else if (key == "file"_L1)
+                else if(key == "file"_L1)
                 {
                     tracks << new PlayListTrack();
                     tracks.last()->setPath(value);
                 }
-                else if (tracks.isEmpty())
+                else if(tracks.isEmpty())
                     continue;
-                else if (key == "duration"_L1)
+                else if(key == "duration"_L1)
                     tracks.last()->setDuration(value.toInt());
-                else if (key == "length"_L1)
+                else if(key == "length"_L1)
                     tracks.last()->setDuration(value.toInt() * 1000);
                 else if((metaKey = metaKeys.value(key, Qmmp::UNKNOWN)) != Qmmp::UNKNOWN)
                 {

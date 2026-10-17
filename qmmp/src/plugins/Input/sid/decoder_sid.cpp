@@ -156,7 +156,7 @@ bool DecoderSID::initialize()
         return false;
     }
 
-#if (LIBSIDPLAYFP_VERSION_MAJ > 2) || ((LIBSIDPLAYFP_VERSION_MAJ == 2) && (LIBSIDPLAYFP_VERSION_MIN >= 15))
+#if(LIBSIDPLAYFP_VERSION_MAJ > 2) || ((LIBSIDPLAYFP_VERSION_MAJ == 2) && (LIBSIDPLAYFP_VERSION_MIN >= 15))
     m_player->initMixer(true);
 #endif
 
@@ -189,7 +189,7 @@ qint64 DecoderSID::read(unsigned char *data, qint64 size)
     if(size <= 0)
         return 0;
 
-#if (LIBSIDPLAYFP_VERSION_MAJ > 2) || ((LIBSIDPLAYFP_VERSION_MAJ == 2) && (LIBSIDPLAYFP_VERSION_MIN >= 15))
+#if(LIBSIDPLAYFP_VERSION_MAJ > 2) || ((LIBSIDPLAYFP_VERSION_MAJ == 2) && (LIBSIDPLAYFP_VERSION_MIN >= 15))
     int cycles = size * 1000000 / m_player->config().frequency; //ms
     int samples = m_player->play(cycles);
     int decoded_bytes = m_player->mix((short *)data, samples) * 2;

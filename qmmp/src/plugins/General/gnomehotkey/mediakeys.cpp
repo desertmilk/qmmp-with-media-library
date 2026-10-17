@@ -99,9 +99,9 @@ void MediaKeys::onKeyPressed(const QString &in0, const QString &in1)
     qCDebug(plugin, "[%s] pressed", qPrintable(in1));
     if(in1 == "Play"_L1)
     {
-        if (core->state() == Qmmp::Stopped)
+        if(core->state() == Qmmp::Stopped)
             player->play();
-        else if (core->state() != Qmmp::FatalError)
+        else if(core->state() != Qmmp::FatalError)
             player->pause();
     }
     else if(in1 == "Pause"_L1)

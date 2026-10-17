@@ -321,7 +321,7 @@ bool Converter::convert(Decoder *decoder, FILE *file, bool use16bit)
         // decode
         len = decoder->read(input_buffer, QMMP_BLOCK_FRAMES * ap.frameSize());
 
-        if (len > 0)
+        if(len > 0)
         {
             total += len;
 

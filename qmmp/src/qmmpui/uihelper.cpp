@@ -247,7 +247,7 @@ void UiHelper::loadPlayList(QWidget *parent, PlayListModel *model)
     QString mask = tr("Playlist Files") + QStringLiteral(" (%1)").arg(PlayListParser::nameFilters().join(QChar::Space));
     //TODO use nonmodal dialog and multiplier playlists
     QString f_path = FileDialog::getOpenFileName(parent, tr("Open Playlist"), d->lastDir, mask);
-    if (!f_path.isEmpty())
+    if(!f_path.isEmpty())
     {
         if(QmmpUiSettings::instance()->clearPreviousPlayList())
         {
@@ -291,7 +291,7 @@ void UiHelper::savePlayList(QWidget *parent, PlayListModel *model)
 
         if(info.exists())
         {
-            if (QMessageBox::question(parent, tr("Save Playlist"), tr("%1 already exists.\nDo you want to replace it?")
+            if(QMessageBox::question(parent, tr("Save Playlist"), tr("%1 already exists.\nDo you want to replace it?")
                                       .arg(info.fileName()), QMessageBox::Ok | QMessageBox::Cancel) != QMessageBox::Ok)
             {
                 return;
@@ -299,7 +299,7 @@ void UiHelper::savePlayList(QWidget *parent, PlayListModel *model)
         }
     }
 
-    if (!f_name.isEmpty())
+    if(!f_name.isEmpty())
     {
         model->savePlaylist(f_name);
         d->lastDir = QFileInfo(f_name).absoluteDir().path();

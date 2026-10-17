@@ -121,7 +121,7 @@ Output *Output::create()
         return output;
     }
     OutputFactory *fact = Output::currentFactory();
-    if (fact)
+    if(fact)
         output = fact->create();
     return output;
 }
@@ -152,7 +152,7 @@ QString Output::file(const OutputFactory *factory)
 void Output::setCurrentFactory(const OutputFactory *factory)
 {
     OutputPrivate::loadPlugins();
-    if (file(factory).isEmpty())
+    if(file(factory).isEmpty())
         return;
     QSettings settings;
     settings.setValue(u"Output/current_plugin"_s, factory->properties().shortName);
@@ -178,7 +178,7 @@ OutputFactory *Output::currentFactory()
 #endif //QMMP_DEFAULT_OUTPUT
     for(QmmpPluginCache *item : std::as_const(*outputCache))
     {
-        if (item->shortName() == name && item->outputFactory())
+        if(item->shortName() == name && item->outputFactory())
             return item->outputFactory();
     }
     if(!outputCache->isEmpty())

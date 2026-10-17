@@ -39,7 +39,7 @@ void SkinnedPositionBar::mousePressEvent(QMouseEvent *e)
         return;
     m_moving = true;
     press_pos = e->position().x();
-    if (m_pos < e->position().x() && e->position().x() < m_pos + 29 * skin()->ratio())
+    if(m_pos < e->position().x() && e->position().x() < m_pos + 29 * skin()->ratio())
     {
         press_pos = e->position().x() - m_pos;
         emit sliderPressed();
@@ -49,7 +49,7 @@ void SkinnedPositionBar::mousePressEvent(QMouseEvent *e)
         m_value = convert(qMax(qMin(width() - 30 * skin()->ratio(), qRound(e->position().x()) - 15 * skin()->ratio()), 0));
         press_pos = 15 * skin()->ratio();
         emit sliderPressed();
-        if (m_value != m_old)
+        if(m_value != m_old)
         {
             emit sliderMoved(m_value);
 
@@ -65,7 +65,7 @@ void SkinnedPositionBar::mouseMoveEvent(QMouseEvent *e)
         qint64 po = e->position().x();
         po = po - press_pos;
 
-        if (0<=po && po <= width() - 30 * skin()->ratio())
+        if(0<=po && po <= width() - 30 * skin()->ratio())
         {
             m_value = convert(po);
             draw();
@@ -93,7 +93,7 @@ void SkinnedPositionBar::wheelEvent(QWheelEvent *e)
 void SkinnedPositionBar::mouseReleaseEvent(QMouseEvent*)
 {
     draw(false);
-    if (m_value != m_old && m_max > 0)
+    if(m_value != m_old && m_max > 0)
         m_old = m_value;
     m_moving = false;
     if(m_max > 0)
@@ -102,7 +102,7 @@ void SkinnedPositionBar::mouseReleaseEvent(QMouseEvent*)
 
 void SkinnedPositionBar::setValue(qint64 v)
 {
-    if (m_moving || m_max == 0)
+    if(m_moving || m_max == 0)
         return;
     m_value = v;
     draw(false);
@@ -125,10 +125,10 @@ void SkinnedPositionBar::draw(bool pressed)
 {
     qint64 p = qint64(ceil(double(m_value-m_min) * (width() - 30 * skin()->ratio()) / (m_max-m_min)));
     m_pixmap = skin()->getPosBar();
-    if (m_max > 0)
+    if(m_max > 0)
     {
         QPainter paint(&m_pixmap);
-        if (pressed)
+        if(pressed)
             paint.drawPixmap(p,0,skin()->getButton(Skin::BT_POSBAR_P));
         else
             paint.drawPixmap(p,0,skin()->getButton(Skin::BT_POSBAR_N));

@@ -49,20 +49,20 @@ DecoderCUE::~DecoderCUE()
 bool DecoderCUE::initialize()
 {
     m_cueFile = new CueFile(m_path);
-    if (m_cueFile->count() == 0)
+    if(m_cueFile->count() == 0)
     {
         qCWarning(plugin, "invalid cue file");
         return false;
     }
     m_track = m_path.section(QLatin1Char('#'), -1).toInt();
     m_path = m_cueFile->dataFilePath(m_track);
-    if (!QFile::exists(m_path))
+    if(!QFile::exists(m_path))
     {
         qCWarning(plugin, "file \"%s\" doesn't exist", qPrintable(m_path));
         return false;
     }
     DecoderFactory *df = Decoder::findByFilePath(m_path);
-    if (!df)
+    if(!df)
     {
         qCWarning(plugin, "unsupported file format");
         return false;

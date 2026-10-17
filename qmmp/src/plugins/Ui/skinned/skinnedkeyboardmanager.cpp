@@ -80,7 +80,7 @@ void SkinnedKeyboardManager::keyUp(QKeyEvent * ke)
         return;
     }
 
-    if (!(ke->modifiers() & Qt::ShiftModifier || ke->modifiers() & Qt::AltModifier ||
+    if(!(ke->modifiers() & Qt::ShiftModifier || ke->modifiers() & Qt::AltModifier ||
           ke->modifiers() & Qt::ControlModifier))
     {
         m_listWidget->model()->clearSelection();
@@ -97,7 +97,7 @@ void SkinnedKeyboardManager::keyUp(QKeyEvent * ke)
     else if(lines.constFirst() > last_visible)
         s = SELECT_BOTTOM;
 
-    if (ke->modifiers() & Qt::AltModifier)
+    if(ke->modifiers() & Qt::AltModifier)
     {
         if(lines.constFirst() == 0)
             return;
@@ -176,7 +176,7 @@ void SkinnedKeyboardManager::keyDown(QKeyEvent * ke)
     else if(lines.constFirst() > last_visible)
         s = SELECT_BOTTOM;
 
-    if (ke->modifiers() & Qt::AltModifier)
+    if(ke->modifiers() & Qt::AltModifier)
     {
         if(lines.constLast() == m_listWidget->model()->lineCount() - 1)
             return;

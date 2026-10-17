@@ -47,7 +47,7 @@ void SkinnedVolumeBar::mousePressEvent(QMouseEvent *e)
         m_value = convert(qMax(qMin(width() - 18 * skin()->ratio(), qRound(e->position().x()) - 6 * skin()->ratio()), 0));
         press_pos = 6*skin()->ratio();
         emit sliderPressed();
-        if (m_value != m_old)
+        if(m_value != m_old)
             emit sliderMoved(m_value);
     }
     draw();
@@ -79,7 +79,7 @@ void SkinnedVolumeBar::mouseReleaseEvent(QMouseEvent*)
 
 void SkinnedVolumeBar::setValue(int v)
 {
-    if (m_moving || m_max == 0)
+    if(m_moving || m_max == 0)
         return;
     m_value = v;
     draw(false);

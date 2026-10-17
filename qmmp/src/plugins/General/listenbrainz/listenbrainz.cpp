@@ -140,7 +140,7 @@ void ListenBrainz::updateMetaData()
 
 void ListenBrainz::processResponse(QNetworkReply *reply)
 {
-    if (reply->error() != QNetworkReply::NoError)
+    if(reply->error() != QNetworkReply::NoError)
     {
         qCWarning(plugin, "http error: %s", qPrintable(reply->errorString()));
     }
@@ -172,7 +172,7 @@ void ListenBrainz::processResponse(QNetworkReply *reply)
                 m_submitedSongs--;
                 m_cachedSongs.removeFirst();
             }
-            if (!m_cachedSongs.isEmpty()) //submit remaining songs
+            if(!m_cachedSongs.isEmpty()) //submit remaining songs
             {
                 submit();
             }
@@ -199,7 +199,7 @@ void ListenBrainz::processResponse(QNetworkReply *reply)
 void ListenBrainz::setupProxy()
 {
     QmmpSettings *gs = QmmpSettings::instance();
-    if (gs->isProxyEnabled())
+    if(gs->isProxyEnabled())
     {
         QNetworkProxy proxy(QNetworkProxy::HttpProxy, gs->proxy().host(),  gs->proxy().port());
         if(gs->proxyType() == QmmpSettings::SOCKS5_PROXY)
@@ -217,7 +217,7 @@ void ListenBrainz::setupProxy()
 
 void ListenBrainz::submit()
 {
-    if (m_cachedSongs.isEmpty() || m_token.isEmpty() || m_submitReply)
+    if(m_cachedSongs.isEmpty() || m_token.isEmpty() || m_submitReply)
         return;
 
     qCDebug(plugin, "submit request");

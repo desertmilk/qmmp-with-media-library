@@ -81,7 +81,7 @@ quint32 HotkeyDialog::keySym () const
 
 void HotkeyDialog::accept()
 {
-    if (m_ui->keyLineEdit->text().isEmpty()) //clear key & modifiers
+    if(m_ui->keyLineEdit->text().isEmpty()) //clear key & modifiers
     {
         m_key = 0;
         m_modifiers = 0;

@@ -140,11 +140,11 @@ QString Qmmp::systemLanguageID()
 
 #ifdef Q_OS_UNIX
     QByteArray v = qgetenv ("LC_ALL");
-    if (v.isEmpty())
+    if(v.isEmpty())
         v = qgetenv ("LC_MESSAGES");
-    if (v.isEmpty())
+    if(v.isEmpty())
         v = qgetenv ("LANG");
-    if (!v.isEmpty())
+    if(!v.isEmpty())
         return QLocale(QString::fromLatin1(v)).name();
 #endif
     return QLocale::system().name();

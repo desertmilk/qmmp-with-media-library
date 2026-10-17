@@ -130,7 +130,7 @@ void SkinnedTextScroller::hideEvent(QHideEvent *)
 
 void SkinnedTextScroller::showEvent(QShowEvent *)
 {
-    if (m_scroll)
+    if(m_scroll)
         m_timer->start();
 }
 
@@ -165,9 +165,9 @@ void SkinnedTextScroller::paintEvent (QPaintEvent *)
 
 void SkinnedTextScroller::mousePressEvent(QMouseEvent *e)
 {
-    if (e->button() == Qt::RightButton)
+    if(e->button() == Qt::RightButton)
         m_menu->exec(e->globalPosition().toPoint());
-    else if (e->button() == Qt::LeftButton && m_scroll)
+    else if(e->button() == Qt::LeftButton && m_scroll)
     {
         m_timer->stop();
         m_press_pos = e->position().x() - m_x1;
@@ -181,7 +181,7 @@ void SkinnedTextScroller::mouseReleaseEvent(QMouseEvent *e)
 {
    if(e->button() == Qt::RightButton)
         m_menu->exec(e->globalPosition().toPoint());
-    else if (e->button() == Qt::LeftButton && m_scroll)
+    else if(e->button() == Qt::LeftButton && m_scroll)
         m_timer->start();
     else
         QWidget::mouseReleaseEvent(e);
@@ -190,11 +190,11 @@ void SkinnedTextScroller::mouseReleaseEvent(QMouseEvent *e)
 
 void SkinnedTextScroller::mouseMoveEvent (QMouseEvent *e)
 {
-    if (m_pressed)
+    if(m_pressed)
     {
         int bound = m_pixmap.width();
         m_x1 = (qRound(e->position().x()) - m_press_pos) % bound;
-        if (m_x1 > 0)
+        if(m_x1 > 0)
             m_x1 -= bound;
         m_x2 = m_x1 + m_pixmap.width();
         update();
@@ -311,7 +311,7 @@ void SkinnedTextScroller::updateText() //draw text according priority
         preparePixmap(m_bufferText);
         m_timer->stop();
     }
-    else if (!m_titleText.isEmpty())
+    else if(!m_titleText.isEmpty())
     {
         preparePixmap(m_titleText, m_scrollAction->isChecked());
         m_timer->start();

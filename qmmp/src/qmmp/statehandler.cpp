@@ -70,11 +70,11 @@ void StateHandler::dispatch(qint64 elapsed, int bitrate)
 {
     Q_D(StateHandler);
     d->mutex.lock();
-    if (qAbs(d->elapsed - elapsed) > TICK_INTERVAL)
+    if(qAbs(d->elapsed - elapsed) > TICK_INTERVAL)
     {
         d->elapsed = elapsed;
         emit elapsedChanged(elapsed);
-        if (d->bitrate != bitrate)
+        if(d->bitrate != bitrate)
         {
             d->bitrate = bitrate;
             emit bitrateChanged(bitrate);
@@ -174,7 +174,7 @@ void StateHandler::dispatch(Qmmp::State state)
     d->mutex.lock();
     //clear
     static const QList<Qmmp::State> clearStates = { Qmmp::Stopped, Qmmp::NormalError, Qmmp::FatalError };
-    if (clearStates.contains(state))
+    if(clearStates.contains(state))
     {
         d->elapsed = -1;
         d->bitrate = 0;
@@ -183,7 +183,7 @@ void StateHandler::dispatch(Qmmp::State state)
         d->sendAboutToFinish = true;
         d->audioParameters = AudioParameters(44100, ChannelMap(2), Qmmp::PCM_UNKNOWN);
     }
-    if (d->m_state != state)
+    if(d->m_state != state)
     {
         static const QStringList states = {
             u"Playing"_s, u"Paused"_s, u"Stopped"_s, u"Buffering"_s, u"NormalError"_s, u"FatalError"_s

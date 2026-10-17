@@ -217,7 +217,7 @@ void QSUIVisualization::updateCover()
 
 void QSUIVisualization::mousePressEvent(QMouseEvent *e)
 {
-    if (e->button() == Qt::RightButton)
+    if(e->button() == Qt::RightButton)
         m_menu->exec(e->globalPosition().toPoint());
 }
 
@@ -257,23 +257,23 @@ void QSUIVisualization::readSettings()
 
         for(QAction *act : m_visModeGroup->actions())
         {
-            if (visName == act->data().toString())
+            if(visName == act->data().toString())
                 act->setChecked(true);
         }
 
         for(QAction *act : m_fpsGroup->actions ())
         {
-            if (m_timer->interval() == 1000 / act->data().toInt())
+            if(m_timer->interval() == 1000 / act->data().toInt())
                 act->setChecked(true);
         }
         for(QAction *act : m_peaksFalloffGroup->actions ())
         {
-            if (peaks_falloff == act->data().toDouble())
+            if(peaks_falloff == act->data().toDouble())
                 act->setChecked(true);
         }
         for(QAction *act : m_analyzerFalloffGroup->actions ())
         {
-            if (analyzer_falloff == act->data().toDouble())
+            if(analyzer_falloff == act->data().toDouble())
                 act->setChecked(true);
         }
         for(QAction *act : m_analyzerTypeGroup->actions())
@@ -483,7 +483,7 @@ void QSUiAnalyzer::process(float *buffer, int width, int height)
         m_intern_vis_data[i] -= m_analyzer_falloff * m_rows / 15;
         m_intern_vis_data[i] = magnitude > m_intern_vis_data[i] ? magnitude : m_intern_vis_data[i];
 
-        if (m_show_peaks)
+        if(m_show_peaks)
         {
             m_peaks[i] -= m_peaks_falloff * m_rows / 15;
             m_peaks[i] = magnitude > m_peaks[i] ? magnitude : m_peaks[i];
@@ -510,7 +510,7 @@ void QSUiAnalyzer::draw(QPainter *p, int offset)
             p->fillRect(x, m_height - 4, m_cell_size.width() - 1, -int(m_intern_vis_data[j] - 1)* m_cell_size.height() + 4, m_brush);
         }
 
-        if (m_show_peaks && m_peaks[j] > 1)
+        if(m_show_peaks && m_peaks[j] > 1)
         {
             p->fillRect(x, m_height - int(m_peaks[j] - 1) * m_cell_size.height(),
                         m_cell_size.width() - 1, m_cell_size.height() - 4, m_peakColor);

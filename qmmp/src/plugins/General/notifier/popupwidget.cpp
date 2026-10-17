@@ -127,13 +127,13 @@ void PopupWidget::updatePosition()
     //calculate widget position
     QRect desktopRect = QGuiApplication::primaryScreen()->availableGeometry();
     int x = desktopRect.x() + 5, y = desktopRect.y() + 5;
-    if (m_pos == LEFT || m_pos == RIGHT || m_pos == CENTER)
+    if(m_pos == LEFT || m_pos == RIGHT || m_pos == CENTER)
         y =  desktopRect.y() + desktopRect.height()/2 - height()/2 + 5;
-    else if (m_pos == BOTTOMLEFT || m_pos == BOTTOM || m_pos == BOTTOMRIGHT)
+    else if(m_pos == BOTTOMLEFT || m_pos == BOTTOM || m_pos == BOTTOMRIGHT)
         y = desktopRect.y() + desktopRect.height() - height() - 5;
-    if (m_pos == TOP || m_pos == BOTTOM || m_pos == CENTER)
+    if(m_pos == TOP || m_pos == BOTTOM || m_pos == CENTER)
         x = desktopRect.x() + desktopRect.width()/2 - width()/2;
-    else if (m_pos == TOPRIGHT || m_pos == RIGHT || m_pos == BOTTOMRIGHT)
+    else if(m_pos == TOPRIGHT || m_pos == RIGHT || m_pos == BOTTOMRIGHT)
         x = desktopRect.x() + desktopRect.width() - width() - 5;
     move (x,y);
 }

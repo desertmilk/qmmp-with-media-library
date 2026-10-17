@@ -229,7 +229,7 @@ void QSUiSettings::writeSettings()
 
 void QSUiSettings::addWindowTitleString(const QString &str)
 {
-    if (m_ui->windowTitleLineEdit->cursorPosition () < 1)
+    if(m_ui->windowTitleLineEdit->cursorPosition () < 1)
         m_ui->windowTitleLineEdit->insert(str);
     else
         m_ui->windowTitleLineEdit->insert(u" - "_s + str);

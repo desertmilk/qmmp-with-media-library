@@ -87,25 +87,25 @@ QList<SongInfo> ListenCache::load()
             songs << SongInfo();
             songs.last().setValue(Qmmp::TITLE, value);
         }
-        else if (songs.isEmpty())
+        else if(songs.isEmpty())
             continue;
-        else if (param == "artist"_L1)
+        else if(param == "artist"_L1)
             songs.last().setValue(Qmmp::ARTIST, value);
-        else if (param == "album"_L1)
+        else if(param == "album"_L1)
             songs.last().setValue(Qmmp::ALBUM, value);
-        else if (param == "comment"_L1)
+        else if(param == "comment"_L1)
             songs.last().setValue(Qmmp::COMMENT, value);
-        else if (param == "genre"_L1)
+        else if(param == "genre"_L1)
             songs.last().setValue(Qmmp::GENRE, value);
-        else if (param == "year"_L1)
+        else if(param == "year"_L1)
             songs.last().setValue(Qmmp::YEAR, value);
-        else if (param == "track"_L1)
+        else if(param == "track"_L1)
             songs.last().setValue(Qmmp::TRACK, value);
-        else if (param == "length"_L1) //1.3.x config support
+        else if(param == "length"_L1) //1.3.x config support
             songs.last().setDuration(value.toInt() * 1000);
-        else if (param == "duration"_L1)
+        else if(param == "duration"_L1)
             songs.last().setDuration(value.toLongLong());
-        else if (param == "time"_L1)
+        else if(param == "time"_L1)
             songs.last().setTimeStamp(value.toUInt());
     }
     file.close();
@@ -115,7 +115,7 @@ QList<SongInfo> ListenCache::load()
 void ListenCache::save(const QList<SongInfo> &songs)
 {
     QFile file(m_filePath);
-    if (songs.isEmpty())
+    if(songs.isEmpty())
     {
         file.remove();
         return;

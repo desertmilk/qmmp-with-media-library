@@ -31,7 +31,7 @@
     for(size_t i = 0, left = samples; i < samples;) \
     { \
         /* Vectorized path */ \
-        if (left >= SAMPLES_PER_CHUNCK) \
+        if(left >= SAMPLES_PER_CHUNCK) \
         { \
             for(size_t j = 0; j < SAMPLES_PER_CHUNCK; ++j) \
             { \

@@ -89,16 +89,16 @@ static int flac_decode (void *client_data, unsigned char *buf, int buf_len)
     flac_data *data = static_cast<flac_data *>(client_data);
     unsigned to_copy;
 
-    if (!data->sample_buffer_fill)
+    if(!data->sample_buffer_fill)
     {
 
-        if (FLAC__stream_decoder_get_state(data->decoder)
+        if(FLAC__stream_decoder_get_state(data->decoder)
                 == FLAC__STREAM_DECODER_END_OF_STREAM)
         {
             return 0;
         }
 
-        if (!FLAC__stream_decoder_process_single(
+        if(!FLAC__stream_decoder_process_single(
                     data->decoder))
         {
             return 0;
@@ -123,13 +123,13 @@ static FLAC__StreamDecoderReadStatus flac_callback_read (const FLAC__StreamDecod
     flac_data *data = static_cast<flac_data *>(client_data);
     qint64 res = data->input->read((char *)buffer, *bytes);
 
-    if (res > 0)
+    if(res > 0)
     {
         *bytes = res;
         data->read_bytes += res;
         return FLAC__STREAM_DECODER_READ_STATUS_CONTINUE;
     }
-    if (res == 0)
+    if(res == 0)
     {
         *bytes = res;
         return FLAC__STREAM_DECODER_READ_STATUS_END_OF_STREAM;
@@ -146,7 +146,7 @@ static FLAC__StreamDecoderWriteStatus flac_callback_write (const FLAC__StreamDec
     flac_data *data = static_cast<flac_data *>(client_data);
     const unsigned wide_samples = frame->header.blocksize;
 
-    if (data->abort)
+    if(data->abort)
         return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
 
     //bitrate calculation
@@ -224,7 +224,7 @@ static void flac_callback_metadata (const FLAC__StreamDecoder *,
 {
     flac_data *data = static_cast<flac_data *>(client_data);
 
-    if (metadata->type == FLAC__METADATA_TYPE_STREAMINFO)
+    if(metadata->type == FLAC__METADATA_TYPE_STREAMINFO)
     {
         qCDebug(plugin) << "getting metadata info";
 
@@ -272,9 +272,9 @@ DecoderFLAC::DecoderFLAC(const QString &path, QIODevice *i) : Decoder(i),
 DecoderFLAC::~DecoderFLAC()
 {
     deinit();
-    if (m_data)
+    if(m_data)
     {
-        if (m_data->decoder)
+        if(m_data->decoder)
             FLAC__stream_decoder_delete(m_data->decoder);
         delete m_data;
         m_data = nullptr;
@@ -301,7 +301,7 @@ bool DecoderFLAC::initialize()
             TagLib::Ogg::XiphComment *tag = fileRef.xiphComment();
             TagLib::FLAC::Properties *ap = fileRef.audioProperties();
 
-            if (ap && tag && tag->fieldListMap().contains("CUESHEET"))
+            if(ap && tag && tag->fieldListMap().contains("CUESHEET"))
             {
                 qCDebug(plugin, "using cuesheet xiph comment.");
                 m_parser = new CueParser(tag->fieldListMap()["CUESHEET"].toString() .toCString(true));
@@ -338,7 +338,7 @@ bool DecoderFLAC::initialize()
         }
     }
 
-    if (!m_data->input->isOpen())
+    if(!m_data->input->isOpen())
     {
         qCWarning(plugin, "unable to open input file");
         return false;
@@ -352,7 +352,7 @@ bool DecoderFLAC::initialize()
     m_data->frame_counter = 0;
 
 
-    if (!m_data->decoder)
+    if(!m_data->decoder)
     {
         qCDebug(plugin, "creating FLAC__StreamDecoder");
         m_data->decoder = FLAC__stream_decoder_new ();
@@ -376,7 +376,7 @@ bool DecoderFLAC::initialize()
             qCWarning(plugin, "unsupported format");
             return false;
         }
-        if (FLAC__stream_decoder_init_ogg_stream(
+        if(FLAC__stream_decoder_init_ogg_stream(
                 m_data->decoder,
                 flac_callback_read,
                 flac_callback_seek,
@@ -393,9 +393,9 @@ bool DecoderFLAC::initialize()
         qCDebug(plugin, "Ogg FLAC stream found");
         setProperty(Qmmp::FORMAT_NAME, u"Ogg FLAC"_s);
     }
-    else if (!memcmp(buf, "fLaC", 4))
+    else if(!memcmp(buf, "fLaC", 4))
     {
-        if (FLAC__stream_decoder_init_stream(
+        if(FLAC__stream_decoder_init_stream(
                 m_data->decoder,
                 flac_callback_read,
                 flac_callback_seek,
@@ -418,7 +418,7 @@ bool DecoderFLAC::initialize()
         return false;
     }
 
-    if (!FLAC__stream_decoder_process_until_end_of_metadata(
+    if(!FLAC__stream_decoder_process_until_end_of_metadata(
                 m_data->decoder))
     {
         return false;
@@ -536,10 +536,10 @@ qint64 DecoderFLAC::read(unsigned char *buf, qint64 size)
 
 void DecoderFLAC::deinit()
 {
-    if (m_data->decoder)
+    if(m_data->decoder)
         FLAC__stream_decoder_finish (m_data->decoder);
 
-    if (!input() && m_data->input) //delete internal input only
+    if(!input() && m_data->input) //delete internal input only
     {
         m_data->input->close();
         delete m_data->input;
@@ -575,9 +575,9 @@ void DecoderFLAC::next()
 
 uint DecoderFLAC::findID3v2(char *data, ulong size) //retuns ID3v2 tag size
 {
-    if (size < 10)
+    if(size < 10)
         return 0;
-    if (!memcmp(data, "ID3", 3))
+    if(!memcmp(data, "ID3", 3))
     {
         TagLib::ByteVector byteVector(data, size);
         TagLib::ID3v2::Header header(byteVector);

@@ -166,7 +166,7 @@ QString Effect::file(const EffectFactory *factory)
 void Effect::setEnabled(EffectFactory *factory, bool enable)
 {
     EffectPrivate::loadPlugins();
-    if (!factories().contains(factory))
+    if(!factories().contains(factory))
         return;
 
     if(enable == isEnabled(factory))

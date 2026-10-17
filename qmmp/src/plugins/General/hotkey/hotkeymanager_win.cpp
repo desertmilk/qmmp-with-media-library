@@ -103,7 +103,7 @@ HotkeyManager::HotkeyManager(QObject *parent) : QObject(parent)
         quint32 key = settings.value(QStringLiteral("key_%1").arg(i), Hotkey::defaultKey(i)).toUInt();
         quint32 mod = settings.value(QStringLiteral("modifiers_%1").arg(i), 0).toUInt();
 
-        if (key)
+        if(key)
         {
             Hotkey *hotkey = new Hotkey;
             hotkey->action = i;
@@ -216,7 +216,7 @@ bool HotkeyManager::nativeEventFilter(const QByteArray &eventType, void *message
     Q_UNUSED(eventType);
     Q_UNUSED(result);
     MSG *m = static_cast<MSG*>(message);
-    if (m->message == WM_HOTKEY)
+    if(m->message == WM_HOTKEY)
     {
         SoundCore *core = SoundCore::instance();
         MediaPlayer *player = MediaPlayer::instance();
@@ -240,9 +240,9 @@ bool HotkeyManager::nativeEventFilter(const QByteArray &eventType, void *message
                 core->pause();
                 break;
             case Hotkey::PLAY_PAUSE:
-                if (core->state() == Qmmp::Stopped)
+                if(core->state() == Qmmp::Stopped)
                     player->play();
-                else if (core->state() != Qmmp::FatalError)
+                else if(core->state() != Qmmp::FatalError)
                     core->pause();
                 break;
             case Hotkey::NEXT:

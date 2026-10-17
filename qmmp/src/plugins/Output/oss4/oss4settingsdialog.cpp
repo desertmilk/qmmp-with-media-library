@@ -48,18 +48,18 @@ Oss4SettingsDialog::Oss4SettingsDialog (QWidget *parent) : QDialog (parent), m_u
 
     int mixer_fd = -1;
     oss_sysinfo info;
-    if ((mixer_fd = ::open(DEFAULT_MIXER, O_RDWR)) < 0)
+    if((mixer_fd = ::open(DEFAULT_MIXER, O_RDWR)) < 0)
     {
         qCWarning(plugin) << strerror(errno);
         return;
     }
-    if (ioctl(mixer_fd, SNDCTL_SYSINFO, &info) < 0)
+    if(ioctl(mixer_fd, SNDCTL_SYSINFO, &info) < 0)
     {
         qCWarning(plugin, "ioctl SNDCTL_SYSINFO failed: %s", strerror(errno));
         return;
     }
 
-    if (info.numaudios < 1)
+    if(info.numaudios < 1)
     {
         qCWarning(plugin, "no device found");
         return;
@@ -73,13 +73,13 @@ Oss4SettingsDialog::Oss4SettingsDialog (QWidget *parent) : QDialog (parent), m_u
         oss_audioinfo audio_info;
         audio_info.dev = i;
 
-        if (ioctl(mixer_fd, SNDCTL_AUDIOINFO, &audio_info) < 0)
+        if(ioctl(mixer_fd, SNDCTL_AUDIOINFO, &audio_info) < 0)
         {
             qCWarning(plugin, "ioctl SNDCTL_AUDIOINFO failed: %s", strerror(errno));
             return;
         }
 
-        if (audio_info.caps & PCM_CAP_OUTPUT)
+        if(audio_info.caps & PCM_CAP_OUTPUT)
         {
             m_devices << QString::fromLatin1(audio_info.devnode);
             m_ui->deviceComboBox->addItem(QStringLiteral("%1 (%2)").arg(QString::fromLatin1(audio_info.name),

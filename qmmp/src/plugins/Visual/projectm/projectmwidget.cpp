@@ -87,7 +87,7 @@ void ProjectMWidget::initializeGL()
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glLineStipple(2, 0xAAAA);
 
-    if (!m_projectM)
+    if(!m_projectM)
     {
 #ifdef Q_OS_WIN
         projectM::Settings settings;

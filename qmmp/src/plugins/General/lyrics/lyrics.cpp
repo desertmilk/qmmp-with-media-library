@@ -45,9 +45,9 @@ void Lyrics::showLyrics()
 {
     PlayListManager *pl_manager = MediaPlayer::instance()->playListManager();
     QList<PlayListTrack *> tracks = pl_manager->selectedPlayList()->selectedTracks();
-    if (!tracks.isEmpty())
+    if(!tracks.isEmpty())
     {
-        if (tracks.constFirst()->value(Qmmp::ARTIST).isEmpty() || tracks.constFirst()->value(Qmmp::TITLE).isEmpty())
+        if(tracks.constFirst()->value(Qmmp::ARTIST).isEmpty() || tracks.constFirst()->value(Qmmp::TITLE).isEmpty())
             return;
 
         if(!m_lyricsWidget->isNull() && m_lyricsWidget->data()->isVisible())
@@ -68,7 +68,7 @@ void Lyrics::onTrackInfoChanged()
     if(!m_lyricsWidget->isNull())
     {
         TrackInfo info = SoundCore::instance()->trackInfo();
-        if (!info.value(Qmmp::ARTIST).isEmpty() && !info.value(Qmmp::TITLE).isEmpty())
+        if(!info.value(Qmmp::ARTIST).isEmpty() && !info.value(Qmmp::TITLE).isEmpty())
         {
             m_lyricsWidget->data()->fetch(&info);
         }

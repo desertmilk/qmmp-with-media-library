@@ -269,9 +269,9 @@ void PlayListTrackPrivate::formatTitle(int column) const
     formattedTitles[column] = helper->titleFormatter(column)->format(q);
     if(formattedTitles.count() == 1)
     {
-        if (formattedTitles[column].isEmpty())
+        if(formattedTitles[column].isEmpty())
             formattedTitles[column] = q->path().section(QLatin1Char('/'), -1);
-        if (formattedTitles[column].isEmpty())
+        if(formattedTitles[column].isEmpty())
             formattedTitles[column] = q->path();
     }
     if(settings->convertUnderscore())
@@ -312,6 +312,6 @@ void PlayListTrackPrivate::formatGroup() const
     if(settings->groupExtraRowVisible())
         group += helper->groupFormatter1()->format(track);
 
-    if (group.isEmpty())
+    if(group.isEmpty())
         group = QStringLiteral("Empty group");
 }

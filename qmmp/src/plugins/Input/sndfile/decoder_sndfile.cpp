@@ -100,7 +100,7 @@ bool DecoderSndFile::initialize()
 
     m_sndfile = sf_open_virtual(&m_vio, SFM_READ, &snd_info, input());
 
-    if (!m_sndfile)
+    if(!m_sndfile)
     {
         qCWarning(plugin, "unable to open");
         return false;
@@ -122,7 +122,7 @@ void DecoderSndFile::deinit()
     m_totalTime = 0;
     m_bitrate = 0;
     m_freq = 0;
-    if (m_sndfile)
+    if(m_sndfile)
         sf_close(m_sndfile);
     m_sndfile = nullptr;
 }

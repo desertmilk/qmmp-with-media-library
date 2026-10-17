@@ -60,7 +60,7 @@ QList<QDBusObjectPath> UDisksManager::findAllDevices()
     QDBusPendingReply<QString> reply = QDBusConnection::systemBus().call(call);
 
 
-    if (!reply.isValid())
+    if(!reply.isValid())
     {
         qCWarning(plugin, "error: %s", qPrintable(reply.error().name()));
         return paths;
@@ -69,7 +69,7 @@ QList<QDBusObjectPath> UDisksManager::findAllDevices()
     while (!xml.atEnd())
     {
         xml.readNext();
-        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "node"_L1 )
+        if(xml.tokenType() == QXmlStreamReader::StartElement && xml.name().toString() == "node"_L1 )
         {
             QString name = xml.attributes().value("name"_L1).toString();
             if(!name.isEmpty())
