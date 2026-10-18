@@ -93,10 +93,11 @@ bool DecoderMpegFactory::canDecode(QIODevice *input) const
         }
         else
         {
+            //skip all ID3v2 tags
             while(!memcmp(buf, "ID3", 3))
             {
                 TagLib::ID3v2::Header header(TagLib::ByteVector(buf, TagLib::ID3v2::Header::size()));
-                input->seek(header.completeTagSize());
+                input->seek(input->pos() + header.completeTagSize());
                 if(input->peek(buf, TagLib::ID3v2::Header::size()) != TagLib::ID3v2::Header::size())
                     return false;
             }
