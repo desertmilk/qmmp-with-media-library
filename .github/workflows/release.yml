@@ -824,7 +824,38 @@ jobs:
           "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -verbose=3 \
             -libpath="$CONTENTS/lib" -libpath="$CONTENTS/Frameworks" \
             ${EXEC_ARGS[@]+"${EXEC_ARGS[@]}"}
+            #
+            # PRUNE UNNECESSARY FRAMEWORKS
+            #
+            
+            # Qmmp is a widgets app; the Qt Virtual Keyboard input-context plugin is the only thing in this bundle that needs QtQuick/QtQml. Remove it, then prune any of those frameworks that nothing else in the bundle still links against.
+            rm -rf "$CONTENTS/PlugIns/platforminputcontexts"
 
+            # Candidates, ordered roughly from top of the dependency chain to the bottom.
+            PRUNE=(QtVirtualKeyboard QtQuick QtQmlMeta QtQmlWorkerScript QtQmlModels QtQml QtOpenGL)
+            changed=1
+            while [ "$changed" -eq 1 ]; do
+              changed=0
+              for fw in "${PRUNE[@]}"; do
+                dir="$CONTENTS/Frameworks/$fw.framework"
+                [ -d "$dir" ] || continue
+                used=0
+                while IFS= read -r -d '' f; do
+                  case "$f" in "$dir"/*) continue ;; esac   # ignore the framework's own files
+                  file -b "$f" | grep -q 'Mach-O' || continue
+                  deps=$(otool -L "$f")                     # variable, not a pipe: avoids pipefail/SIGPIPE
+                  if [[ "$deps" == *"/$fw.framework/"* ]]; then
+                    used=1
+                    break
+                  fi
+                done < <(find "$APP_BUNDLE" -type f -print0)
+                if [ "$used" -eq 0 ]; then
+                  echo "::notice::Pruning unused $fw.framework"
+                  rm -rf "$dir"
+                  changed=1
+                fi
+              done
+            done
           # Homebrew framework install names can still survive macdeployqt in
           # plugin dependencies. Bundle those frameworks and rewrite the
           # remaining absolute load commands so the app is self-contained.
