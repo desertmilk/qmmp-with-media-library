@@ -35,7 +35,7 @@ void AnalyzerColorWidget::mousePressEvent(QMouseEvent *)
 {
     QColor color = QColorDialog::getColor(palette().color(backgroundRole()), parentWidget(),
                                           tr("Select Color"));
-    if (color.isValid())
+    if(color.isValid())
     {
         setColor(color.name());
     }

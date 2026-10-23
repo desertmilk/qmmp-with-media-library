@@ -84,7 +84,7 @@ bool OutputPulseAudio::initialize(quint32 freq, ChannelMap map, Qmmp::AudioForma
     pa_context_state_t context_state = PA_CONTEXT_UNCONNECTED;
     while((context_state = pa_context_get_state(m_ctx)) != PA_CONTEXT_READY)
     {
-        if (context_state == PA_CONTEXT_TERMINATED || context_state == PA_CONTEXT_FAILED)
+        if(context_state == PA_CONTEXT_TERMINATED || context_state == PA_CONTEXT_FAILED)
         {
             qCWarning(plugin, "unable to connect the context: %s", pa_strerror(pa_context_errno(m_ctx)));
             return false;
@@ -155,7 +155,7 @@ bool OutputPulseAudio::initialize(quint32 freq, ChannelMap map, Qmmp::AudioForma
     pa_stream_state_t stream_state = PA_STREAM_UNCONNECTED;
     while((stream_state = pa_stream_get_state(m_stream)) != PA_STREAM_READY)
     {
-        if (stream_state == PA_STREAM_FAILED || stream_state == PA_STREAM_TERMINATED)
+        if(stream_state == PA_STREAM_FAILED || stream_state == PA_STREAM_TERMINATED)
         {
             qCWarning(plugin, "unable to connect playback: %s", pa_strerror(pa_context_errno(m_ctx)));
             return false;
@@ -305,7 +305,7 @@ void OutputPulseAudio::subscribe_cb(pa_context *ctx, pa_subscription_event_type 
     pa_operation *op;
     OutputPulseAudio *output = (OutputPulseAudio *)data;
 
-    if (!output || !output->m_stream || index != pa_stream_get_index(output->m_stream) ||
+    if(!output || !output->m_stream || index != pa_stream_get_index(output->m_stream) ||
             (t != (PA_SUBSCRIPTION_EVENT_SINK_INPUT | PA_SUBSCRIPTION_EVENT_NEW) &&
              t != (PA_SUBSCRIPTION_EVENT_SINK_INPUT | PA_SUBSCRIPTION_EVENT_CHANGE)))
         return;

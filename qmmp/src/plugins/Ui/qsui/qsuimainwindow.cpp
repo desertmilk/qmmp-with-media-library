@@ -391,7 +391,7 @@ void QSUiMainWindow::jumpTo()
 
 void QSUiMainWindow::playPause()
 {
-    if (m_core->state() == Qmmp::Playing)
+    if(m_core->state() == Qmmp::Playing)
         m_player->pause();
     else
         m_player->play();

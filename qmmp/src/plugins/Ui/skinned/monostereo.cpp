@@ -42,7 +42,7 @@ void MonoStereo::setChannels(int c)
        paint.drawPixmap(0, 0, skin()->getMSPart(Skin::MONO_A));
        paint.drawPixmap(27 * skin()->ratio(), 0, skin()->getMSPart(Skin::STEREO_I));
    }
-   else if (c > 1)
+   else if(c > 1)
    {
       paint.drawPixmap(0, 0, skin()->getMSPart(Skin::MONO_I));
       paint.drawPixmap(27 * skin()->ratio(), 0, skin()->getMSPart(Skin::STEREO_A));

@@ -453,7 +453,7 @@ void QMMPStarter::writeCommand()
     }
 
 #ifndef QMMP_NO_CLI
-    if (argString.isEmpty())
+    if(argString.isEmpty())
         printUsage();
 #endif
 
@@ -508,7 +508,7 @@ QString QMMPStarter::processCommandArgs(const QStringList &slist, const QString&
         if(it.key() == "--no-start"_L1 || it.key() == "--ui"_L1)
             continue;
 
-        if (CommandLineManager::hasOption(it.key()))
+        if(CommandLineManager::hasOption(it.key()))
             return CommandLineManager::executeCommand(it.key(), it.value(), cwd);
 
         int id = m_option_manager->identify(it.key());

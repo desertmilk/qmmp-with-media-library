@@ -53,7 +53,7 @@ QStringList QmmpFileDialog::exec(QWidget *parent, const QString &dir, FileDialog
     dialog->setModeAndMask(dir, mode, filter.split(u";;"_s, Qt::SkipEmptyParts));
     dialog->loadMountedVolumes();
     QStringList l;
-    if (dialog->exec() == QDialog::Accepted)
+    if(dialog->exec() == QDialog::Accepted)
         l = dialog->selectedFiles();
     dialog->deleteLater();
     return l;

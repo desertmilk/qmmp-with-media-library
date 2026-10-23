@@ -84,7 +84,7 @@ void ShadedBar::mouseReleaseEvent(QMouseEvent*)
 
 void ShadedBar::setValue(int v)
 {
-   if (m_moving || m_max == 0)
+   if(m_moving || m_max == 0)
         return;
     m_value = v;
     draw();

@@ -183,7 +183,7 @@ QString Player2Object::playbackStatus() const
     if(m_core->state() == Qmmp::Playing)
         return u"Playing"_s;
 
-    if (m_core->state() == Qmmp::Paused)
+    if(m_core->state() == Qmmp::Paused)
         return u"Paused"_s;
 
     return u"Stopped"_s;

@@ -86,7 +86,7 @@ QStringList PlayListParser::filters()
     QStringList filters;
     for(const PlayListFormat *format : std::as_const(*plFormats))
     {
-        if (!format->properties().filters.isEmpty())
+        if(!format->properties().filters.isEmpty())
             filters << QStringLiteral("%1 (%2)").arg(format->properties().shortName.toUpper(),  format->properties().filters.join(QChar::Space));
     }
     return filters;
@@ -127,10 +127,10 @@ void PlayListParser::savePlayList(QList<PlayListTrack *> tracks, const QString &
     if(tracks.isEmpty())
         return;
     PlayListFormat* prs = PlayListParser::findByPath(f_name);
-    if (!prs)
+    if(!prs)
         return;
     QFile file(f_name);
-    if (file.open(QIODevice::WriteOnly))
+    if(file.open(QIODevice::WriteOnly))
     {
         file.write(prs->encode(tracks, QFileInfo(f_name).canonicalFilePath()));
         file.close();
@@ -148,7 +148,7 @@ QList<PlayListTrack *> PlayListParser::loadPlaylist(const QString &f_name)
         return QList<PlayListTrack *>();
 
     QFile file(f_name);
-    if (!file.open(QIODevice::ReadOnly))
+    if(!file.open(QIODevice::ReadOnly))
     {
         qCWarning(core, "unable to open playlist, error: %s", qPrintable(file.errorString()));
         return QList<PlayListTrack *>();
@@ -196,7 +196,7 @@ void PlayListParser::loadFormats()
     {
         QPluginLoader loader(filePath);
         QObject *plugin = loader.instance();
-        if (loader.isLoaded())
+        if(loader.isLoaded())
             qCDebug(core) << "loaded plugin" << QFileInfo(filePath).filePath();
         else
             qCWarning(core) << loader.errorString();

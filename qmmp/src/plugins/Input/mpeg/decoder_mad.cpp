@@ -3,7 +3,7 @@
  *                                                                         *
  * Copyright (c) 2000-2001 Brad Hughes <bhughes@trolltech.com>             *
  * Copyright (C) 2000-2004 Robert Leslie <rob@mars.org>                    *
- * Copyright (C) 2009-2020 Ilya Kotov forkotov02@ya.ru                     *
+ * Copyright (C) 2009-2026 Ilya Kotov forkotov02@ya.ru                     *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -39,7 +39,7 @@ DecoderMAD::DecoderMAD(bool crc, QIODevice *i) : Decoder(i), m_crc(crc)
 DecoderMAD::~DecoderMAD()
 {
     deinit();
-    if (m_input_buf)
+    if(m_input_buf)
     {
         qCDebug(plugin, "deleting input_buf");
         delete [] m_input_buf;
@@ -57,16 +57,16 @@ bool DecoderMAD::initialize()
     m_len = 0;
     m_input_bytes = 0;
 
-    if (!input())
+    if(!input())
     {
         qCWarning(plugin, "cannot initialize.  No input.");
         return false;
     }
 
-    if (!m_input_buf)
+    if(!m_input_buf)
         m_input_buf = new char[INPUT_BUFFER_SIZE];
 
-    if (input()->isSequential ()) //for streams only
+    if(input()->isSequential ()) //for streams only
     {
         TagExtractor extractor(input());
         if(!extractor.id3v2tag().isEmpty())
@@ -79,7 +79,7 @@ bool DecoderMAD::initialize()
     mad_frame_init(&m_frame);
     mad_synth_init(&m_synth);
 
-    if (!findHeader())
+    if(!findHeader())
     {
         qCDebug(plugin, "Can't find a valid MPEG header.");
         return false;
@@ -101,7 +101,7 @@ bool DecoderMAD::initialize()
 
 void DecoderMAD::deinit()
 {
-    if (!m_inited)
+    if(!m_inited)
         return;
 
     mad_synth_finish(&m_synth);
@@ -126,7 +126,7 @@ void DecoderMAD::deinit()
 
 bool DecoderMAD::findXingHeader(struct mad_bitptr ptr, unsigned int bitlen)
 {
-    if (bitlen < 64)
+    if(bitlen < 64)
         return false;
 
     struct mad_bitptr start = ptr;
@@ -153,9 +153,9 @@ bool DecoderMAD::findXingHeader(struct mad_bitptr ptr, unsigned int bitlen)
     m_xing.flags = mad_bit_read(&ptr, 32);
     bitlen -= 32;
 
-    if (m_xing.flags & XING_FRAMES)
+    if(m_xing.flags & XING_FRAMES)
     {
-        if (bitlen < 32)
+        if(bitlen < 32)
             return false;
 
         m_xing.frames = mad_bit_read(&ptr, 32);
@@ -168,9 +168,9 @@ bool DecoderMAD::findXingHeader(struct mad_bitptr ptr, unsigned int bitlen)
         }
     }
 
-    if (m_xing.flags & XING_BYTES)
+    if(m_xing.flags & XING_BYTES)
     {
-        if (bitlen < 32)
+        if(bitlen < 32)
             return false;
 
         m_xing.bytes = mad_bit_read(&ptr, 32);
@@ -183,9 +183,9 @@ bool DecoderMAD::findXingHeader(struct mad_bitptr ptr, unsigned int bitlen)
         }
     }
 
-    if (m_xing.flags & XING_TOC)
+    if(m_xing.flags & XING_TOC)
     {
-        if (bitlen < 800)
+        if(bitlen < 800)
            return false;
 
         for (int i = 0; i < 100; ++i)
@@ -194,9 +194,9 @@ bool DecoderMAD::findXingHeader(struct mad_bitptr ptr, unsigned int bitlen)
         bitlen -= 800;
     }
 
-    if (m_xing.flags & XING_SCALE)
+    if(m_xing.flags & XING_SCALE)
     {
-        if (bitlen < 32)
+        if(bitlen < 32)
             return false;
 
         m_xing.scale = mad_bit_read(&ptr, 32);
@@ -219,7 +219,7 @@ DecoderMAD::LameHeader* DecoderMAD::findLameHeader(mad_bitptr ptr, unsigned int 
     mad_bit_skip (&ptr, 40); //version
 
     header.revision = mad_bit_read (&ptr, 4);
-    if (header.revision == 15)
+    if(header.revision == 15)
         return nullptr;
 
     mad_bit_skip(&ptr, 12); //VBR,Lowpass filter value
@@ -248,11 +248,11 @@ bool DecoderMAD::findHeader()
     forever
     {
         m_input_bytes = 0;
-        if (m_stream.error == MAD_ERROR_BUFLEN || !m_stream.buffer)
+        if(m_stream.error == MAD_ERROR_BUFLEN || !m_stream.buffer)
         {
             size_t remaining = 0;
 
-            if (m_stream.next_frame)
+            if(m_stream.next_frame)
             {
                 remaining = m_stream.bufend - m_stream.next_frame;
                 memmove (m_input_buf, m_stream.next_frame, remaining);
@@ -260,27 +260,27 @@ bool DecoderMAD::findHeader()
 
             m_input_bytes = input()->read(m_input_buf + remaining, INPUT_BUFFER_SIZE - remaining);
 
-            if (m_input_bytes <= 0)
+            if(m_input_bytes <= 0)
                 break;
 
             mad_stream_buffer(&m_stream, (unsigned char *) m_input_buf + remaining, m_input_bytes);
             m_stream.error = MAD_ERROR_NONE;
         }
 
-        if (mad_header_decode(&header, &m_stream) < 0)
+        if(mad_header_decode(&header, &m_stream) < 0)
         {
             if(m_stream.error == MAD_ERROR_LOSTSYNC)
             {
-                uint tagSize = findID3v2((uchar *)m_stream.this_frame,
+                uint tagSize = findID3v2(m_stream.this_frame,
                                          (ulong) (m_stream.bufend - m_stream.this_frame));
-                if (tagSize > 0)
+                if(tagSize > 0)
                 {
                     mad_stream_skip(&m_stream, tagSize);
                     id3v2Size = tagSize;
                 }
                 continue;
             }
-           if (m_stream.error == MAD_ERROR_BUFLEN || MAD_RECOVERABLE(m_stream.error))
+           if(m_stream.error == MAD_ERROR_BUFLEN || MAD_RECOVERABLE(m_stream.error))
                 continue;
 
            qCDebug(plugin, "can't decode header: %s", mad_stream_errorstr(&m_stream));
@@ -288,22 +288,22 @@ bool DecoderMAD::findHeader()
         }
         result = true;
 
-        if (input()->isSequential())
+        if(input()->isSequential())
             break;
 
         count ++;
         //try to detect xing header
-        if (count == 1)
+        if(count == 1)
         {
             m_frame.header = header;
-            if (mad_frame_decode(&m_frame, &m_stream) != -1 &&
+            if(mad_frame_decode(&m_frame, &m_stream) != -1 &&
                     findXingHeader(m_stream.anc_ptr, m_stream.anc_bitlen))
             {
                 is_vbr = true;
 
                 qCDebug(plugin, "Xing header found");
 
-                if (m_xing.flags & XING_FRAMES)
+                if(m_xing.flags & XING_FRAMES)
                 {
                     has_xing = true;
                     count = m_xing.frames;
@@ -322,9 +322,9 @@ bool DecoderMAD::findHeader()
             }
         }
         //try to detect VBR
-        if (!is_vbr && !(count > 15))
+        if(!is_vbr && !(count > 15))
         {
-            if (m_bitrate && header.bitrate != m_bitrate)
+            if(m_bitrate && header.bitrate != m_bitrate)
             {
                 qCDebug(plugin) << "VBR detected";
                 is_vbr = true;
@@ -332,7 +332,7 @@ bool DecoderMAD::findHeader()
             else
                 m_bitrate = header.bitrate;
         }
-        else if (!is_vbr)
+        else if(!is_vbr)
         {
             qCDebug(plugin) << "fixed rate detected";
             break;
@@ -340,16 +340,16 @@ bool DecoderMAD::findHeader()
         mad_timer_add (&duration, header.duration);
     }
 
-    if (!result)
+    if(!result)
         return false;
 
-    if (!is_vbr && !input()->isSequential())
+    if(!is_vbr && !input()->isSequential())
     {
         double time = ((input()->size() - id3v2Size) * 8.0) / (header.bitrate);
         double timefrac = (double)time - ((long)(time));
         mad_timer_set(&duration, (long)time, (long)(timefrac*100), 100);
     }
-    else if (has_xing)
+    else if(has_xing)
     {
         mad_timer_multiply (&header.duration, count);
         duration = header.duration;
@@ -376,7 +376,7 @@ bool DecoderMAD::findHeader()
 
 qint64 DecoderMAD::totalTime() const
 {
-    if (!m_inited)
+    if(!m_inited)
         return 0;
     return m_totalTime;
 }
@@ -453,7 +453,7 @@ void DecoderMAD::seek(qint64 pos)
 
 bool DecoderMAD::fillBuffer()
 {
-    if (m_stream.next_frame)
+    if(m_stream.next_frame)
     {
         m_input_bytes = &m_input_buf[m_input_bytes] - (char *) m_stream.next_frame;
         memmove(m_input_buf, m_stream.next_frame, m_input_bytes);
@@ -475,19 +475,18 @@ bool DecoderMAD::fillBuffer()
     return true;
 }
 
-uint DecoderMAD::findID3v2(uchar *data, ulong size) //retuns ID3v2 tag size
+uint DecoderMAD::findID3v2(const uchar *data, ulong size) //retuns ID3v2 tag size
 {
-    if (size < 10)
+    if(size < TagLib::ID3v2::Header::size())
         return 0;
 
-    if (((data[0] == 'I' && data[1] == 'D' && data[2] == '3') || //ID3v2 tag
+    if(((data[0] == 'I' && data[1] == 'D' && data[2] == '3') || //ID3v2 tag
          (data[0] == '3' && data[1] == 'D' && data[2] == 'I')) && //ID3v2 footer
             data[3] < 0xff && data[4] < 0xff && data[6] < 0x80 &&
             data[7] < 0x80 && data[8] < 0x80 && data[9] < 0x80)
     {
-        TagLib::ByteVector byteVector((char *)data, size);
-        TagLib::ID3v2::Header header(byteVector);
-        return header.tagSize();
+        TagLib::ID3v2::Header header(TagLib::ByteVector(reinterpret_cast<const char*>(data), TagLib::ID3v2::Header::size()));
+        return header.completeTagSize();
     }
     return 0;
 }
@@ -509,7 +508,7 @@ bool DecoderMAD::decodeFrame()
                 //skip ID3v2 tag
                 uint tagSize = findID3v2((uchar *)m_stream.this_frame,
                                          (ulong) (m_stream.bufend - m_stream.this_frame));
-                if (tagSize > 0)
+                if(tagSize > 0)
                 {
                     mad_stream_skip(&m_stream, tagSize);
                     qCDebug(plugin, "%d bytes skipped", tagSize);
@@ -524,7 +523,7 @@ bool DecoderMAD::decodeFrame()
                 qCDebug(plugin, "CRC check error");
                 continue;
             default:
-                if (!MAD_RECOVERABLE(m_stream.error))
+                if(!MAD_RECOVERABLE(m_stream.error))
                     return false;
                 else
                     continue;
@@ -564,7 +563,7 @@ qint64 DecoderMAD::madOutputFloat(float *data, qint64 samples)
     {
         *data_it++ = mad_f_todouble(*left++);
         output_samples++;
-        if (channels == 2)
+        if(channels == 2)
         {
             *data_it++ = mad_f_todouble(*right++);
             output_samples++;

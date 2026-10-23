@@ -77,7 +77,7 @@ QmmpUiPluginCache::QmmpUiPluginCache(const QString &file, QSettings *settings)
             m_error = true;
         }
 
-        if (!m_error)
+        if(!m_error)
         {
             QStringList values;
             values << m_shortName;
@@ -170,7 +170,7 @@ QObject *QmmpUiPluginCache::instance()
         return m_instance;
     QPluginLoader loader(m_path);
     m_instance = loader.instance();
-    if (loader.isLoaded())
+    if(loader.isLoaded())
         qCDebug(core) << "loaded plugin" << QFileInfo(m_path).fileName();
     else
     {

@@ -151,16 +151,16 @@ QString BuiltinCommandLineOption::executeCommand(int id, const QStringList &args
         break;
     case NEXT:
         player->next();
-        if (core->state() == Qmmp::Stopped)
+        if(core->state() == Qmmp::Stopped)
             player->play();
         break;
     case PREVIOUS:
         player->previous();
-        if (core->state() == Qmmp::Stopped)
+        if(core->state() == Qmmp::Stopped)
             player->play();
         break;
     case PLAY_PAUSE:
-        if (core->state() == Qmmp::Playing)
+        if(core->state() == Qmmp::Playing)
             player->pause();
         else
             player->play();
@@ -189,7 +189,7 @@ QString BuiltinCommandLineOption::executeCommand(int id, const QStringList &args
         {
             bool ok = false;
             int volume = args.at(0).toInt(&ok);
-            if (ok)
+            if(ok)
                 core->setVolume(volume);
         }
         break;

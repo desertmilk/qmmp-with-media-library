@@ -47,7 +47,7 @@ protected:
     virtual bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override
     {
         QFileSystemModel *sm = qobject_cast<QFileSystemModel*>(sourceModel());
-        if (source_parent == sm->index(sm->rootPath()))
+        if(source_parent == sm->index(sm->rootPath()))
             return QSortFilterProxyModel::filterAcceptsRow(source_row, source_parent);
 
         return true;
@@ -160,7 +160,7 @@ void FileSystemBrowser::readSettings()
 
 void FileSystemBrowser::onListViewActivated(const QModelIndex &index)
 {
-    if (!index.isValid())
+    if(!index.isValid())
         return;
 
     QModelIndex sourceIndex = m_proxyModel->mapToSource(index);

@@ -235,7 +235,7 @@ void VorbisCommentModel::setValue(Qmmp::MetaData key, const QString &value)
         tag->setYear(value.toInt());
         return;
     case Qmmp::DISCNUMBER:
-        if (value == "0"_L1)
+        if(value == "0"_L1)
             tag->removeFields("DISCNUMBER");
         else
             tag->addField("DISCNUMBER", str, true);

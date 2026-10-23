@@ -41,7 +41,7 @@ QtMultimediaSettingsDialog::QtMultimediaSettingsDialog (QWidget *parent) : QDial
     for(const QAudioDevice &info : devices)
 	{
         m_ui->deviceComboBox->addItem(info.description(), info.id());
-        if (info.id() == default_device)
+        if(info.id() == default_device)
             m_ui->deviceComboBox->setCurrentIndex(index);
 		++index;
 	}

@@ -63,10 +63,10 @@ bool OutputALSA::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat form
 {
     m_inited = false;
 
-    if (pcm_handle)
+    if(pcm_handle)
         return false;
 
-    if (snd_pcm_open(&pcm_handle, pcm_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK) < 0)
+    if(snd_pcm_open(&pcm_handle, pcm_name, SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK) < 0)
     {
         qCWarning(plugin, "error opening PCM device %s", pcm_name);
         return false;
@@ -91,22 +91,22 @@ bool OutputALSA::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat form
 
     //hw params
     snd_pcm_hw_params_alloca(&hwparams);
-    if ((err = snd_pcm_hw_params_any(pcm_handle, hwparams)) < 0)
+    if((err = snd_pcm_hw_params_any(pcm_handle, hwparams)) < 0)
     {
         qCWarning(plugin, "Can not read configuration for PCM device: %s", snd_strerror(err));
         return false;
     }
-    if (m_use_mmap)
+    if(m_use_mmap)
     {
-        if ((err = snd_pcm_hw_params_set_access(pcm_handle, hwparams, SND_PCM_ACCESS_MMAP_INTERLEAVED)) < 0)
+        if((err = snd_pcm_hw_params_set_access(pcm_handle, hwparams, SND_PCM_ACCESS_MMAP_INTERLEAVED)) < 0)
         {
             qCWarning(plugin, "Error setting mmap access: %s", snd_strerror(err));
             m_use_mmap = false;
         }
     }
-    if (!m_use_mmap)
+    if(!m_use_mmap)
     {
-        if ((err = snd_pcm_hw_params_set_access(pcm_handle, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
+        if((err = snd_pcm_hw_params_set_access(pcm_handle, hwparams, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0)
         {
             qCWarning(plugin, "Error setting access: %s", snd_strerror(err));
             return false;
@@ -134,44 +134,44 @@ bool OutputALSA::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat form
         qCWarning(plugin, "unsupported format detected");
         return false;
     }
-    if ((err = snd_pcm_hw_params_set_format(pcm_handle, hwparams, alsa_format)) < 0)
+    if((err = snd_pcm_hw_params_set_format(pcm_handle, hwparams, alsa_format)) < 0)
     {
         qCDebug(plugin, "Error setting format: %s", snd_strerror(err));
         return false;
     }
     exact_rate = rate;
 
-    if ((err = snd_pcm_hw_params_set_rate_near(pcm_handle, hwparams, &exact_rate, nullptr)) < 0)
+    if((err = snd_pcm_hw_params_set_rate_near(pcm_handle, hwparams, &exact_rate, nullptr)) < 0)
     {
         qCWarning(plugin, "Error setting rate: %s", snd_strerror(err));
         return false;
     }
-    if (rate != exact_rate)
+    if(rate != exact_rate)
     {
         qCWarning(plugin, "The rate %d Hz is not supported by your hardware.\n==> Using %d Hz instead.", rate, exact_rate);
     }
     uint c = map.count();
-    if ((err = snd_pcm_hw_params_set_channels_near(pcm_handle, hwparams, &c)) < 0)
+    if((err = snd_pcm_hw_params_set_channels_near(pcm_handle, hwparams, &c)) < 0)
     {
         qCWarning(plugin, "Error setting channels: %s", snd_strerror(err));
         return false;
     }
-    if (c != (uint)map.count())
+    if(c != (uint)map.count())
     {
         qCWarning(plugin, "The channel number %lld is not supported by your hardware", map.count());
         qCWarning(plugin, "==> Using %d instead.", c);
     }
-    if ((err = snd_pcm_hw_params_set_period_time_near(pcm_handle, hwparams, &period_time, nullptr)) < 0)
+    if((err = snd_pcm_hw_params_set_period_time_near(pcm_handle, hwparams, &period_time, nullptr)) < 0)
     {
         qCWarning(plugin, "Error setting period time: %s", snd_strerror(err));
         return false;
     }
-    if ((err = snd_pcm_hw_params_set_buffer_time_near(pcm_handle, hwparams, &buffer_time, nullptr)) < 0)
+    if((err = snd_pcm_hw_params_set_buffer_time_near(pcm_handle, hwparams, &buffer_time, nullptr)) < 0)
     {
         qCWarning(plugin, "Error setting buffer time: %s", snd_strerror(err));
         return false;
     }
-    if ((err = snd_pcm_hw_params(pcm_handle, hwparams)) < 0)
+    if((err = snd_pcm_hw_params(pcm_handle, hwparams)) < 0)
     {
         qCWarning(plugin, "Error setting HW params: %s", snd_strerror(err));
         return false;
@@ -179,12 +179,12 @@ bool OutputALSA::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat form
     //read some alsa parameters
     snd_pcm_uframes_t buffer_size = 0;
     snd_pcm_uframes_t period_size = 0;
-    if ((err = snd_pcm_hw_params_get_buffer_size(hwparams, &buffer_size)) < 0)
+    if((err = snd_pcm_hw_params_get_buffer_size(hwparams, &buffer_size)) < 0)
     {
         qCWarning(plugin, "Error reading buffer size: %s", snd_strerror(err));
         return false;
     }
-    if ((err = snd_pcm_hw_params_get_period_size(hwparams, &period_size, nullptr)) < 0)
+    if((err = snd_pcm_hw_params_get_period_size(hwparams, &period_size, nullptr)) < 0)
     {
         qCWarning(plugin, "Error reading period size: %s", snd_strerror(err));
         return false;
@@ -192,10 +192,10 @@ bool OutputALSA::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat form
     //swparams
     snd_pcm_sw_params_alloca(&swparams);
     snd_pcm_sw_params_current(pcm_handle, swparams);
-    if ((err = snd_pcm_sw_params_set_start_threshold(pcm_handle, swparams,
+    if((err = snd_pcm_sw_params_set_start_threshold(pcm_handle, swparams,
                buffer_size - period_size)) < 0)
         qCWarning(plugin, "Error setting threshold: %s", snd_strerror(err));
-    if ((err = snd_pcm_sw_params(pcm_handle, swparams)) < 0)
+    if((err = snd_pcm_sw_params(pcm_handle, swparams)) < 0)
     {
         qCWarning(plugin, "Error setting SW params: %s", snd_strerror(err));
         return false;
@@ -255,7 +255,7 @@ void OutputALSA::drain()
     while (l > 0)
     {
         long m = alsa_write(m_prebuf, l);
-        if (m >= 0)
+        if(m >= 0)
         {
             l -= m;
             m = snd_pcm_frames_to_bytes(pcm_handle, m); // convert frames to bytes
@@ -279,14 +279,14 @@ void OutputALSA::reset()
 
 void OutputALSA::suspend()
 {
-    if (m_can_pause)
+    if(m_can_pause)
         snd_pcm_pause(pcm_handle, 1);
     snd_pcm_prepare(pcm_handle);
 }
 
 void OutputALSA::resume()
 {
-    if (m_can_pause)
+    if(m_can_pause)
         snd_pcm_pause(pcm_handle, 0);
     snd_pcm_prepare(pcm_handle);
 }
@@ -305,7 +305,7 @@ qint64 OutputALSA::writeAudio(unsigned char *data, qint64 maxSize)
     {
         snd_pcm_wait(pcm_handle, 10);
         long m;
-        if ((m = alsa_write(m_prebuf, m_chunk_size)) >= 0)
+        if((m = alsa_write(m_prebuf, m_chunk_size)) >= 0)
         {
             l -= m;
             m = snd_pcm_frames_to_bytes(pcm_handle, m); // convert frames to bytes
@@ -327,28 +327,28 @@ long OutputALSA::alsa_write(unsigned char *data, long size)
         return 0;
     }
 
-    if (m_use_mmap)
+    if(m_use_mmap)
         m = snd_pcm_mmap_writei (pcm_handle, data, size);
     else
         m = snd_pcm_writei (pcm_handle, data, size);
 
-    if (m == -EAGAIN)
+    if(m == -EAGAIN)
     {
         snd_pcm_wait(pcm_handle, 500);
         return 0;
     }
-    if (m >= 0)
+    if(m >= 0)
     {
-        if (m < size)
+        if(m < size)
         {
             snd_pcm_wait(pcm_handle, 500);
         }
         return m;
     }
-    if (m == -EPIPE)
+    if(m == -EPIPE)
     {
         qCDebug(plugin, "buffer underrun!");
-        if ((m = snd_pcm_prepare(pcm_handle)) < 0)
+        if((m = snd_pcm_prepare(pcm_handle)) < 0)
         {
             qCDebug(plugin, "Can't recover after underrun: %s", snd_strerror(m));
             /* TODO: reopen the device */
@@ -357,7 +357,7 @@ long OutputALSA::alsa_write(unsigned char *data, long size)
         return 0;
     }
 #ifdef ESTRPIPE
-    if (m == -ESTRPIPE)
+    if(m == -ESTRPIPE)
     {
         qCDebug(plugin) << "suspend, trying to resume";
         while((m = snd_pcm_resume(pcm_handle)) == -EAGAIN)
@@ -384,14 +384,14 @@ void OutputALSA::uninitialize()
     if(!m_inited)
         return;
     m_inited = false;
-    if (pcm_handle)
+    if(pcm_handle)
     {
         snd_pcm_drop(pcm_handle);
         qCDebug(plugin, "closing pcm_handle");
         snd_pcm_close(pcm_handle);
         pcm_handle = nullptr;
     }
-    if (m_prebuf)
+    if(m_prebuf)
         free(m_prebuf);
     m_prebuf = nullptr;
 }
@@ -410,13 +410,13 @@ VolumeALSA::VolumeALSA()
 
 VolumeALSA::~VolumeALSA()
 {
-    if (m_mixer)
+    if(m_mixer)
         snd_mixer_close(m_mixer);
 }
 
 void VolumeALSA::setVolume(const VolumeSettings &vol)
 {
-    if (!pcm_element)
+    if(!pcm_element)
         return;
 
     snd_mixer_selem_set_playback_volume(pcm_element, SND_MIXER_SCHN_FRONT_LEFT, vol.left);
@@ -453,7 +453,7 @@ int VolumeALSA::setupMixer(QString card, QString device)
 
     qCDebug(plugin, "setupMixer()");
 
-    if ((err = getMixer(&m_mixer, card)) < 0)
+    if((err = getMixer(&m_mixer, card)) < 0)
         return err;
 
     parseMixerName(device.toLatin1().data(), &name, &index);
@@ -462,7 +462,7 @@ int VolumeALSA::setupMixer(QString card, QString device)
 
     free(name);
 
-    if (!pcm_element)
+    if(!pcm_element)
     {
         qCWarning(plugin, "Failed to find mixer element");
         return -1;
@@ -502,7 +502,7 @@ void VolumeALSA::parseMixerName(char *str, char **name, int *index)
     while (isspace(*str))
         str++;
 
-    if ((end = strchr(str, ',')) != nullptr)
+    if((end = strchr(str, ',')) != nullptr)
     {
         *name = strndup(str, end - str);
         end++;
@@ -521,9 +521,9 @@ snd_mixer_elem_t* VolumeALSA::getMixerElem(snd_mixer_t *mixer, char *name, int i
     snd_mixer_elem_t* elem;
     snd_mixer_selem_id_alloca(&selem_id);
 
-    if (index != -1)
+    if(index != -1)
         snd_mixer_selem_id_set_index(selem_id, index);
-    if (name != nullptr)
+    if(name != nullptr)
         snd_mixer_selem_id_set_name(selem_id, name);
 
     elem = snd_mixer_find_selem(mixer, selem_id);
@@ -535,7 +535,7 @@ int VolumeALSA::getMixer(snd_mixer_t **mixer, QString card)
 {
     int err;
 
-    if ((err = snd_mixer_open(mixer, 0)) < 0)
+    if((err = snd_mixer_open(mixer, 0)) < 0)
     {
         qCWarning(plugin, "Failed to open empty mixer: %s",
                  snd_strerror(-err));
@@ -543,19 +543,19 @@ int VolumeALSA::getMixer(snd_mixer_t **mixer, QString card)
         return -1;
     }
 
-    if ((err = snd_mixer_attach(*mixer, card.toLatin1().constData())) < 0)
+    if((err = snd_mixer_attach(*mixer, card.toLatin1().constData())) < 0)
     {
         qCWarning(plugin, "Attaching to mixer %s failed: %s",
                  qPrintable(card), snd_strerror(-err));
         return -1;
     }
-    if ((err = snd_mixer_selem_register(*mixer, nullptr, nullptr)) < 0)
+    if((err = snd_mixer_selem_register(*mixer, nullptr, nullptr)) < 0)
     {
         qCWarning(plugin, "Failed to register mixer: %s",
                  snd_strerror(-err));
         return -1;
     }
-    if ((err = snd_mixer_load(*mixer)) < 0)
+    if((err = snd_mixer_load(*mixer)) < 0)
     {
         qCWarning(plugin, "Failed to load mixer: %s",
                  snd_strerror(-err));

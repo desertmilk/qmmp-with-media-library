@@ -65,7 +65,7 @@ private:
             q->stop();
             return;
         }
-        if (!plManager->currentPlayList()->next())
+        if(!plManager->currentPlayList()->next())
         {
             if(!settings->isPlayListTransitionEnabled())
             {

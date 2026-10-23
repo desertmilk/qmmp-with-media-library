@@ -144,7 +144,7 @@ PlayListGroupPrivate::~PlayListGroupPrivate()
     {
         PlayListTrack *mf = m_trackList.takeFirst();
 
-        if (mf->isUsed())
+        if(mf->isUsed())
             mf->deleteLater();
         else
             delete mf;

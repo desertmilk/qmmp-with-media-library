@@ -56,7 +56,7 @@ bool OutputWriter::initialize(quint32 freq, ChannelMap map)
         return false;
     }
 
-    if (!m_output->initialize(freq, map, m_settings->outputFormat()))
+    if(!m_output->initialize(freq, map, m_settings->outputFormat()))
     {
         qCWarning(core, "unable to initialize output");
         delete m_output;
@@ -198,26 +198,26 @@ void OutputWriter::stopVisualization()
 
 void OutputWriter::dispatch(qint64 elapsed, int bitrate)
 {
-    if (m_handler)
+    if(m_handler)
         m_handler->dispatch(elapsed, bitrate);
 }
 
 void OutputWriter::dispatch(const Qmmp::State &state)
 {
-    if (m_handler)
+    if(m_handler)
         m_handler->dispatch(state);
 }
 
 void OutputWriter::dispatch(const AudioParameters &p)
 {
-    if (m_handler)
+    if(m_handler)
         m_handler->dispatch(p);
 }
 
 void OutputWriter::run()
 {
     m_mutex.lock ();
-    if (!m_bytesPerMillisecond)
+    if(!m_bytesPerMillisecond)
     {
         qCWarning(core, "invalid audio parameters");
         m_mutex.unlock ();
@@ -264,7 +264,7 @@ void OutputWriter::run()
         }
 
         status();
-        if (!b)
+        if(!b)
         {
             if((b = recycler()->next()))
             {
@@ -282,10 +282,10 @@ void OutputWriter::run()
         recycler()->cond()->wakeOne();
         recycler()->mutex()->unlock();
         m_mutex.unlock();
-        if (b)
+        if(b)
         {
             m_mutex.lock();
-            if (m_useEq)
+            if(m_useEq)
             {
                 eq_iir(b->data, b->samples, m_channels);
             }
@@ -363,13 +363,13 @@ void OutputWriter::status()
 {
     qint64 ct = m_totalWritten / m_bytesPerMillisecond - m_output->latency();
 
-    if (ct < 0)
+    if(ct < 0)
         ct = 0;
 
     if(m_currentMilliseconds == -1) //refresh audio properties in the begin of track
         dispatch(m_output->audioParameters());
 
-    if (ct > m_currentMilliseconds)
+    if(ct > m_currentMilliseconds)
     {
         m_currentMilliseconds = ct;
         dispatch(m_currentMilliseconds, m_kbps);

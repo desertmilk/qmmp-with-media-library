@@ -309,7 +309,7 @@ QList<DecoderFactory *> Decoder::findByFileExtension(const QString &path)
 void Decoder::setEnabled(DecoderFactory *factory, bool enable)
 {
     DecoderPrivate::loadPlugins();
-    if (!factories().contains(factory))
+    if(!factories().contains(factory))
         return;
 
     if(enable == isEnabled(factory))

@@ -116,7 +116,7 @@ void SkinnedPlayListHeader::readSettings()
     settings.beginGroup("Skinned"_L1);
     m_font.fromString(settings.value("pl_header_font"_L1, qApp->font().toString()).toString());
 
-    if (m_metrics)
+    if(m_metrics)
     {
         delete m_metrics;
         m_metrics = nullptr;

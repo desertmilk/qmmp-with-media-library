@@ -107,7 +107,7 @@ JumpToTrackDialog::~JumpToTrackDialog()
 void JumpToTrackDialog::on_queuePushButton_clicked()
 {
     QModelIndexList selectedRows = m_ui->songsListView->selectionModel()->selectedRows();
-    if (!selectedRows.isEmpty())
+    if(!selectedRows.isEmpty())
     {
         int selected = m_proxyModel->mapToSource(selectedRows.constFirst()).row();
         PlayListTrack *track = m_model->findTrack(selected);
@@ -123,7 +123,7 @@ void JumpToTrackDialog::on_queuePushButton_clicked()
 void JumpToTrackDialog::on_jumpToPushButton_clicked()
 {
     QModelIndexList mi_list = m_ui->songsListView->selectionModel()->selectedRows();
-    if (!mi_list.isEmpty())
+    if(!mi_list.isEmpty())
     {
         jumpTo(mi_list.constFirst());
     }
@@ -144,7 +144,7 @@ void JumpToTrackDialog::queueUnqueue(const QModelIndex& curr,const QModelIndex&)
     if(!curr.isValid())
         return;
     int row = m_proxyModel->mapToSource(curr).row();
-    if (m_model->findTrack(row)->isQueued())
+    if(m_model->findTrack(row)->isQueued())
         m_ui->queuePushButton->setText(tr("Unqueue"));
     else
         m_ui->queuePushButton->setText(tr("Queue"));

@@ -67,7 +67,7 @@ void Bs2bSettingsDialog::accept()
 
 void Bs2bSettingsDialog::Bs2bSettingsDialog::reject()
 {
-    if (Bs2bPlugin::instance()) //restore crossfeed settings
+    if(Bs2bPlugin::instance()) //restore crossfeed settings
         Bs2bPlugin::instance()->setCrossfeedLevel(m_level);
     QDialog::reject();
 }
@@ -75,13 +75,13 @@ void Bs2bSettingsDialog::Bs2bSettingsDialog::reject()
 void Bs2bSettingsDialog::on_freqSlider_valueChanged(int value)
 {
     m_ui->freqLabel->setText(tr("%1 Hz, %2 us").arg(value).arg(bs2b_level_delay(value)));
-    if (Bs2bPlugin::instance())
+    if(Bs2bPlugin::instance())
         Bs2bPlugin::instance()->setCrossfeedLevel(m_ui->feedSlider->value() << 16 | m_ui->freqSlider->value());
 }
 
 void Bs2bSettingsDialog::on_feedSlider_valueChanged(int value)
 {
     m_ui->feedLabel->setText(tr("%1 dB").arg((double)value / 10));
-    if (Bs2bPlugin::instance())
+    if(Bs2bPlugin::instance())
         Bs2bPlugin::instance()->setCrossfeedLevel(m_ui->feedSlider->value() << 16 | m_ui->freqSlider->value());
 }

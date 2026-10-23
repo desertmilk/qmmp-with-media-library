@@ -133,7 +133,7 @@ bool DecoderWavPack::initialize()
         return false;
     }
 
-    if (!m_output_buf)
+    if(!m_output_buf)
         m_output_buf = new int32_t[QMMP_BLOCK_FRAMES * m_chan];
     switch(m_bps)
     {

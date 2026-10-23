@@ -127,7 +127,7 @@ bool OutputPipeWire::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat 
         return false;
     }
 
-    if (!(m_context = pw_context_new(pw_thread_loop_get_loop(m_loop), nullptr, 0)))
+    if(!(m_context = pw_context_new(pw_thread_loop_get_loop(m_loop), nullptr, 0)))
     {
         qCWarning(plugin, "unable to create context");
         return false;
@@ -184,7 +184,7 @@ bool OutputPipeWire::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat 
 
     pw_thread_loop_lock(m_loop);
 
-    if (!(m_stream = pw_stream_new(m_core, "Playback", props)))
+    if(!(m_stream = pw_stream_new(m_core, "Playback", props)))
     {
         qCWarning(plugin, "unable to create stream");
         pw_thread_loop_unlock(m_loop);
@@ -290,7 +290,7 @@ qint64 OutputPipeWire::writeAudio(unsigned char *data, qint64 maxSize)
 
     if(m_buffer_at == m_bufferSize)
     {
-        if (pw_thread_loop_timed_wait(m_loop, 1) != 0)
+        if(pw_thread_loop_timed_wait(m_loop, 1) != 0)
         {
             pw_thread_loop_unlock(m_loop);
             return 0;
@@ -453,7 +453,7 @@ void OutputPipeWire::onCoreEventDone(void *data, uint32_t id, int seq)
 {
     OutputPipeWire *o = static_cast<OutputPipeWire *>(data);
 
-    if (id == PW_ID_CORE && seq == o->m_coreInitSeq)
+    if(id == PW_ID_CORE && seq == o->m_coreInitSeq)
     {
         spa_hook_remove(&o->m_registryListener);
         spa_hook_remove(&o->m_coreListener);
@@ -471,14 +471,14 @@ void OutputPipeWire::onRegistryEventGlobal(void *data, uint32_t id, uint32_t per
 
     OutputPipeWire *o = static_cast<OutputPipeWire *>(data);
 
-    if (qstrcmp(type, PW_TYPE_INTERFACE_Node) != 0)
+    if(qstrcmp(type, PW_TYPE_INTERFACE_Node) != 0)
         return;
 
     auto media_class = spa_dict_lookup(props, PW_KEY_MEDIA_CLASS);
-    if (!media_class)
+    if(!media_class)
         return;
 
-    if (qstrcmp(media_class, "Audio/Sink") != 0)
+    if(qstrcmp(media_class, "Audio/Sink") != 0)
         return;
 
     o->m_hasSinks = true;

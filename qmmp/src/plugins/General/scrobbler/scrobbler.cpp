@@ -182,7 +182,7 @@ void Scrobbler::updateMetaData()
 
 void Scrobbler::processResponse(QNetworkReply *reply)
 {
-    if (reply->error() != QNetworkReply::NoError)
+    if(reply->error() != QNetworkReply::NoError)
     {
         qCWarning(plugin, "[%s]: http error: %s", qPrintable(m_name), qPrintable(reply->errorString()));
     }
@@ -203,10 +203,10 @@ void Scrobbler::processResponse(QNetworkReply *reply)
             qCWarning(plugin, "[%s]: invalid content", qPrintable(m_name));
     }
 
-    if (reply == m_submitReply)
+    if(reply == m_submitReply)
     {
         m_submitReply = nullptr;
-        if (response.status == "ok"_L1)
+        if(response.status == "ok"_L1)
         {
             qCDebug(plugin, "[%s]: submited %d song(s)", qPrintable(m_name), m_submitedSongs);
             while (m_submitedSongs)
@@ -214,7 +214,7 @@ void Scrobbler::processResponse(QNetworkReply *reply)
                 m_submitedSongs--;
                 m_cachedSongs.removeFirst ();
             }
-            if (!m_cachedSongs.isEmpty()) //submit remaining songs
+            if(!m_cachedSongs.isEmpty()) //submit remaining songs
             {
                 submit();
             }
@@ -240,7 +240,7 @@ void Scrobbler::processResponse(QNetworkReply *reply)
                      qPrintable(m_name));
         }
     }
-    else if (reply == m_notificationReply)
+    else if(reply == m_notificationReply)
     {
         m_notificationReply = nullptr;
         if(response.status == "ok"_L1)
@@ -259,7 +259,7 @@ void Scrobbler::processResponse(QNetworkReply *reply)
 void Scrobbler::setupProxy()
 {
     QmmpSettings *gs = QmmpSettings::instance();
-    if (gs->isProxyEnabled())
+    if(gs->isProxyEnabled())
     {
         QNetworkProxy proxy(QNetworkProxy::HttpProxy, gs->proxy().host(),  gs->proxy().port());
         if(gs->proxyType() == QmmpSettings::SOCKS5_PROXY)
@@ -277,7 +277,7 @@ void Scrobbler::setupProxy()
 
 void Scrobbler::submit()
 {
-    if (m_cachedSongs.isEmpty() || m_session.isEmpty() || m_submitReply)
+    if(m_cachedSongs.isEmpty() || m_session.isEmpty() || m_submitReply)
         return;
 
     qCDebug(plugin, "[%s]: submit request", qPrintable(m_name));
@@ -391,7 +391,7 @@ ScrobblerAuth::ScrobblerAuth(const QString &scrobblerUrl, const QString &authUrl
     connect(m_http, &QNetworkAccessManager::finished, this, &ScrobblerAuth::processResponse);
 
     QmmpSettings *gs = QmmpSettings::instance();
-    if (gs->isProxyEnabled())
+    if(gs->isProxyEnabled())
     {
         QNetworkProxy proxy(QNetworkProxy::HttpProxy, gs->proxy().host(),  gs->proxy().port());
         if(gs->proxyType() == QmmpSettings::SOCKS5_PROXY)
@@ -496,7 +496,7 @@ QString ScrobblerAuth::session() const
 
 void ScrobblerAuth::processResponse(QNetworkReply *reply)
 {
-    if (reply->error() != QNetworkReply::NoError)
+    if(reply->error() != QNetworkReply::NoError)
     {
         qCWarning(plugin, "[%s]: http error: %s", qPrintable(m_name), qPrintable(reply->errorString()));
     }
@@ -517,7 +517,7 @@ void ScrobblerAuth::processResponse(QNetworkReply *reply)
             qCWarning(plugin, "[%s]: invalid content", qPrintable(m_name));
     }
 
-    if (reply == m_getTokenReply)
+    if(reply == m_getTokenReply)
     {
         m_getTokenReply = nullptr;
         if(response.status == "ok"_L1)
@@ -570,7 +570,7 @@ void ScrobblerAuth::processResponse(QNetworkReply *reply)
             m_token.clear();
             emit sessionRequestFinished(LASTFM_ERROR);
         }
-        else if (error_code.isEmpty()) //network error
+        else if(error_code.isEmpty()) //network error
         {
             m_token.clear();
             emit sessionRequestFinished(NETWORK_ERROR);

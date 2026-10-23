@@ -191,7 +191,7 @@ EngineFactory *AbstractEngine::findByFilePath(const QString& source)
         if(AbstractEnginePrivate::disabledNames.contains(item->shortName()))
             continue;
         EngineFactory *fact = item->engineFactory();
-        if (fact && fact->supports(source))
+        if(fact && fact->supports(source))
             return fact;
     }
     return nullptr;
@@ -200,7 +200,7 @@ EngineFactory *AbstractEngine::findByFilePath(const QString& source)
 void AbstractEngine::setEnabled(EngineFactory *factory, bool enable)
 {
     AbstractEnginePrivate::loadPlugins();
-    if (!factories().contains(factory))
+    if(!factories().contains(factory))
         return;
 
     if(enable == isEnabled(factory))

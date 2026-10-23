@@ -256,7 +256,7 @@ private:
         authProxyCheckBox->setChecked(gs->useProxyAuth());
         hostLineEdit->setText(gs->proxy().host());
         proxyTypeComboBox->setCurrentIndex(proxyTypeComboBox->findData(gs->proxyType()));
-        if (gs->proxy().port(0))
+        if(gs->proxy().port(0))
             portLineEdit->setText(QString::number(gs->proxy().port(0)));
         proxyUserLineEdit->setText(gs->proxy().userName());
         proxyPasswLineEdit->setText(gs->proxy().password());

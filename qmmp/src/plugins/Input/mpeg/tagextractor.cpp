@@ -46,11 +46,11 @@ QMap<Qmmp::MetaData, QString> TagExtractor::id3v2tag() const
 {
     QByteArray array = m_input->peek(2048);
     int offset = array.indexOf("ID3");
-    if (offset < 0)
+    if(offset < 0)
         return QMap<Qmmp::MetaData, QString>();
 
     MpegID3v2Tag tag(&array, offset);
-    if (tag.isEmpty())
+    if(tag.isEmpty())
         return QMap<Qmmp::MetaData, QString>();
 
     QSettings settings;

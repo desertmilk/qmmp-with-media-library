@@ -97,7 +97,7 @@ void CoverWidget::saveAs()
     QString path = FileDialog::getSaveFileName(this, tr("Save Cover As"), QDir::homePath() + u"/cover.jpg"_s,
                                                tr("Images") + u" (*.png *.jpg)"_s);
 
-    if (!path.isEmpty())
+    if(!path.isEmpty())
         m_image.save(path);
 }
 

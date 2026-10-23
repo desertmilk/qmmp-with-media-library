@@ -85,7 +85,7 @@ void UDisksPlugin::addDevice(QDBusObjectPath o)
 {
     for(const UDisksDevice *device : std::as_const(m_devices)) //is it already exists?
     {
-        if (device->objectPath() == o)
+        if(device->objectPath() == o)
             return;
     }
     UDisksDevice *device = new UDisksDevice(o, this);
@@ -107,11 +107,11 @@ void UDisksPlugin::updateActions()
     for(const UDisksDevice *device : std::as_const(m_devices))
     {
         QString dev_path;
-        if (m_detectCDA && device->isAudio()) //cd audio
+        if(m_detectCDA && device->isAudio()) //cd audio
         {
             dev_path = u"cdda://"_s + device->deviceFile();
         }
-        else if (m_detectRemovable && device->isMounted() &&
+        else if(m_detectRemovable && device->isMounted() &&
                  device->property(u"Size"_s).toLongLong() < 40000000000LL &&
                  (device->property(u"IdType"_s).toString() == "vfat"_L1 ||
                   device->property(u"IdType"_s).toString() == "iso9660"_L1 ||
@@ -123,24 +123,24 @@ void UDisksPlugin::updateActions()
         else
             continue;
 
-        if (!findAction(dev_path))
+        if(!findAction(dev_path))
         {
             QAction *action = new QAction(this);
             QString actionText;
-            if (device->isAudio())
+            if(device->isAudio())
             {
                 actionText = QString(tr("Add CD \"%1\"")).arg(device->deviceFile());
             }
             else
             {
                 QString name = device->property(u"IdLabel"_s).toString();
-                if (name.isEmpty())
+                if(name.isEmpty())
                     name = dev_path;
 
                 actionText = QString(tr("Add Volume \"%1\"")).arg(name);
             }
 
-            if (device->isOptical())
+            if(device->isOptical())
             {
                 if(device->property(u"IdType"_s).toString() == "iso9660"_L1)
                     action->setIcon(qApp->style()->standardIcon(QStyle::SP_DriveDVDIcon));
@@ -162,7 +162,7 @@ void UDisksPlugin::updateActions()
     // remove action if device is unmounted/removed
     for(QAction *action : m_actions->actions())
     {
-        if (!findDevice(action))
+        if(!findDevice(action))
         {
             qCDebug(plugin, "removed menu item: \"%s\"", qPrintable(action->data().toString()));
             m_actions->removeAction(action);
@@ -184,7 +184,7 @@ QAction *UDisksPlugin::findAction(const QString &dev_path)
 {
     for(QAction *action : m_actions->actions())
     {
-        if (action->data().toString() == dev_path)
+        if(action->data().toString() == dev_path)
             return action;
     }
     return nullptr;
@@ -195,16 +195,16 @@ UDisksDevice *UDisksPlugin::findDevice(QAction *action)
     for(UDisksDevice *device : std::as_const(m_devices))
     {
         QString dev_path;
-        if (device->isAudio())
+        if(device->isAudio())
         {
             dev_path = u"cdda://"_s + device->deviceFile();
-            if (dev_path == action->data().toString())
+            if(dev_path == action->data().toString())
                 return device;
         }
-        if (device->isMounted())
+        if(device->isMounted())
         {
             dev_path = device->mountPoints().constFirst();
-            if (dev_path == action->data().toString())
+            if(dev_path == action->data().toString())
                 return device;
         }
     }

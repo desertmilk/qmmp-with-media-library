@@ -72,7 +72,7 @@ void QSUiKeyboardManager::processUp()
         return;
     }
 
-    if (!(keys.keyboardModifiers() & Qt::ShiftModifier || keys.keyboardModifiers() & Qt::AltModifier ||
+    if(!(keys.keyboardModifiers() & Qt::ShiftModifier || keys.keyboardModifiers() & Qt::AltModifier ||
           keys.keyboardModifiers() & Qt::ControlModifier))
     {
         m_listWidget->model()->clearSelection();
@@ -89,7 +89,7 @@ void QSUiKeyboardManager::processUp()
     else if(lines.constFirst() > last_visible)
         s = SELECT_BOTTOM;
 
-    if (keys.keyboardModifiers() & Qt::AltModifier)
+    if(keys.keyboardModifiers() & Qt::AltModifier)
     {
         if(lines.constFirst() == 0)
             return;
@@ -174,7 +174,7 @@ void QSUiKeyboardManager::processDown()
     else if(lines.constFirst() > last_visible)
         s = SELECT_BOTTOM;
 
-    if (keys.keyboardModifiers() & Qt::AltModifier)
+    if(keys.keyboardModifiers() & Qt::AltModifier)
     {
         if(lines.constLast() == m_listWidget->model()->lineCount() - 1)
             return;

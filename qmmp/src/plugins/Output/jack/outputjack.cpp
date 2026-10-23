@@ -92,7 +92,7 @@ qint64 OutputJACK::writeAudio(unsigned char *data, qint64 maxSize)
         return -1;
     }
 
-    if (l == 0)
+    if(l == 0)
     {
         usleep(2000);
         m_wait_time += 2000;
@@ -115,7 +115,7 @@ void OutputJACK::reset()
 
 void OutputJACK::uninitialize()
 {
-    if (!m_inited)
+    if(!m_inited)
         return;
     JACK_Close(jack_device);
     m_inited = false;

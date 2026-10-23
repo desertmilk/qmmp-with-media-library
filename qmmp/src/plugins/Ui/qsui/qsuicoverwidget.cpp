@@ -67,6 +67,6 @@ void QSUiCoverWidget::saveAs()
                                                  QDir::homePath() + u"/cover.jpg"_s,
                                                  tr("Images") + u" (*.png *.jpg)"_s);
 
-    if (!path.isEmpty())
+    if(!path.isEmpty())
         m_image.save(path);
 }

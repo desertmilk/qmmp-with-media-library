@@ -50,7 +50,7 @@ public:
             {
                 QPluginLoader loader(filePath);
                 QObject *plugin = loader.instance();
-                if (loader.isLoaded())
+                if(loader.isLoaded())
                     /*qCDebug(core) << "loaded plugin" << QFileInfo(filePath).filePath();*/;
                 else
                     qCWarning(core) << loader.errorString();

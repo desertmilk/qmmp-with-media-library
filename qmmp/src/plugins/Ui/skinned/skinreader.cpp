@@ -114,7 +114,7 @@ void SkinReader::loadSkins()
 
     for(const QFileInfo &i : std::as_const(thumbnailes))
     {
-        if (i.size() > 0)
+        if(i.size() > 0)
             thumbnailHash.insert(i.completeBaseName(), i.canonicalFilePath());
     }
 
@@ -169,9 +169,9 @@ void SkinReader::unpackSkin(const QString &path)
         QDir::root().mkpath(unpackedSkinPath());
     //unpack
     QString name = QFileInfo(path).fileName().toLower();
-    if (name.endsWith(u".tgz"_s) || name.endsWith(u".tar.gz"_s) || name.endsWith(u".tar.bz2"_s))
+    if(name.endsWith(u".tgz"_s) || name.endsWith(u".tar.gz"_s) || name.endsWith(u".tar.bz2"_s))
         untar(path, unpackedSkinPath(), false);
-    else if (name.endsWith(u".zip"_s) || name.endsWith(u".wsz"_s))
+    else if(name.endsWith(u".zip"_s) || name.endsWith(u".wsz"_s))
         unzip(path, unpackedSkinPath(), false);
 }
 
@@ -325,7 +325,7 @@ void SkinReader::untar(const QString &from, const QString &to, bool preview)
             array = process.readAllStandardOutput();
 
             QString name;
-            if (preview)
+            if(preview)
                 name = from.section(QLatin1Char('/'), -1) + QLatin1Char('.') + str.section(QLatin1Char('.'), -1);
             else
                 name = str.contains(QLatin1Char('/')) ? str.section(QLatin1Char('/'), -1).toLower() : str.toLower();
@@ -339,7 +339,7 @@ void SkinReader::untar(const QString &from, const QString &to, bool preview)
 
 void SkinReader::unzip(const QString &from, const QString &to, bool preview)
 {
-    if (preview)
+    if(preview)
     {
         QStringList args = { u"-C"_s, u"-j"_s, u"-o"_s, u"-qq"_s, u"-d"_s, to, from, u"main.???"_s, u"*/main.???"_s };
         QProcess::execute(u"unzip"_s, args);

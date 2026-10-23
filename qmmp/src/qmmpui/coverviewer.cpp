@@ -70,7 +70,7 @@ void CoverViewer::saveAs()
                                                m_lastDir + u"/cover.jpg"_s,
                                                tr("Images") + u" (*.png *.jpg)"_s);
 
-    if (!path.isEmpty())
+    if(!path.isEmpty())
     {
         m_lastDir = QFileInfo(path).absoluteDir().path();
         m_image.save(path);

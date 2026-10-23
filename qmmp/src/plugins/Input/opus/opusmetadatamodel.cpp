@@ -253,7 +253,7 @@ void OpusVorbisCommentModel::setValue(Qmmp::MetaData key, const QString &value)
         m_tag->setYear(value.toInt());
         return;
     case Qmmp::DISCNUMBER:
-        if (value == "0"_L1)
+        if(value == "0"_L1)
             m_tag->removeFields("DISCNUMBER");
         else
             m_tag->addField("DISCNUMBER", str, true);

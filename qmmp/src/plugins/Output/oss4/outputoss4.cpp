@@ -76,7 +76,7 @@ OutputOSS4::OutputOSS4() : Output()
 
 OutputOSS4::~OutputOSS4()
 {
-    if (m_audio_fd >= 0)
+    if(m_audio_fd >= 0)
     {
         ioctl(m_audio_fd, SNDCTL_DSP_RESET, 0);
         close(m_audio_fd);
@@ -109,7 +109,7 @@ bool OutputOSS4::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat form
 {
     m_audio_fd = open(m_audio_device.toLatin1().constData(), O_WRONLY);
 
-    if (m_audio_fd < 0)
+    if(m_audio_fd < 0)
     {
         qCWarning(plugin, "unable to open output device '%s'; error: %s",
                  qPrintable(m_audio_device), strerror(errno));
@@ -144,13 +144,13 @@ bool OutputOSS4::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat form
         return false;
     }
 
-    if (ioctl(m_audio_fd, SNDCTL_DSP_SETFMT, &p) == -1)
+    if(ioctl(m_audio_fd, SNDCTL_DSP_SETFMT, &p) == -1)
         qCWarning(plugin, "ioctl SNDCTL_DSP_SETFMT failed: %s",strerror(errno));
 
     if(ioctl(m_audio_fd, SNDCTL_DSP_CHANNELS, &chan) == -1)
         qCWarning(plugin, "ioctl SNDCTL_DSP_CHANNELS failed: %s", strerror(errno));
 
-    if (ioctl(m_audio_fd, SNDCTL_DSP_SPEED, &freq) < 0)
+    if(ioctl(m_audio_fd, SNDCTL_DSP_SPEED, &freq) < 0)
         qCWarning(plugin, "ioctl SNDCTL_DSP_SPEED failed: %s", strerror(errno));
 
     int enabled = 1;
@@ -158,7 +158,7 @@ bool OutputOSS4::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat form
         qCWarning(plugin, "ioctl SNDCTL_DSP_COOKEDMODE: %s", strerror(errno));
 
     quint64 layout = 0;
-    if (ioctl (m_audio_fd, SNDCTL_DSP_GET_CHNORDER, &layout) == -1)
+    if(ioctl (m_audio_fd, SNDCTL_DSP_GET_CHNORDER, &layout) == -1)
     {
         qCWarning(plugin, "couldn't query channel layout, assuming default");
         layout = CHNORDER_NORMAL;
@@ -233,7 +233,7 @@ VolumeSettings VolumeOSS4::volume() const
     if(OutputOSS4::instance() && OutputOSS4::instance()->fd() >= 0)
     {
         int v = 0;
-        if (ioctl(OutputOSS4::instance()->fd(), SNDCTL_DSP_GETPLAYVOL, &v) < 0)
+        if(ioctl(OutputOSS4::instance()->fd(), SNDCTL_DSP_GETPLAYVOL, &v) < 0)
             v = 0;
         vol.left = v & 0x00FF;
         vol.right = (v & 0xFF00) >> 8;

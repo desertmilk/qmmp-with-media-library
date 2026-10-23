@@ -72,7 +72,7 @@ QPointer<AddUrlDialog> AddUrlDialog::m_instance = nullptr;
 
 void AddUrlDialog::popup(QWidget *parent, PlayListModel *m)
 {
-    if (!m_instance)
+    if(!m_instance)
     {
         m_instance = new AddUrlDialog(parent);
         m_instance->setModel(m);
@@ -124,7 +124,7 @@ void AddUrlDialog::accept()
         return;
     }
 
-    if (path.startsWith(u"http://"_s) || path.startsWith(u"https://"_s)) //try to download playlist
+    if(path.startsWith(u"http://"_s) || path.startsWith(u"https://"_s)) //try to download playlist
     {
         m_downloader->start(QUrl(path), m_model);
         addToHistory(path);

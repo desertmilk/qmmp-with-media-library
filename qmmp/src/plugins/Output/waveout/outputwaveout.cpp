@@ -43,7 +43,7 @@ static void CALLBACK wave_callback (HWAVE hWave, UINT uMsg, DWORD_PTR dwInstance
     Q_UNUSED(hWave);
     Q_UNUSED(dwInstance);
     Q_UNUSED(dwParam2);
-    if (uMsg == WOM_DONE)
+    if(uMsg == WOM_DONE)
     {
         EnterCriticalSection (&cs);
         PlayedWaveHeaders [PlayedWaveHeadersCount++] = (WAVEHDR*) dwParam1;
@@ -85,7 +85,7 @@ bool OutputWaveOut::initialize(quint32 freq, ChannelMap map, Qmmp::AudioFormat f
 {
     Q_UNUSED(format);
     m_totalWritten = 0;
-    if (!waveOutGetNumDevs ())
+    if(!waveOutGetNumDevs ())
     {
         qCWarning(plugin, "no audio device found");
         return false;
@@ -158,13 +158,13 @@ qint64 OutputWaveOut::writeAudio(unsigned char *data, qint64 len)
     while (PlayedWaveHeadersCount > 0)                        // free used blocks ...
         free_memory ();
 
-    if (ScheduledBlocks >= sizeof(PlayedWaveHeaders)/sizeof(*PlayedWaveHeaders)) // wait for a free block ...
+    if(ScheduledBlocks >= sizeof(PlayedWaveHeaders)/sizeof(*PlayedWaveHeaders)) // wait for a free block ...
     {
         usleep(50000);
         return 0;
     }
 
-    if ((hg2 = GlobalAlloc (GMEM_MOVEABLE, len)) == nullptr)   // allocate some memory for a copy of the buffer
+    if((hg2 = GlobalAlloc (GMEM_MOVEABLE, len)) == nullptr)   // allocate some memory for a copy of the buffer
     {
         qCWarning(plugin, "GlobalAlloc failed");
         return 0;
@@ -173,21 +173,21 @@ qint64 OutputWaveOut::writeAudio(unsigned char *data, qint64 len)
     allocptr = GlobalLock (hg2);
     CopyMemory (allocptr, data, len);                         // Here we can call any modification output functions we want....
 
-    if ((hg = GlobalAlloc (GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof (WAVEHDR))) == nullptr) // now make a header and WRITE IT!
+    if((hg = GlobalAlloc (GMEM_MOVEABLE | GMEM_ZEROINIT, sizeof (WAVEHDR))) == nullptr) // now make a header and WRITE IT!
         return -1;
 
     wh                   = (wavehdr_tag*)GlobalLock (hg);
     wh->dwBufferLength   = len;
     wh->lpData           = (CHAR *)allocptr;
 
-    if (waveOutPrepareHeader (dev, wh, sizeof (WAVEHDR)) != MMSYSERR_NOERROR)
+    if(waveOutPrepareHeader (dev, wh, sizeof (WAVEHDR)) != MMSYSERR_NOERROR)
     {
         GlobalUnlock (hg);
         GlobalFree   (hg);
         return -1;
     }
 
-    if (waveOutWrite (dev, wh, sizeof (WAVEHDR)) != MMSYSERR_NOERROR)
+    if(waveOutWrite (dev, wh, sizeof (WAVEHDR)) != MMSYSERR_NOERROR)
     {
         GlobalUnlock (hg);
         GlobalFree   (hg);
@@ -230,7 +230,7 @@ void OutputWaveOut::reset()
 
 void OutputWaveOut::uninitialize()
 {
-    if (dev)
+    if(dev)
     {
         waveOutReset(dev); // reset the device
         while (ScheduledBlocks > 0)

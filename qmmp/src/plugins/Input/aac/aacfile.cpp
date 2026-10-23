@@ -83,7 +83,7 @@ AACFile::AACFile(QIODevice *input, bool metaData, bool adts) : m_input(input)
         while(adts_pos < buf_at - 6)
         {
             //try to determnate header type;
-            if ((uchar) buf[adts_pos] == 0xff && (((uchar)buf[adts_pos + 1] & 0xf6) == 0xf0))
+            if((uchar) buf[adts_pos] == 0xff && (((uchar)buf[adts_pos + 1] & 0xf6) == 0xf0))
             {
                 unsigned int frame_length = uchar(buf[adts_pos + 3]) << 11;
                 frame_length |= uchar(buf[adts_pos + 4]) << 3;
@@ -109,7 +109,7 @@ AACFile::AACFile(QIODevice *input, bool metaData, bool adts) : m_input(input)
         {
             qCDebug(plugin, "ADTS header found");
 
-            if (!input->isSequential() && adts)
+            if(!input->isSequential() && adts)
                 parseADTS();
             m_isValid = true;
             m_offset += adts_offset;
@@ -129,7 +129,7 @@ AACFile::AACFile(QIODevice *input, bool metaData, bool adts) : m_input(input)
                 (buf[6 + skip_size] << 3) |
                 (buf[7 + skip_size] & 0xE0);
 
-        if (!input->isSequential ())
+        if(!input->isSequential ())
             m_duration = (qint64)(((float)input->size() * 8000.f) / ((float)m_bitrate) + 0.5f);
         else
             m_duration = 0;
@@ -183,7 +183,7 @@ void AACFile::parseADTS()
 
     for (int i = 0; i < buf_at - 1; i++)
     {
-        if (buf[i] == 0xff && (buf[i+1]&0xf6) == 0xf0)
+        if(buf[i] == 0xff && (buf[i+1]&0xf6) == 0xf0)
         {
             memmove (buf, buf + i, buf_at - i);
             buf_at -= i;
@@ -197,13 +197,13 @@ void AACFile::parseADTS()
         //qCDebug(plugin, "frame header = %d", buf[0]);
         buf_at += m_input->read((char *)buf + buf_at, FAAD_MIN_STREAMSIZE*MAX_CHANNELS - buf_at);
 
-        if (buf_at > 7)
+        if(buf_at > 7)
         {
             /* check syncword */
-            if (!((buf[0] == 0xFF)&&((buf[1] & 0xF6) == 0xF0)))
+            if(!((buf[0] == 0xFF)&&((buf[1] & 0xF6) == 0xF0)))
                 break;
 
-            if (frames == 0)
+            if(frames == 0)
                 m_samplerate = adts_sample_rates[(buf[2]&0x3c)>>2];
 
             frame_length = ((((unsigned int)buf[3] & 0x3)) << 11)
@@ -214,7 +214,7 @@ void AACFile::parseADTS()
 
             t_framelength += frame_length;
 
-            if (frame_length > buf_at)
+            if(frame_length > buf_at)
                 break;
 
             buf_at -= frame_length;
@@ -227,13 +227,13 @@ void AACFile::parseADTS()
     }
     m_input->seek(pos);
     frames_per_sec = (float) m_samplerate/1024.0f;
-    if (frames != 0)
+    if(frames != 0)
         bytes_per_frame = (float)t_framelength/(float)(frames*1000);
     else
         bytes_per_frame = 0;
     m_bitrate = (quint32)(8. * bytes_per_frame * frames_per_sec + 0.5);
 
-    if (frames_per_sec != 0)
+    if(frames_per_sec != 0)
         m_duration = frames * 1000 / frames_per_sec;
     else
         m_duration = 1000;
@@ -244,7 +244,7 @@ void AACFile::parseADTS()
 void AACFile::parseID3v2(const QByteArray &data)
 {
     AACID3v2Tag taglib_tag(data);
-    if (taglib_tag.isEmpty())
+    if(taglib_tag.isEmpty())
         return;
 
     TagLib::String album = taglib_tag.album();

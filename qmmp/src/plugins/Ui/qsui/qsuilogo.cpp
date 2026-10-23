@@ -109,7 +109,7 @@ void QSUiLogo::updateLetters()
         m_value = m_elapsed / 100;
         processPreset1();
     }
-    else if (m_elapsed < 6000)
+    else if(m_elapsed < 6000)
     {
         m_value++;
         processPreset2();

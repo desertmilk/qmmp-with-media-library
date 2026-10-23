@@ -54,7 +54,7 @@ QString ColumnEditor::pattern() const
 
 void ColumnEditor::insertExpression(const QString &str)
 {
-    if (m_ui->formatLineEdit->cursorPosition () < 1)
+    if(m_ui->formatLineEdit->cursorPosition () < 1)
         m_ui->formatLineEdit->insert(str);
     else
         m_ui->formatLineEdit->insert(u" - "_s + str);

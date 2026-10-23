@@ -236,7 +236,7 @@ void VolumeHandler::checkVolume()
         emit mutedChanged(d->muted);
     }
 
-    if (d->volumeSettings != v) //volume has been changed
+    if(d->volumeSettings != v) //volume has been changed
     {
         d->volumeSettings = v;
         emit volumeChanged(volume());

@@ -30,7 +30,7 @@ extern "C"{
 static int ffmpeg_read(void *data, uint8_t *buf, int size)
 {
     DecoderFFmpeg *d = (DecoderFFmpeg*)data;
-#if (LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(57,84,101))
+#if(LIBAVFORMAT_VERSION_INT >= AV_VERSION_INT(57,84,101))
     if(d->input()->atEnd())
         return AVERROR_EOF;
 #endif
@@ -99,7 +99,7 @@ DecoderFFmpeg::~DecoderFFmpeg()
     m_bitrate = 0;
     if(m_codecContext)
         avcodec_free_context(&m_codecContext);
-    if (m_formatContext)
+    if(m_formatContext)
         avformat_free_context(m_formatContext);
 
     av_packet_free(&m_pkt);
@@ -144,7 +144,7 @@ bool DecoderFFmpeg::initialize()
     qCDebug(plugin, "detected format: %s", fmt->long_name);
     qCDebug(plugin, "=%s=", fmt->name);
 
-#if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58,10,100)) //ffmpeg-3.5
+#if(LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(58,10,100)) //ffmpeg-3.5
     m_input_buf = (uchar*)av_malloc(INPUT_BUFFER_SIZE + AV_INPUT_BUFFER_PADDING_SIZE);
 #else
     m_input_buf = (uchar*)av_malloc(INPUT_BUFFER_SIZE + FF_INPUT_BUFFER_PADDING_SIZE);
@@ -177,7 +177,7 @@ bool DecoderFFmpeg::initialize()
     if(m_formatContext->pb)
         m_formatContext->pb->eof_reached = 0;
 
-    if (input()->isSequential())
+    if(input()->isSequential())
     {
         QMap<Qmmp::MetaData, QString> metaData;
         AVDictionaryEntry *album = av_dict_get(m_formatContext->metadata,"album",nullptr,0);
@@ -244,7 +244,7 @@ bool DecoderFFmpeg::initialize()
     avcodec_parameters_to_context(m_codecContext, m_formatContext->streams[m_audioIndex]->codecpar);
 
     ChannelMap map;
-#if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(59, 37, 100)) //ffmpeg-5.1
+#if(LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(59, 37, 100)) //ffmpeg-5.1
     m_channels = m_codecContext->ch_layout.nb_channels;
 
     for(int i = 0; i < m_codecContext->ch_layout.nb_channels; ++i)
@@ -274,13 +274,13 @@ bool DecoderFFmpeg::initialize()
 
     const AVCodec *codec = avcodec_find_decoder(m_codecContext->codec_id);
 
-    if (!codec)
+    if(!codec)
     {
         qCWarning(plugin, "unsupported codec for output stream");
         return false;
     }
 
-    if (avcodec_open2(m_codecContext, codec, nullptr) < 0)
+    if(avcodec_open2(m_codecContext, codec, nullptr) < 0)
     {
         qCWarning(plugin, "error while opening codec for output stream");
         return false;
@@ -384,7 +384,7 @@ qint64 DecoderFFmpeg::read(unsigned char *audio, qint64 maxSize)
 void DecoderFFmpeg::seek(qint64 pos)
 {
     int64_t timestamp = int64_t(pos) * AV_TIME_BASE / 1000;
-    if (m_formatContext->start_time != (qint64)AV_NOPTS_VALUE)
+    if(m_formatContext->start_time != (qint64)AV_NOPTS_VALUE)
         timestamp += m_formatContext->start_time;
     m_seekTime = timestamp;
     av_seek_frame(m_formatContext, -1, timestamp, AVSEEK_FLAG_BACKWARD);
@@ -471,7 +471,7 @@ void DecoderFFmpeg::fillBuffer()
         if(!recv_error)
         {
             m_output_size = av_samples_get_buffer_size(nullptr,
-#if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(59,37,100)) //ffmpeg-5.1
+#if(LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(59,37,100)) //ffmpeg-5.1
                                                      m_codecContext->ch_layout.nb_channels,
 #else
                                                      m_codecContext->channels,

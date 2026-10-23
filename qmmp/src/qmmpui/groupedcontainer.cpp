@@ -174,7 +174,7 @@ int GroupedContainer::indexOf(PlayListItem *item) const
 
 PlayListTrack *GroupedContainer::track(int index) const
 {
-    if (0 <= index && index < m_tracks.count())
+    if(0 <= index && index < m_tracks.count())
         return m_tracks.at(index);
 
     return nullptr;
@@ -182,7 +182,7 @@ PlayListTrack *GroupedContainer::track(int index) const
 
 PlayListGroup *GroupedContainer::group(int index) const
 {
-    if (0 <= index && index < m_groups.count())
+    if(0 <= index && index < m_groups.count())
         return m_groups.at(index);
 
     return nullptr;
@@ -263,11 +263,11 @@ bool GroupedContainer::move(const QList<int> &indexes, int from, int to)
             return false;
     }
 
-    if (from > to)
+    if(from > to)
     {
         for(int i : std::as_const(indexes))
         {
-            if (i + to - from < 0)
+            if(i + to - from < 0)
                 break;
 
 
@@ -280,7 +280,7 @@ bool GroupedContainer::move(const QList<int> &indexes, int from, int to)
     {
         for (int i = indexes.count() - 1; i >= 0; i--)
         {
-            if (indexes[i] + to - from >= m_tracks.count())
+            if(indexes[i] + to - from >= m_tracks.count())
                 break;
 
             m_tracks.move(indexes[i], indexes[i] + to - from);
@@ -346,7 +346,7 @@ int GroupedContainer::lineCount() const
 PlayListItem *GroupedContainer::itemAtLine(int lineIndex) const
 {
     updateCache();
-    if (lineIndex < 0 || lineIndex >= m_lines.count())
+    if(lineIndex < 0 || lineIndex >= m_lines.count())
         return nullptr;
 
     PlayListLine line = m_lines.at(lineIndex);

@@ -75,7 +75,7 @@ Notifier::Notifier(QObject *parent) : QObject(parent)
     m_psiTuneFiles << QDir::homePath() + u"/.psi-plus/tune"_s;
     m_psiTuneFiles << QDir::homePath() + u"/.cache/Psi+/tune"_s;
 
-    if (m_core->state() == Qmmp::Playing) //test message
+    if(m_core->state() == Qmmp::Playing) //test message
         showMetaData();
 }
 
@@ -91,7 +91,7 @@ void Notifier::setState(Qmmp::State state)
     {
     case Qmmp::Playing:
     {
-        if (m_isPaused)
+        if(m_isPaused)
         {
             showMetaData();
             m_isPaused = false;
@@ -117,14 +117,14 @@ void Notifier::setState(Qmmp::State state)
 
 void Notifier::showMetaData()
 {
-    if (m_desktop && !hasFullscreenWindow())
+    if(m_desktop && !hasFullscreenWindow())
     {
-        if (!m_popupWidget)
+        if(!m_popupWidget)
             m_popupWidget = new PopupWidget();
         m_popupWidget->showMetaData();
     }
 
-    if (!m_psi)
+    if(!m_psi)
         return;
 
     QByteArray data;
@@ -150,9 +150,9 @@ void Notifier::showVolume(int v)
 {
     if((m_volume != v) && m_showVolume)
     {
-        if (m_volume >= 0 && !hasFullscreenWindow())
+        if(m_volume >= 0 && !hasFullscreenWindow())
         {
-            if (!m_popupWidget)
+            if(!m_popupWidget)
                 m_popupWidget = new PopupWidget();
             m_popupWidget->showVolume(v);
         }
@@ -199,7 +199,7 @@ bool Notifier::hasFullscreenWindow() const
 
     for (unsigned long i = 0; i < nitems; i++)
     {
-        if (atoms[i] == filter)
+        if(atoms[i] == filter)
         {
             XFree(prop);
             return true;

@@ -42,7 +42,7 @@ WavPackMetaDataModel::WavPackMetaDataModel(const QString &path, bool readOnly) :
 #else
     m_ctx = WavpackOpenFileInput(m_path.toLocal8Bit().constData(), err, flags, 0);
 #endif
-    if (!m_ctx)
+    if(!m_ctx)
     {
         qCWarning(plugin, "error: %s", err);
         setReadOnly(true);

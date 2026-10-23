@@ -61,7 +61,7 @@ void SkinnedHorizontalSlider::paintEvent(QPaintEvent *)
 void SkinnedHorizontalSlider::mousePressEvent(QMouseEvent *e)
 {
     m_press_pos = e->position().x();
-    if (m_slider_pos < e->position().x() && e->position().x() < m_slider_pos + sliderSize())
+    if(m_slider_pos < e->position().x() && e->position().x() < m_slider_pos + sliderSize())
     {
         m_press_pos = e->position().x() - m_slider_pos;
     }
@@ -73,14 +73,14 @@ void SkinnedHorizontalSlider::mouseMoveEvent(QMouseEvent* e)
     int po = e->position().x() - m_press_pos;
     bool rtl = (layoutDirection() == Qt::RightToLeft);
 
-    if (0 <= po && po <= width() - sliderSize())
+    if(0 <= po && po <= width() - sliderSize())
     {
         if(rtl)
             po = width() - po - sliderSize();
 
         m_value = convert(po);
         update();
-        if (m_value != m_old_value)
+        if(m_value != m_old_value)
         {
             m_old_value = m_value;
             emit sliderMoved(m_value);

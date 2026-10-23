@@ -75,7 +75,7 @@ void XmpSettingsDialog::writeSettings()
     settings.setValue(u"a500"_s, m_ui->a500CheckBox->isChecked());
     settings.endGroup();
     //apply settings for the created decoder
-    if (DecoderXmp::instance())
+    if(DecoderXmp::instance())
     {
         //DecoderXmp::instance()->mutex()->lock();
         DecoderXmp::instance()->readSettings();

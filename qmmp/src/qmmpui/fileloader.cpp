@@ -169,7 +169,7 @@ void FileLoader::addDirectory(const QString &s, PlayListTrack *before)
             ignoredPaths.unite(QSet<QString>(paths.cbegin(), paths.cend()));
         }
 
-        if (m_finished)
+        if(m_finished)
         {
             qDeleteAll(tracks);
             tracks.clear();
@@ -199,7 +199,7 @@ void FileLoader::addDirectory(const QString &s, PlayListTrack *before)
     {
         QFileInfo fileInfo = l.at(i);
         addDirectory(fileInfo.absoluteFilePath (), before);
-        if (m_finished)
+        if(m_finished)
             return;
     }
 }

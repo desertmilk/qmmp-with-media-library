@@ -54,7 +54,7 @@ public:
         for(PlayListTrack *t : std::as_const(tracks))
         {
             t->endUsage();
-            if (!t->isUsed() && t->isSheduledForDeletion())
+            if(!t->isUsed() && t->isSheduledForDeletion())
             {
                 delete t;
                 t = nullptr;
@@ -294,7 +294,7 @@ public:
         QString dir_path;
         if(!info.path().contains(u"://"_s)) //local file
             dir_path = QFileInfo(info.path()).absolutePath();
-        else if (info.path().contains(u":///"_s)) //pseudo-protocol
+        else if(info.path().contains(u":///"_s)) //pseudo-protocol
         {
             dir_path = QUrl(info.path()).path();
             dir_path.replace(QString::fromLatin1(QUrl::toPercentEncoding(u"#"_s)), u"#"_s);

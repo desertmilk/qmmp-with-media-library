@@ -58,13 +58,13 @@ void QmmpTrayIcon::setToolTip(const QString &tip)
 #ifdef QMMP_WS_X11
 bool QmmpTrayIcon::event(QEvent *e)
 {
-    if (e->type() == QEvent::Wheel )
+    if(e->type() == QEvent::Wheel )
     {
         wheelEvent(dynamic_cast<QWheelEvent *>(e));
         e->accept();
         return true;
     }
-    if (e->type() == QEvent::ToolTip)
+    if(e->type() == QEvent::ToolTip)
     {
         showToolTip();
         e->accept();

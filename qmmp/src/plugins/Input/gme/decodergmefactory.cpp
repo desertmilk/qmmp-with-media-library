@@ -64,7 +64,7 @@ QList<TrackInfo> DecoderGmeFactory::createPlayList(const QString &path, TrackInf
         int track = -1;
         QString filePath = TrackInfo::pathFromUrl(path, &track);
         QList<TrackInfo> list = createPlayList(filePath, parts, ignoredFiles);
-        if (list.isEmpty() || track <= 0 || track > list.count())
+        if(list.isEmpty() || track <= 0 || track > list.count())
         {
             list.clear();
             return list;

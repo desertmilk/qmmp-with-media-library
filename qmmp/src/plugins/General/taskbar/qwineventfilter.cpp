@@ -91,21 +91,21 @@ bool QWinEventFilter::nativeEventFilter(const QByteArray &, void *message, qintp
         event = new QWinEvent(QWinEvent::ThemeChange);
         break;
     default :
-        if (tbButtonCreatedMsgId == msg->message) {
+        if(tbButtonCreatedMsgId == msg->message) {
             event = new QWinEvent(QWinEvent::TaskbarButtonCreated);
             filterOut = true;
         }
         break;
     }
 
-    if (event) {
+    if(event) {
         window = findWindow(msg->hwnd);
-        if (window)
+        if(window)
             QCoreApplication::sendEvent(window, event);
         delete event;
     }
 
-    if (filterOut && result) {
+    if(filterOut && result) {
         *result = 0;
     }
 
@@ -114,7 +114,7 @@ bool QWinEventFilter::nativeEventFilter(const QByteArray &, void *message, qintp
 
 void QWinEventFilter::setup()
 {
-    if (!instance) {
+    if(!instance) {
         instance = new QWinEventFilter;
         qApp->installNativeEventFilter(instance);
     }
@@ -125,7 +125,7 @@ QWindow *QWinEventFilter::findWindow(HWND handle)
     const WId wid = reinterpret_cast<WId>(handle);
     const auto topLevels = QGuiApplication::topLevelWindows();
     for (QWindow *topLevel : topLevels) {
-        if (topLevel->handle() && topLevel->winId() == wid)
+        if(topLevel->handle() && topLevel->winId() == wid)
             return topLevel;
     }
     return nullptr;

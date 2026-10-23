@@ -80,7 +80,7 @@ static size_t curl_header(void *data, size_t size, size_t nmemb,
     HttpStreamReader *dl = static_cast<HttpStreamReader *>(pointer);
     dl->mutex()->lock ();
     size_t data_size = size * nmemb;
-    if (data_size < 3)
+    if(data_size < 3)
     {
         dl->mutex()->unlock();
         return data_size;
@@ -89,12 +89,12 @@ static size_t curl_header(void *data, size_t size, size_t nmemb,
     //qCDebug(plugin, "header received: %s", (char*) data);
     QByteArray header((char *) data, data_size);
     header = header.trimmed ();
-    if (header.left(4).contains("HTTP"))
+    if(header.left(4).contains("HTTP"))
     {
         qCDebug(plugin, "header received");
         //TODO open metadata socket
     }
-    else if (header.left(4).contains("ICY"))
+    else if(header.left(4).contains("ICY"))
     {
         qCDebug(plugin, "shoutcast header received");
         //dl->stream()->icy_meta_data = true;
@@ -106,7 +106,7 @@ static size_t curl_header(void *data, size_t size, size_t nmemb,
         dl->stream()->header.insert(key, value);
         qCDebug(plugin, "key=%s, value=%s",qPrintable(key), value.constData());
 
-        if (key == "icy-metaint"_L1)
+        if(key == "icy-metaint"_L1)
         {
             dl->stream()->icy_metaint = value.toInt();
             dl->stream()->icy_meta_data = true;
@@ -134,7 +134,7 @@ int curl_progress(void *pointer, curl_off_t dltotal, curl_off_t dlnow, curl_off_
     dl->mutex()->lock ();
     bool aborted = dl->stream()->aborted;
     dl->mutex()->unlock();
-    if (aborted)
+    if(aborted)
         return -1;
     return 0;
 }
@@ -170,7 +170,7 @@ HttpStreamReader::~HttpStreamReader()
     m_stream.aborted = true;
     m_stream.buf_fill = 0;
     m_stream.buf_size = 0;
-    if (m_stream.buf)
+    if(m_stream.buf)
         free(m_stream.buf);
 
     m_stream.buf = nullptr;
@@ -238,7 +238,7 @@ qint64 HttpStreamReader::readData(char* data, qint64 maxlen)
         m_mutex.unlock();
         return 0;
     }
-    if (m_stream.icy_metaint == 0)
+    if(m_stream.icy_metaint == 0)
         len = readBuffer(data, maxlen);
     else
     {
@@ -249,7 +249,7 @@ qint64 HttpStreamReader::readData(char* data, qint64 maxlen)
             qint64 res = readBuffer(data + nread, to_read);
             nread += res;
             m_metacount += res;
-            if (m_metacount == m_stream.icy_metaint)
+            if(m_metacount == m_stream.icy_metaint)
             {
                 m_metacount = 0;
                 m_mutex.unlock();
@@ -277,7 +277,7 @@ QMutex *HttpStreamReader::mutex()
 
 QString HttpStreamReader::contentType()
 {
-    if (m_stream.header.contains(u"content-type"_s))
+    if(m_stream.header.contains(u"content-type"_s))
         return QString::fromLatin1(m_stream.header.value(u"content-type"_s)).toLower();
     return QString();
 }
@@ -286,7 +286,7 @@ void HttpStreamReader::abort()
 {
     m_mutex.lock();
     m_ready = false;
-    if (m_stream.aborted)
+    if(m_stream.aborted)
     {
         m_mutex.unlock();
         return;
@@ -295,7 +295,7 @@ void HttpStreamReader::abort()
     m_mutex.unlock();
     if(m_thread->isRunning())
         m_thread->wait();
-    if (m_handle)
+    if(m_handle)
     {
         curl_easy_cleanup(m_handle);
         m_handle = nullptr;
@@ -315,7 +315,7 @@ void HttpStreamReader::run()
     memset(errorBuffer, 0, sizeof(errorBuffer));
     m_handle = curl_easy_init();
     //proxy
-    if (QmmpSettings::instance()->isProxyEnabled())
+    if(QmmpSettings::instance()->isProxyEnabled())
     {
         curl_easy_setopt(m_handle, CURLOPT_PROXY,
                          strdup((QmmpSettings::instance()->proxy().host() + QLatin1Char(':') +
@@ -330,7 +330,7 @@ void HttpStreamReader::run()
         curl_easy_setopt(m_handle, CURLOPT_NOPROXY, "*");
     }
 
-    if (QmmpSettings::instance()->useProxyAuth())
+    if(QmmpSettings::instance()->useProxyAuth())
         curl_easy_setopt(m_handle, CURLOPT_PROXYUSERPWD,
                          strdup((QmmpSettings::instance()->proxy().userName() + QLatin1Char(':') +
                                  QmmpSettings::instance()->proxy().password()).
@@ -401,7 +401,7 @@ void HttpStreamReader::run()
 
 qint64 HttpStreamReader::readBuffer(char* data, qint64 maxlen)
 {
-    if (m_stream.buf_fill > 0 && !m_stream.aborted)
+    if(m_stream.buf_fill > 0 && !m_stream.aborted)
     {
         int len = qMin<qint64>(m_stream.buf_fill, maxlen);
         memcpy(data, m_stream.buf, len);
@@ -410,7 +410,7 @@ qint64 HttpStreamReader::readBuffer(char* data, qint64 maxlen)
         return len;
     }
 
-    if (m_stream.aborted)
+    if(m_stream.aborted)
         return -1;
 
     return 0;
@@ -468,7 +468,7 @@ void HttpStreamReader::readICYMetaData()
         m_mutex.lock();
     }
     readBuffer((char *)&packet_size, 1);
-    if (packet_size != 0)
+    if(packet_size != 0)
     {
         size_t size = packet_size * 16;
         char *packet = new char[size];
@@ -507,12 +507,12 @@ void HttpStreamReader::parseICYMetaData(char *data, qint64 size)
     const QStringList list(str.split(QLatin1Char(';'), Qt::SkipEmptyParts));
     for(QString line : std::as_const(list))
     {
-        if (line.contains(u"StreamTitle="_s))
+        if(line.contains(u"StreamTitle="_s))
         {
             line = line.right(line.size() - line.indexOf(QLatin1Char('=')) - 1).trimmed();
             m_title = line.remove(QLatin1Char('\''));
             QMap<Qmmp::MetaData, QString> metaData;
-            if (!m_title.isEmpty())
+            if(!m_title.isEmpty())
             {
                 QStringList l = m_title.split(u" - "_s);
                 if(l.count() > 1)

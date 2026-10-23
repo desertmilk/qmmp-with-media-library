@@ -56,7 +56,7 @@ void ProjectMWidget::addPCM(float *left, float *right)
     if(!m_projectM)
         return;
 
-    for(size_t i = 0; i < qMin(512, QMMP_VISUAL_NODE_SIZE); i++)
+    for(int i = 0; i < qMin(512, QMMP_VISUAL_NODE_SIZE); i++)
     {
         m_buf[0][i] = left[i] * 32767.0;
         m_buf[1][i] = right[i] * 32767.0;
@@ -87,7 +87,7 @@ void ProjectMWidget::initializeGL()
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glLineStipple(2, 0xAAAA);
 
-    if (!m_projectM)
+    if(!m_projectM)
     {
 #ifdef Q_OS_WIN
         projectM::Settings settings;

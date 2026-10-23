@@ -210,7 +210,7 @@ void ConverterDialog::createMenus()
 
 void ConverterDialog::addTitleString(const QString &str)
 {
-    if (m_ui->outFileEdit->cursorPosition () < 1)
+    if(m_ui->outFileEdit->cursorPosition () < 1)
         m_ui->outFileEdit->insert(str);
     else
         m_ui->outFileEdit->insert(u" - "_s + str);

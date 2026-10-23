@@ -43,7 +43,7 @@ extern "C"{
 
 DecoderFFmpegFactory::DecoderFFmpegFactory()
 {
-#if (LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)) //ffmpeg-3.5
+#if(LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58,10,100)) //ffmpeg-3.5
     avcodec_register_all();
     avformat_network_init();
     av_register_all();
@@ -233,7 +233,7 @@ QList<TrackInfo> DecoderFFmpegFactory::createPlayList(const QString &path, Track
             AVCodecParameters *c = in->streams[idx]->codecpar;
             info.setValue(Qmmp::BITRATE, int(c->bit_rate) / 1000);
             info.setValue(Qmmp::SAMPLERATE, c->sample_rate);
-#if (LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(59,37,100)) //ffmpeg-5.1
+#if(LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(59,37,100)) //ffmpeg-5.1
             info.setValue(Qmmp::CHANNELS, c->ch_layout.nb_channels);
 #else
             info.setValue(Qmmp::CHANNELS, c->channels);

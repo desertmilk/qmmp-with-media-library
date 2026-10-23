@@ -73,29 +73,36 @@ bool DecoderMpegFactory::canDecode(QIODevice *input) const
     if(input->peek(buf, sizeof(buf)) != sizeof(buf))
         return false;
 
-    if (!memcmp(buf, "FLV", 3)) //skip Macromedia Flash Video
+    if(!memcmp(buf, "FLV", 3)) //skip Macromedia Flash Video
         return false;
 
-    if (!memcmp(buf + 8, "WAVE", 4))
+    if(!memcmp(buf + 8, "WAVE", 4))
         return !memcmp(buf + 20, "U" ,1);
 
     if(!memcmp(buf, "ID3", 3))
     {
-        TagLib::ByteVector byteVector(buf, dataSize);
-        TagLib::ID3v2::Header header(byteVector);
-
         //skip id3v2tag if possible
         if(input->isSequential())
         {
-            if(header.tagSize() >= dataSize)
+            TagLib::ID3v2::Header header(TagLib::ByteVector(buf, TagLib::ID3v2::Header::size()));
+
+            if(header.completeTagSize() >= dataSize)
                 return false;
 
-            dataSize -= header.tagSize();
-            memmove(buf, buf + header.tagSize(), dataSize);
+            dataSize -= header.completeTagSize();
+            memmove(buf, buf + header.completeTagSize(), dataSize);
         }
         else
         {
-            input->seek(header.tagSize());
+            //skip all ID3v2 tags
+            while(!memcmp(buf, "ID3", 3))
+            {
+                TagLib::ID3v2::Header header(TagLib::ByteVector(buf, TagLib::ID3v2::Header::size()));
+                input->seek(input->pos() + header.completeTagSize());
+                if(input->peek(buf, TagLib::ID3v2::Header::size()) != TagLib::ID3v2::Header::size())
+                    return false;
+            }
+
             dataSize = input->read(buf, sizeof(buf));
             input->seek(0); //restore initial position
         }
@@ -145,18 +152,18 @@ bool DecoderMpegFactory::canDecode(QIODevice *input) const
 #endif
 
 #ifdef WITH_MPG123
-    if (decoderName == "mpg123"_L1)
+    if(decoderName == "mpg123"_L1)
     {
         mpg123_init();
         mpg123_handle *handle = mpg123_new(nullptr, nullptr);
-        if (!handle)
+        if(!handle)
             return false;
         if(mpg123_open_feed(handle) != MPG123_OK)
         {
             mpg123_delete(handle);
             return false;
         }
-        if (mpg123_format(handle, 44100, MPG123_STEREO, MPG123_ENC_SIGNED_16) != MPG123_OK)
+        if(mpg123_format(handle, 44100, MPG123_STEREO, MPG123_ENC_SIGNED_16) != MPG123_OK)
         {
             mpg123_close(handle);
             mpg123_delete(handle);
@@ -225,7 +232,7 @@ QList<TrackInfo> DecoderMpegFactory::createPlayList(const QString &path, TrackIn
     TagLib::MPEG::File fileRef(&stream, TagLib::ID3v2::FrameFactory::instance());
 #endif
 
-    if (parts & TrackInfo::MetaData)
+    if(parts & TrackInfo::MetaData)
     {
         QSettings settings;
         settings.beginGroup("MPEG"_L1);
@@ -265,7 +272,7 @@ QList<TrackInfo> DecoderMpegFactory::createPlayList(const QString &path, TrackIn
             if(m_using_rusxmms || codecName.contains("UTF") || codecName.isEmpty())
                 codecName = "UTF-8";
 
-            if (tag && !tag->isEmpty())
+            if(tag && !tag->isEmpty())
             {
                 if((tag == fileRef.ID3v1Tag() || tag == fileRef.ID3v2Tag()) && !m_using_rusxmms &&
                         settings.value(u"detect_encoding"_s, false).toBool())
@@ -375,13 +382,13 @@ QList<TrackInfo> DecoderMpegFactory::createPlayList(const QString &path, TrackIn
                     continue;
 
                 TagLib::String desc = frame->description().upper();
-                if (desc == "REPLAYGAIN_TRACK_GAIN")
+                if(desc == "REPLAYGAIN_TRACK_GAIN")
                     info.setValue(Qmmp::REPLAYGAIN_TRACK_GAIN, TStringToQString(frame->fieldList()[1]));
-                else if (desc == "REPLAYGAIN_TRACK_PEAK")
+                else if(desc == "REPLAYGAIN_TRACK_PEAK")
                     info.setValue(Qmmp::REPLAYGAIN_TRACK_PEAK, TStringToQString(frame->fieldList()[1]));
-                else if (desc == "REPLAYGAIN_ALBUM_GAIN")
+                else if(desc == "REPLAYGAIN_ALBUM_GAIN")
                     info.setValue(Qmmp::REPLAYGAIN_ALBUM_GAIN, TStringToQString(frame->fieldList()[1]));
-                else if (desc == "REPLAYGAIN_ALBUM_PEAK")
+                else if(desc == "REPLAYGAIN_ALBUM_PEAK")
                     info.setValue(Qmmp::REPLAYGAIN_ALBUM_PEAK, TStringToQString(frame->fieldList()[1]));
             }
         }
@@ -389,13 +396,13 @@ QList<TrackInfo> DecoderMpegFactory::createPlayList(const QString &path, TrackIn
         {
             TagLib::APE::Tag *tag = fileRef.APETag();
             TagLib::APE::ItemListMap items = tag->itemListMap();
-            if (items.contains("REPLAYGAIN_TRACK_GAIN"))
+            if(items.contains("REPLAYGAIN_TRACK_GAIN"))
                 info.setValue(Qmmp::REPLAYGAIN_TRACK_GAIN,TStringToQString(items["REPLAYGAIN_TRACK_GAIN"].values()[0]));
-            if (items.contains("REPLAYGAIN_TRACK_PEAK"))
+            if(items.contains("REPLAYGAIN_TRACK_PEAK"))
                 info.setValue(Qmmp::REPLAYGAIN_TRACK_PEAK,TStringToQString(items["REPLAYGAIN_TRACK_PEAK"].values()[0]));
-            if (items.contains("REPLAYGAIN_ALBUM_GAIN"))
+            if(items.contains("REPLAYGAIN_ALBUM_GAIN"))
                 info.setValue(Qmmp::REPLAYGAIN_ALBUM_GAIN,TStringToQString(items["REPLAYGAIN_ALBUM_GAIN"].values()[0]));
-            if (items.contains("REPLAYGAIN_ALBUM_PEAK"))
+            if(items.contains("REPLAYGAIN_ALBUM_PEAK"))
                 info.setValue(Qmmp::REPLAYGAIN_ALBUM_PEAK,TStringToQString(items["REPLAYGAIN_ALBUM_PEAK"].values()[0]));
         }
     }

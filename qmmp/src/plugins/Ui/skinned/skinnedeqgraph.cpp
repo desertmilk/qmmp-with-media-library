@@ -82,7 +82,7 @@ double SkinnedEqGraph::eval_spline(double xa[], double ya[], double y2a[], int n
     while (khi - klo > 1)
     {
         int k = (khi + klo) >> 1;
-        if (xa[k] > x)
+        if(xa[k] > x)
             khi = k;
         else
             klo = k;
@@ -101,7 +101,7 @@ void SkinnedEqGraph::draw()
     if(pixmap.isNull())
         pixmap = QPixmap(113 * m_ratio, 19 * m_ratio);
 
-    if (m_values.size()!=10)
+    if(m_values.size()!=10)
     {
         setPixmap (pixmap);
         return;
