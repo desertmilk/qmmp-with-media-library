@@ -1017,7 +1017,7 @@ jobs:
                 "$STAGING/bin/sqldrivers/qsqlpsql.dll" \
                 "$STAGING/bin/sqldrivers/qsqlodbc.dll"
           # Copy dependencies until a fixed point is reached (copied DLLs have deps too).
-          for pass in 1 2 3 4 5 6; do
+          while :; do
             COPIED=0
             while IFS= read -r dep; do
               if [ ! -e "$STAGING/bin/$(basename "$dep")" ]; then
@@ -1145,14 +1145,9 @@ jobs:
             echo "CHANGEEOF"
           } >> $GITHUB_OUTPUT
 
-      - name: Delete existing release
-        run: |
-          gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create checksums file
         run: |
+          set -euo pipefail
           ARCHIVES=()
           shopt -s nullglob
           for artifact_dir in artifacts/*/; do
@@ -1160,10 +1155,19 @@ jobs:
               [ -f "$file" ] && ARCHIVES+=("$file")
             done
           done
-          if [ "${#ARCHIVES[@]}" -gt 0 ]; then
-            sha256sum "${ARCHIVES[@]}" | sed 's#artifacts/[^/]*/##' > SHA256SUMS.txt
-            cat SHA256SUMS.txt
+          if [ "${#ARCHIVES[@]}" -eq 0 ]; then
+            echo "::error::No release archives found"
+            find artifacts -type f | head -20
+            exit 1
           fi
+          sha256sum "${ARCHIVES[@]}" | sed 's#artifacts/[^/]*/##' > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Delete existing release
+        run: |
+          gh release delete "$RELEASE_TAG" --yes --cleanup-tag || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub release
         run: |
@@ -1285,7 +1289,8 @@ jobs:
           ### Linux - Binary Tarball
           ```bash
           tar -xzf qmmp-*-linux-x86_64-binary.tar.gz
-          sudo cp -r usr / && sudo cp -r etc / 2>/dev/null || true
+          sudo cp -r usr /
+          if [ -d etc ]; then sudo cp -r etc /; fi
           sudo ldconfig
           ```
 
