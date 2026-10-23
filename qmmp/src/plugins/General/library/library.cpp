@@ -73,12 +73,6 @@ Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
     m_showAction->setShortcut(tr("Alt+L"));
     UiHelper::instance()->addAction(m_showAction, UiHelper::TOOLS_MENU);
     connect(m_showAction, &QAction::triggered, this, &Library::showLibraryWindow);
-    connect(qApp, &QApplication::aboutToQuit, this, [this] {
-        QSettings settings;
-        settings.setValue(u"Library/visible"_s,
-                          !m_libraryWidget->isNull() && m_libraryWidget->data()->isWindow() &&
-                          m_libraryWidget->data()->isVisible());
-    });
     if(!m_libraryWidget->isNull() && !m_libraryWidget->data()->isWindow())
         m_showAction->setVisible(false);
 

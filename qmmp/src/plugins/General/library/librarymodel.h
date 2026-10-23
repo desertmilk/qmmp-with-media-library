@@ -25,7 +25,6 @@
 #include <QStringList>
 #include <QUrl>
 #include <QAbstractItemModel>
-#include <optional>
 
 class QWidget;
 class QSqlDatabase;
@@ -54,6 +53,7 @@ public:
     Qt::ItemFlags flags(const QModelIndex &index) const override;
     QStringList mimeTypes() const override;
     QMimeData *mimeData(const QModelIndexList &indexes) const override;
+    QMimeData *filteredMimeData() const;
     bool canFetchMore(const QModelIndex &parent) const override;
     void fetchMore(const QModelIndex &parent) override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
@@ -64,7 +64,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     void setFilter(const QString &filter);
-    void setTrackFilter(const std::optional<QString> &artist, const std::optional<QString> &album);
+    void setTrackFilter(const QStringList &artists, const QStringList &albums);
     void setViewMode(ViewMode mode);
     ViewMode viewMode() const;
     void refresh();
@@ -84,8 +84,8 @@ private:
 
     LibraryTreeItem *m_rootItem;
     QString m_filter;
-    std::optional<QString> m_artistFilter;
-    std::optional<QString> m_albumFilter;
+    QStringList m_artistFilter;
+    QStringList m_albumFilter;
     bool m_showYear;
     ViewMode m_viewMode = ArtistView;
     int m_sortColumn = -1;

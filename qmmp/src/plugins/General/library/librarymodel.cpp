@@ -128,6 +128,18 @@ QMimeData *LibraryModel::mimeData(const QModelIndexList &indexes) const
     return nullptr;
 }
 
+QMimeData *LibraryModel::filteredMimeData() const
+{
+    QList<PlayListTrack *> tracks = getFilteredTracks();
+    if(tracks.isEmpty())
+        return nullptr;
+
+    QMimeData *data = new QMimeData;
+    data->setData(u"application/json"_s, PlayListParser::serialize(tracks));
+    qDeleteAll(tracks);
+    return data;
+}
+
 bool LibraryModel::canFetchMore(const QModelIndex &parent) const
 {
     if(!parent.isValid())
@@ -378,11 +390,11 @@ void LibraryModel::setFilter(const QString &filter)
     m_filter = filter;
 }
 
-void LibraryModel::setTrackFilter(const std::optional<QString> &artist, const std::optional<QString> &album)
+void LibraryModel::setTrackFilter(const QStringList &artists, const QStringList &albums)
 {
     m_viewMode = TrackView;
-    m_artistFilter = artist;
-    m_albumFilter = album;
+    m_artistFilter = artists;
+    m_albumFilter = albums;
     refresh();
 }
 
@@ -481,10 +493,20 @@ void LibraryModel::refresh()
     if(m_viewMode == TrackView)
     {
         QStringList conditions;
-        if(m_artistFilter)
-            conditions << u"Artist = :artist"_s;
-        if(m_albumFilter)
-            conditions << u"Album = :album"_s;
+        if(!m_artistFilter.isEmpty())
+        {
+            QStringList placeholders;
+            for(int i = 0; i < m_artistFilter.size(); ++i)
+                placeholders << u":artist%1"_s.arg(i);
+            conditions << u"Artist IN ("_s + placeholders.join(u", "_s) + u")"_s;
+        }
+        if(!m_albumFilter.isEmpty())
+        {
+            QStringList placeholders;
+            for(int i = 0; i < m_albumFilter.size(); ++i)
+                placeholders << u":album%1"_s.arg(i);
+            conditions << u"Album IN ("_s + placeholders.join(u", "_s) + u")"_s;
+        }
         if(!conditions.isEmpty())
             sql += (sql.contains(u" WHERE "_s) ? u" AND "_s : u" WHERE "_s) + conditions.join(u" AND "_s);
         sql += u" ORDER BY Artist, Album, DiscNumber, Track, ID"_s;
@@ -495,10 +517,10 @@ void LibraryModel::refresh()
         query.bindValue(u":filter"_s, LibraryModel::likePattern(m_filter));
     if(m_viewMode == TrackView)
     {
-        if(m_artistFilter)
-            query.bindValue(u":artist"_s, *m_artistFilter);
-        if(m_albumFilter)
-            query.bindValue(u":album"_s, *m_albumFilter);
+        for(int i = 0; i < m_artistFilter.size(); ++i)
+            query.bindValue(u":artist%1"_s.arg(i), m_artistFilter.at(i));
+        for(int i = 0; i < m_albumFilter.size(); ++i)
+            query.bindValue(u":album%1"_s.arg(i), m_albumFilter.at(i));
     }
     if(!query.exec())
         qCWarning(plugin, "exec error: %s", qPrintable(query.lastError().text()));

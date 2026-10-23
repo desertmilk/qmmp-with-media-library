@@ -54,7 +54,19 @@
 class LibrarySummarySortModel : public QSortFilterProxyModel
 {
 public:
-    using QSortFilterProxyModel::QSortFilterProxyModel;
+    explicit LibrarySummarySortModel(LibraryModel *libraryModel, QObject *parent = nullptr) :
+        QSortFilterProxyModel(parent), m_libraryModel(libraryModel)
+    {}
+
+    QStringList mimeTypes() const override
+    {
+        return m_libraryModel->mimeTypes();
+    }
+
+    QMimeData *mimeData(const QModelIndexList &indexes) const override
+    {
+        return indexes.isEmpty() ? nullptr : m_libraryModel->filteredMimeData();
+    }
 
     void sort(int column, Qt::SortOrder order = Qt::AscendingOrder) override
     {
@@ -82,6 +94,7 @@ protected:
 
 private:
     Qt::SortOrder m_sortOrder = Qt::AscendingOrder;
+    LibraryModel *m_libraryModel;
 };
 LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     QWidget(parent),
@@ -99,7 +112,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     treeHeader->setFirstSectionMovable(true);
         m_artistsModel = new QStandardItemModel(this);
         m_artistsModel->setHorizontalHeaderLabels({tr("Artist"), tr("Albums"), tr("Tracks")});
-        m_artistsProxy = new LibrarySummarySortModel(this);
+        m_artistsProxy = new LibrarySummarySortModel(m_model, this);
         m_artistsProxy->setSourceModel(m_artistsModel);
         m_ui->artistsTableView->setModel(m_artistsProxy);
         m_ui->artistsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
@@ -116,7 +129,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
             m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
         m_albumsModel->setHorizontalHeaderLabels({tr("Album"), tr("Year"), tr("Tracks")});
-        m_albumsProxy = new LibrarySummarySortModel(this);
+        m_albumsProxy = new LibrarySummarySortModel(m_model, this);
         m_albumsProxy->setSourceModel(m_albumsModel);
         m_ui->albumsTableView->setModel(m_albumsProxy);
         m_ui->albumsTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
@@ -493,6 +506,18 @@ void LibraryWidget::mouseReleaseEvent(QMouseEvent *event)
     QWidget::mouseReleaseEvent(event);
 }
 
+void LibraryWidget::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    if(!m_skinPlaylist.isNull() && event->button() == Qt::LeftButton &&
+            event->position().y() < 20 && event->position().x() < width() - 29)
+    {
+        toggleShade();
+        event->accept();
+        return;
+    }
+    QWidget::mouseDoubleClickEvent(event);
+}
+
 bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
 {
     if((watched == m_ui->artistsTableView->viewport() ||
@@ -789,23 +814,30 @@ void LibraryWidget::refreshAlbums()
     if(!db.isOpen())
         return;
 
-    QModelIndex artistIndex = m_ui->artistsTableView->currentIndex();
-    m_selectedArtist.reset();
-    if(artistIndex.isValid() && artistIndex.row() > 0)
-        m_selectedArtist = artistIndex.siblingAtColumn(0).data(Qt::UserRole).toString();
+    m_selectedArtists.clear();
+    for(const QModelIndex &index : m_ui->artistsTableView->selectionModel()->selectedRows(0))
+    {
+        if(index.row() > 0)
+            m_selectedArtists << index.data(Qt::UserRole).toString();
+    }
     m_albumsModel->removeRows(0, m_albumsModel->rowCount());
 
     QSqlQuery query(db);
     QString filter = m_ui->filterLineEdit->text();
     QString sql = u"SELECT Album, MAX(Year), COUNT(*) FROM track_library "
                   "WHERE SearchString LIKE :filter ESCAPE '\\'"_s;
-    if(m_selectedArtist)
-        sql += u" AND Artist = :artist"_s;
+    if(!m_selectedArtists.isEmpty())
+    {
+        QStringList placeholders;
+        for(int i = 0; i < m_selectedArtists.size(); ++i)
+            placeholders << u":artist%1"_s.arg(i);
+        sql += u" AND Artist IN ("_s + placeholders.join(u", "_s) + u")"_s;
+    }
     sql += u" GROUP BY Album ORDER BY Album"_s;
     query.prepare(sql);
     query.bindValue(u":filter"_s, LibraryModel::likePattern(filter));
-    if(m_selectedArtist)
-        query.bindValue(u":artist"_s, *m_selectedArtist);
+    for(int i = 0; i < m_selectedArtists.size(); ++i)
+        query.bindValue(u":artist%1"_s.arg(i), m_selectedArtists.at(i));
     if(!query.exec())
         return;
 
@@ -836,11 +868,13 @@ void LibraryWidget::refreshAlbums()
 
 void LibraryWidget::updateTrackFilter()
 {
-    QModelIndex albumIndex = m_ui->albumsTableView->currentIndex();
-    m_selectedAlbum.reset();
-    if(albumIndex.isValid() && albumIndex.row() > 0)
-        m_selectedAlbum = albumIndex.siblingAtColumn(0).data(Qt::UserRole).toString();
-    m_model->setTrackFilter(m_selectedArtist, m_selectedAlbum);
+    m_selectedAlbums.clear();
+    for(const QModelIndex &index : m_ui->albumsTableView->selectionModel()->selectedRows(0))
+    {
+        if(index.row() > 0)
+            m_selectedAlbums << index.data(Qt::UserRole).toString();
+    }
+    m_model->setTrackFilter(m_selectedArtists, m_selectedAlbums);
 }
 
 void LibraryWidget::replaceArtists()

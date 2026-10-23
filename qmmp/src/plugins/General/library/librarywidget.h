@@ -23,7 +23,7 @@
 
 #include <QWidget>
 #include <QPixmap>
-#include <optional>
+#include <QStringList>
 
 namespace Ui {
 class LibraryWidget;
@@ -88,6 +88,7 @@ private:
     void paintEvent(QPaintEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
+    void mouseDoubleClickEvent(QMouseEvent *event) override;
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -108,8 +109,8 @@ private:
     QStandardItemModel *m_albumsModel;
     QSortFilterProxyModel *m_artistsProxy;
     QSortFilterProxyModel *m_albumsProxy;
-    std::optional<QString> m_selectedArtist;
-    std::optional<QString> m_selectedAlbum;
+    QStringList m_selectedArtists;
+    QStringList m_selectedAlbums;
     QPixmap m_skinPlaylist;
     QWidget *m_resizeWidget = nullptr;
     QPoint m_dragOffset;
