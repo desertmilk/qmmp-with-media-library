@@ -861,7 +861,28 @@ jobs:
               fi
             done < <(find "$APP_BUNDLE" -type f -print0)
           done
-
+          # Fix ids and references for all non-framework dylibs left pointing at Homebrew
+          for pass in {1..5}; do
+            while IFS= read -r -d '' f; do
+              file -b "$f" | grep -q 'Mach-O' || continue
+              # Own install name
+              case "$f" in
+                "$CONTENTS/Frameworks/"*.dylib)
+                  id=$(otool -D "$f" | tail -n +2)
+                  if [[ "$id" == /opt/homebrew/* || "$id" == /usr/local/* ]]; then
+                    install_name_tool -id "@rpath/$(basename "$f")" "$f"
+                  fi ;;
+              esac
+              # References to other Homebrew dylibs
+              while IFS= read -r dep; do
+                if [[ "$dep" =~ ^(/opt/homebrew|/usr/local)/.*/([^/]+\.dylib)$ ]]; then
+                  name="${BASH_REMATCH[2]}"
+                  [ -f "$CONTENTS/Frameworks/$name" ] || cp -L "$dep" "$CONTENTS/Frameworks/$name"
+                  install_name_tool -change "$dep" "@rpath/$name" "$f"
+                fi
+              done < <(otool -L "$f" | awk 'NR > 2 {print $1}')
+            done < <(find "$APP_BUNDLE" -type f -print0)
+          done
           # All bundled code must be able to find the copied frameworks at
           # runtime, including plugins loaded by Qt.
           while IFS= read -r -d '' f; do
