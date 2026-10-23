@@ -231,7 +231,8 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ github.workspace }}/taglib-install
-          key: taglib-${{ env.TAGLIB_VERSION }}-linux-binary-static-v1
+          key: taglib-${{ env.TAGLIB_VERSION }}-linux-static-v1
+          restore-keys: taglib-${{ env.TAGLIB_VERSION }}-linux-
 
       - name: Build TagLib ${{ env.TAGLIB_VERSION }} from source
         if: steps.taglib-cache.outputs.cache-hit != 'true'
@@ -412,7 +413,8 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ github.workspace }}/taglib-install
-          key: taglib-${{ env.TAGLIB_VERSION }}-linux-appimage-static-v1
+          key: taglib-${{ env.TAGLIB_VERSION }}-linux-static-v1
+          restore-keys: taglib-${{ env.TAGLIB_VERSION }}-linux-
 
       - name: Build TagLib ${{ env.TAGLIB_VERSION }} from source
         if: steps.taglib-cache.outputs.cache-hit != 'true'
@@ -681,7 +683,7 @@ jobs:
       - name: Normalize Homebrew Qt install names for macdeployqt
         run: |
           set -euo pipefail
-          FRAMEWORKS=$(find /opt/homebrew/opt -maxdepth 4 -type d -path '*/lib/Qt*.framework')
+          FRAMEWORKS=$(find -L /opt/homebrew/opt -maxdepth 4 -type d -path '*/lib/Qt*.framework' -print)
           test -n "$FRAMEWORKS"
 
           # Pass 1: give every framework an @rpath-style id.
@@ -699,7 +701,7 @@ jobs:
             name=$(basename "$fw" .framework)
             bin="$fw/Versions/A/$name"
             [ -f "$bin" ] || continue
-            otool -L "$bin" | awk 'NR>1{print $1}' | grep -E '^/opt/homebrew/.*/Qt.*\.framework/' | while read -r dep; do
+            otool -L "$bin" | awk 'NR > 1 && $1 ~ /^\/opt\/homebrew\/.*\/Qt.*\.framework\// { print $1 }' | while read -r dep; do
               dep_name=$(basename "$(dirname "$(dirname "$(dirname "$dep")")")" .framework)
               install_name_tool -change "$dep" "@rpath/${dep_name}.framework/Versions/A/${dep_name}" "$bin"
             done
