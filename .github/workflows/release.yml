@@ -821,7 +821,7 @@ jobs:
             fi
           done < <(find "$CONTENTS/lib" "$CONTENTS/PlugIns" -type f -print0)
           # -libpath lets macdeployqt resolve @rpath/libqmmp*.2.dylib and bundled Qt dependencies instead of only searching /opt/homebrew/lib; it then copies them into Contents/Frameworks and rewrites the plugins' references.
-          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -verbose=3 \
+          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -verbose=1 \
             -libpath="$CONTENTS/lib" -libpath="$CONTENTS/Frameworks" \
             ${EXEC_ARGS[@]+"${EXEC_ARGS[@]}"}
             #
@@ -832,7 +832,8 @@ jobs:
             rm -rf "$CONTENTS/PlugIns/platforminputcontexts"
 
             # Candidates, ordered roughly from top of the dependency chain to the bottom.
-            PRUNE=(QtVirtualKeyboard QtQuick QtQmlMeta QtQmlWorkerScript QtQmlModels QtQml QtOpenGL)
+            # PRUNE=(QtVirtualKeyboard QtQuick QtQmlMeta QtQmlWorkerScript QtQmlModels QtQml QtOpenGL)
+            PRUNE=(QtVirtualKeyboardQml QtVirtualKeyboard QtQuick QtQmlMeta QtQmlWorkerScript QtQmlModels QtQml QtOpenGL)
             changed=1
             while [ "$changed" -eq 1 ]; do
               changed=0
@@ -856,6 +857,14 @@ jobs:
                 fi
               done
             done
+
+          QOFFSCREEN="$(brew --prefix qt@6)/share/qt/plugins/platforms/libqoffscreen.dylib"
+          [ -f "$QOFFSCREEN" ] || QOFFSCREEN=$(find "$(brew --prefix qtbase)" "$(brew --prefix qt@6)" \
+            -name libqoffscreen.dylib -print -quit 2>/dev/null)
+          test -n "$QOFFSCREEN"
+          mkdir -p "$CONTENTS/PlugIns/platforms"
+          cp -v "$QOFFSCREEN" "$CONTENTS/PlugIns/platforms/"
+
           # Homebrew framework install names can still survive macdeployqt in
           # plugin dependencies. Bundle those frameworks and rewrite the
           # remaining absolute load commands so the app is self-contained.
