@@ -362,3 +362,8 @@ UiHelper *UiHelper::instance()
 {
     return UiHelperPrivate::instance;
 }
+
+void UiHelper::notifySkinChanged()
+{
+    emit skinChanged();
+}

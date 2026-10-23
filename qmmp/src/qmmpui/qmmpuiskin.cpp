@@ -11,6 +11,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QImage>
+#include <QImageReader>
 #include <QFile>
 #include <QSettings>
 #include <QTextStream>
@@ -30,12 +31,29 @@ QString QmmpUiSkin::currentSkinPath()
 QString QmmpUiSkin::filePath(const QString &fileName)
 {
     const QString skinPath = currentSkinPath();
+    QString directory;
     if(skinPath.startsWith(u":"_s))
-        return skinPath + u"/"_s + fileName;
-    if(QFileInfo(skinPath).isDir())
-        return QDir(skinPath).filePath(fileName);
+        directory = skinPath;
+    else if(QFileInfo(skinPath).isDir())
+        directory = skinPath;
+    else
+        directory = Qmmp::cacheDir() + u"/skinned/skin"_s;
 
-    return QDir(Qmmp::cacheDir() + u"/skinned/skin"_s).filePath(fileName);
+    QDir skinDirectory(directory);
+    const QString requestedPath = skinDirectory.filePath(fileName);
+    if(QFileInfo::exists(requestedPath))
+        return requestedPath;
+
+    const QString baseName = QFileInfo(fileName).completeBaseName();
+    const QFileInfoList matches = skinDirectory.entryInfoList({baseName + u".*"_s},
+                                                               QDir::Files | QDir::Hidden,
+                                                               QDir::Name);
+    for(const QFileInfo &match : matches)
+    {
+        if(!QImageReader::imageFormat(match.filePath()).isEmpty())
+            return match.filePath();
+    }
+    return requestedPath;
 }
 
 QString QmmpUiSkin::playlistValue(const QString &key)
@@ -60,6 +78,14 @@ QString QmmpUiSkin::playlistValue(const QString &key)
             return line.mid(separator + 1).trimmed();
     }
     return QString();
+}
+
+QColor QmmpUiSkin::generalColor(int x)
+{
+    const QImage image(filePath(u"genex.bmp"_s));
+    if(image.isNull() || x < 0 || x >= image.width())
+        return {};
+    return QColor::fromRgb(image.pixel(x, 0));
 }
 
 QPixmap QmmpUiSkin::letter(QChar ch)
@@ -100,6 +126,10 @@ QPixmap QmmpUiSkin::letter(QChar ch)
 
 QColor QmmpUiSkin::backgroundColor()
 {
+    const QColor generalColor = QmmpUiSkin::generalColor(52);
+    if(generalColor.isValid())
+        return generalColor;
+
     QColor playlistColor;
     playlistColor.setNamedColor(playlistValue(u"NormalBG"_s));
     if(playlistColor.isValid())
@@ -110,6 +140,10 @@ QColor QmmpUiSkin::backgroundColor()
 
 QColor QmmpUiSkin::foregroundColor()
 {
+    const QColor generalColor = QmmpUiSkin::generalColor(56);
+    if(generalColor.isValid())
+        return generalColor;
+
     QColor playlistColor;
     playlistColor.setNamedColor(playlistValue(u"Normal"_s));
     if(playlistColor.isValid())

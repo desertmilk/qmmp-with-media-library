@@ -34,6 +34,7 @@
 #include <QApplication>
 #endif
 #include <qmmp/qmmp.h>
+#include <qmmpui/uihelper.h>
 #include "skinnedactionmanager.h"
 #include "skinreader.h"
 #include "skin.h"
@@ -294,6 +295,8 @@ void Skin::setSkin(const QString &path, bool force)
             pixmap = scalePixmap(pixmap);
     }
     emit skinChanged();
+    if(UiHelper *uiHelper = UiHelper::instance())
+        uiHelper->notifySkinChanged();
 }
 
 void Skin::reloadSkin()

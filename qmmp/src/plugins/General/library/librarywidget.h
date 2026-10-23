@@ -71,6 +71,7 @@ private slots:
     void showTrackInformation();
     void showLibraryInformation();
     void showSettings();
+    void reloadSkin();
     void setArtistView();
     void setAlbumView();
     void setMostPlayedView();

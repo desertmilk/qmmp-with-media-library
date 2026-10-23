@@ -157,6 +157,7 @@ public:
      * Returns a pointer to the object's instance.
      */
     static UiHelper *instance();
+    void notifySkinChanged();
 
 public slots:
     /*!
@@ -183,6 +184,7 @@ public slots:
     void replaceAndPlay(const QStringList &paths);
 
 signals:
+    void skinChanged();
     /*!
      * Emitted when some general plugin requires to toggle visibility.
      * Use it to show/hide player's window.

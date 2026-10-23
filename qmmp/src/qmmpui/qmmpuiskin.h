@@ -23,6 +23,7 @@ public:
     static QString currentSkinPath();
     static QString filePath(const QString &fileName);
     static QString playlistValue(const QString &key);
+    static QColor generalColor(int x);
     static QPixmap letter(QChar ch);
     static QColor backgroundColor();
     static QColor foregroundColor();

@@ -46,6 +46,7 @@
 #include <QTimer>
 #include <qmmp/qmmp.h>
 #include <qmmpui/qmmpuiskin.h>
+#include <qmmpui/uihelper.h>
 #include "librarymodel.h"
 #include "librarysettingsdialog.h"
 #include "ui_librarywidget.h"
@@ -106,6 +107,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_ui->filterLineEdit->addAction(QIcon::fromTheme(u"edit-find"_s), QLineEdit::LeadingPosition);
     m_model = new LibraryModel(this);
     m_ui->treeView->setModel(m_model);
+    connect(UiHelper::instance(), &UiHelper::skinChanged, this, &LibraryWidget::reloadSkin);
     connect(m_ui->treeView, &QTreeView::doubleClicked, this, &LibraryWidget::playSelected);
     QHeaderView *treeHeader = m_ui->treeView->header();
     treeHeader->setSectionsMovable(true);
@@ -266,17 +268,23 @@ void LibraryWidget::applyPalette()
     QPalette panelPalette = applicationPalette;
     const QColor background = QmmpUiSkin::backgroundColor();
     const QColor foreground = QmmpUiSkin::foregroundColor();
-    const QColor selectedBackground(QmmpUiSkin::playlistValue(u"SelectedBG"_s));
+    const QColor itemBackground = QmmpUiSkin::generalColor(48);
+    const QColor itemForeground = QmmpUiSkin::generalColor(50);
+    const QColor buttonText = QmmpUiSkin::generalColor(54);
+    QColor selectedBackground = QmmpUiSkin::generalColor(60);
+    if(!selectedBackground.isValid())
+        selectedBackground.setNamedColor(QmmpUiSkin::playlistValue(u"SelectedBG"_s));
     const QColor current(QmmpUiSkin::playlistValue(u"Current"_s));
     if(QmmpUiSkin::isSkinnedUi() && background.isValid() && foreground.isValid())
     {
         panelPalette.setColor(QPalette::Window, background);
         panelPalette.setColor(QPalette::WindowText, foreground);
-        panelPalette.setColor(QPalette::Base, background);
-        panelPalette.setColor(QPalette::Text, foreground);
-        panelPalette.setColor(QPalette::AlternateBase, background.lighter(115));
+        panelPalette.setColor(QPalette::Base, itemBackground.isValid() ? itemBackground : background);
+        panelPalette.setColor(QPalette::Text, itemForeground.isValid() ? itemForeground : foreground);
+        panelPalette.setColor(QPalette::AlternateBase,
+                      (itemBackground.isValid() ? itemBackground : background).lighter(115));
         panelPalette.setColor(QPalette::Button, background);
-        panelPalette.setColor(QPalette::ButtonText, foreground);
+        panelPalette.setColor(QPalette::ButtonText, buttonText.isValid() ? buttonText : foreground);
         if(selectedBackground.isValid())
             panelPalette.setColor(QPalette::Highlight, selectedBackground);
         if(current.isValid())
@@ -319,21 +327,59 @@ void LibraryWidget::applyPalette()
 
 bool LibraryWidget::loadSkinChrome()
 {
+    m_skinPlaylist = QPixmap();
     if(!QmmpUiSkin::isSkinnedUi())
         return false;
 
-    m_skinPlaylist = QPixmap(QmmpUiSkin::filePath(u"pledit.png"_s));
+    m_skinPlaylist = QPixmap(QmmpUiSkin::filePath(u"pledit"_s));
     if(!m_skinPlaylist.isNull())
     {
         setMinimumSize(640, 420);
         setSizeIncrement(25, 29);
-        m_resizeWidget = new QWidget(this);
-        m_resizeWidget->resize(25, 29);
+        if(!m_resizeWidget)
+        {
+            m_resizeWidget = new QWidget(this);
+            m_resizeWidget->resize(25, 29);
+            m_resizeWidget->setCursor(Qt::SizeFDiagCursor);
+            m_resizeWidget->installEventFilter(this);
+        }
         m_resizeWidget->move(width() - m_resizeWidget->width(), height() - m_resizeWidget->height());
-        m_resizeWidget->setCursor(Qt::SizeFDiagCursor);
-        m_resizeWidget->installEventFilter(this);
     }
     return !m_skinPlaylist.isNull();
+}
+
+void LibraryWidget::reloadSkin()
+{
+    applyPalette();
+    if(isWindow())
+    {
+        const bool wasVisible = isVisible();
+        const bool hasChrome = loadSkinChrome();
+        const Qt::WindowFlags flags = hasChrome ? Qt::Dialog | Qt::FramelessWindowHint : Qt::Dialog;
+        if(windowFlags() != flags)
+            setWindowFlags(flags);
+
+        if(!hasChrome)
+        {
+            if(m_shaded)
+            {
+                const int oldHeight = height();
+                m_shaded = false;
+                setMinimumHeight(0);
+                setMaximumHeight(QWIDGETSIZE_MAX);
+                resize(width(), m_unshadedHeight > 0 ? m_unshadedHeight : 420);
+                emit shadedChanged(false, height() - oldHeight);
+            }
+            setMinimumSize(0, 0);
+            setSizeIncrement(0, 0);
+            delete m_resizeWidget;
+            m_resizeWidget = nullptr;
+        }
+        m_ui->buttonBox->setVisible(!hasChrome);
+        if(wasVisible)
+            show();
+    }
+    update();
 }
 
 void LibraryWidget::paintEvent(QPaintEvent *event)

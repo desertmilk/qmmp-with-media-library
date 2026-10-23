@@ -55,7 +55,7 @@ void SkinnedButton::mousePressEvent(QMouseEvent *e)
 
     setON(true);
     m_pressed = true;
-    QWidget::mousePressEvent(e);
+    e->accept();
 }
 
 void SkinnedButton::mouseReleaseEvent(QMouseEvent *e)
