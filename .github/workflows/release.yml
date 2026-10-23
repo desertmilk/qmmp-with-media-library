@@ -140,17 +140,14 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ github.workspace }}/taglib-install
-          key: taglib-${{ env.TAGLIB_VERSION }}-linux-static-v1
-          restore-keys: taglib-${{ env.TAGLIB_VERSION }}-linux-
+          key: taglib-${{ env.TAGLIB_VERSION }}-linux-static-v2
 
       - name: Build TagLib ${{ env.TAGLIB_VERSION }} from source
         if: steps.taglib-cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
-          curl -fsSL --retry 3 -o taglib.tar.gz \
-            "https://github.com/taglib/taglib/archive/refs/tags/v${TAGLIB_VERSION}.tar.gz"
-          mkdir -p taglib-src
-          tar -xzf taglib.tar.gz -C taglib-src --strip-components=1
+          git clone --depth 1 --branch "v${TAGLIB_VERSION}" --recurse-submodules \
+            https://github.com/taglib/taglib.git taglib-src
           cmake -S taglib-src -B taglib-build \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -805,6 +802,15 @@ jobs:
           EOF
 
           # macdeployqt only fixes up the main executable and Qt plugins by itself. Qmmp's own plugins/libraries were copied into Contents/lib, so pass them explicitly; otherwise they keep pointing at the runner's Homebrew paths.
+          # Add Contents/lib to each binary's runtime search paths so macdeployqt can resolve the app's @rpath dependencies as well as Qt's.
+          while IFS= read -r -d '' f; do
+            if file -b "$f" | grep -q 'Mach-O'; then
+              if ! otool -l "$f" | grep -Fq 'path @executable_path/../lib'; then
+                install_name_tool -add_rpath '@executable_path/../lib' "$f"
+              fi
+            fi
+          done < <(find "$CONTENTS/MacOS" "$CONTENTS/lib" -type f -print0)
+
           MACDEPLOYQT="$(brew --prefix qt@6)/bin/macdeployqt"
           test -x "$MACDEPLOYQT"
           export PATH="$(brew --prefix qt@6)/bin:$PATH"
