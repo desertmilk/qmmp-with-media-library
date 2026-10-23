@@ -121,16 +121,67 @@ jobs:
           echo "Commits Since Last: ${COMMITS_COUNT}"
           echo "========================================"
 
-  # Job 2: Build on Linux (Ubuntu) - Binary Tarball
+  # Job 2: Build or restore shared static TagLib for both Linux packages
+  build-taglib:
+    needs: check-for-updates
+    if: needs.check-for-updates.outputs.should_build == 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    env:
+      TAGLIB_VERSION: '2.3.2'
+    steps:
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build
+
+      - name: Cache TagLib ${{ env.TAGLIB_VERSION }} (static)
+        id: taglib-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ github.workspace }}/taglib-install
+          key: taglib-${{ env.TAGLIB_VERSION }}-linux-static-v1
+          restore-keys: taglib-${{ env.TAGLIB_VERSION }}-linux-
+
+      - name: Build TagLib ${{ env.TAGLIB_VERSION }} from source
+        if: steps.taglib-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 -o taglib.tar.gz \
+            "https://github.com/taglib/taglib/archive/refs/tags/v${TAGLIB_VERSION}.tar.gz"
+          mkdir -p taglib-src
+          tar -xzf taglib.tar.gz -C taglib-src --strip-components=1
+          cmake -S taglib-src -B taglib-build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/taglib-install \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            -DBUILD_TESTING=OFF
+          cmake --build taglib-build -j$(nproc)
+          cmake --install taglib-build
+
+      - name: Upload TagLib install tree
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: taglib-install
+          path: ${{ github.workspace }}/taglib-install/
+          retention-days: 1
+          if-no-files-found: error
+          compression-level: 0
+
+  # Job 3: Build on Linux (Ubuntu) - Binary Tarball
 
   build-linux-binary:
-    needs: check-for-updates
+    needs:
+      - check-for-updates
+      - build-taglib
     if: needs.check-for-updates.outputs.should_build == 'true'
     runs-on: ubuntu-22.04
     timeout-minutes: 90
     env:
       VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
-      TAGLIB_VERSION: '2.3.2'
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -225,35 +276,11 @@ jobs:
           key: ccache-linux-binary-${{ github.run_id }}
           restore-keys: ccache-linux-binary-
 
-      # Ubuntu 22.04's apt-provided TagLib is 1.11.1. Qmmp's sndfile plugin (AIFF/WAV cover-art editing) uses TagLib::ID3v2::v4 and the File::isSupported() statics, which only exist from TagLib 2.0 onward, so building against the system package fails as soon as that plugin's optional dependency (libsndfile1-dev) is actually present. Built as a static PIC library so the result needs no matching shared TagLib on the machine that runs the tarball.
-      - name: Cache TagLib ${{ env.TAGLIB_VERSION }} (static)
-        id: taglib-cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - name: Download TagLib install tree
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
+          name: taglib-install
           path: ${{ github.workspace }}/taglib-install
-          key: taglib-${{ env.TAGLIB_VERSION }}-linux-static-v1
-          restore-keys: taglib-${{ env.TAGLIB_VERSION }}-linux-
-
-      - name: Build TagLib ${{ env.TAGLIB_VERSION }} from source
-        if: steps.taglib-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          curl -fsSL --retry 3 -o taglib.tar.gz \
-            "https://github.com/taglib/taglib/archive/refs/tags/v${TAGLIB_VERSION}.tar.gz"
-          mkdir -p taglib-src
-          tar -xzf taglib.tar.gz -C taglib-src --strip-components=1
-          cmake -S taglib-src -B taglib-build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/taglib-install \
-            -DCMAKE_INSTALL_LIBDIR=lib \
-            -DBUILD_SHARED_LIBS=OFF \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-            -DBUILD_TESTING=OFF \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-          cmake --build taglib-build -j$(nproc)
-          cmake --install taglib-build
 
       - name: Add local TagLib to PKG_CONFIG_PATH
         run: |
@@ -301,16 +328,17 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
-  # Job 3: Build on Linux (Ubuntu) - AppImage
+  # Job 4: Build on Linux (Ubuntu) - AppImage
 
   build-linux-appimage:
-    needs: check-for-updates
+    needs:
+      - check-for-updates
+      - build-taglib
     if: needs.check-for-updates.outputs.should_build == 'true'
     runs-on: ubuntu-22.04
     timeout-minutes: 90
     env:
       VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
-      TAGLIB_VERSION: '2.3.2'
     steps:
       - name: Checkout repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -407,35 +435,11 @@ jobs:
           key: ccache-linux-appimage-${{ github.run_id }}
           restore-keys: ccache-linux-appimage-
 
-      # Ubuntu 22.04's apt-provided TagLib is 1.11.1. Qmmp's sndfile plugin (AIFF/WAV cover-art editing) uses TagLib::ID3v2::v4 and the File::isSupported() statics, which only exist from TagLib 2.0 onward, so building against the system package fails as soon as that plugin's optional dependency (libsndfile1-dev) is actually present. Built as a static PIC library so there's no separate libtag .so for linuxdeploy to worry about bundling.
-      - name: Cache TagLib ${{ env.TAGLIB_VERSION }} (static)
-        id: taglib-cache
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - name: Download TagLib install tree
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
+          name: taglib-install
           path: ${{ github.workspace }}/taglib-install
-          key: taglib-${{ env.TAGLIB_VERSION }}-linux-static-v1
-          restore-keys: taglib-${{ env.TAGLIB_VERSION }}-linux-
-
-      - name: Build TagLib ${{ env.TAGLIB_VERSION }} from source
-        if: steps.taglib-cache.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          curl -fsSL --retry 3 -o taglib.tar.gz \
-            "https://github.com/taglib/taglib/archive/refs/tags/v${TAGLIB_VERSION}.tar.gz"
-          mkdir -p taglib-src
-          tar -xzf taglib.tar.gz -C taglib-src --strip-components=1
-          cmake -S taglib-src -B taglib-build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/taglib-install \
-            -DCMAKE_INSTALL_LIBDIR=lib \
-            -DBUILD_SHARED_LIBS=OFF \
-            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-            -DBUILD_TESTING=OFF \
-            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-          cmake --build taglib-build -j$(nproc)
-          cmake --install taglib-build
 
       - name: Add local TagLib to PKG_CONFIG_PATH
         run: |
@@ -612,7 +616,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
-  # Job 4: Build on macOS
+  # Job 5: Build on macOS
   build-macos:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -883,7 +887,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
-  # Job 5: Build on Windows (MSYS2/UCRT64)
+  # Job 6: Build on Windows (MSYS2/UCRT64)
   build-windows:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -1057,11 +1061,12 @@ jobs:
           done < <(find "$STAGING" -type f \( -name '*.exe' -o -name '*.dll' \) -print0)
           [ "$BAD" -eq 0 ]
 
-      - name: Smoke test qmmp.exe
+      - name: Smoke test qmmp-cli.exe
         run: |
           STAGING="$PWD/staging-windows"
+          test -f "$STAGING/bin/qmmp-cli.exe"
           test -f "$STAGING/bin/platforms/qoffscreen.dll"
-          timeout 90 env QT_QPA_PLATFORM=offscreen "$STAGING/bin/qmmp.exe" --help
+          timeout 90 env QT_QPA_PLATFORM=offscreen "$STAGING/bin/qmmp-cli.exe" --help
 
       - name: List bundle contents for debugging
         if: always()
@@ -1084,7 +1089,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
-  # Job 6: Create GitHub Release with all artifacts
+  # Job 7: Create GitHub Release with all artifacts
 
   create-release:
     needs:
