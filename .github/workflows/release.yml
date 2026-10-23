@@ -809,7 +809,7 @@ jobs:
                 install_name_tool -add_rpath '@executable_path/../lib' "$f"
               fi
             fi
-          done < <(find "$CONTENTS/MacOS" "$CONTENTS/lib" -type f -print0)
+          done < <(find "$CONTENTS/MacOS" "$CONTENTS/lib" "$CONTENTS/PlugIns" -type f -print0)
 
           MACDEPLOYQT="$(brew --prefix qt@6)/bin/macdeployqt"
           test -x "$MACDEPLOYQT"
@@ -819,9 +819,10 @@ jobs:
             if file -b "$f" | grep -q 'Mach-O'; then
               EXEC_ARGS+=("-executable=$f")
             fi
-          done < <(find "$CONTENTS/lib" -type f -print0)
-          # -libpath lets macdeployqt resolve @rpath/libqmmp*.2.dylib (which live in Contents/lib) instead of only searching /opt/homebrew/lib; it then copies them into Contents/Frameworks and rewrites the plugins' references.
-          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -verbose=3 -libpath="$CONTENTS/lib" \
+          done < <(find "$CONTENTS/lib" "$CONTENTS/PlugIns" -type f -print0)
+          # -libpath lets macdeployqt resolve @rpath/libqmmp*.2.dylib and bundled Qt dependencies instead of only searching /opt/homebrew/lib; it then copies them into Contents/Frameworks and rewrites the plugins' references.
+          "$MACDEPLOYQT" "$APP_BUNDLE" -always-overwrite -verbose=3 \
+            -libpath="$CONTENTS/lib" -libpath="$CONTENTS/Frameworks" \
             ${EXEC_ARGS[@]+"${EXEC_ARGS[@]}"}
 
           file "$APP_BUNDLE/Contents/MacOS/qmmp"
