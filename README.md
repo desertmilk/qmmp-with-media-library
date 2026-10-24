@@ -14,12 +14,12 @@ Fork of [Qmmp](https://qmmp.ylsoftware.com/), a Qt-based multimedia player that 
 - [x] **Artist pane**: list of all artists in the library, with an "All (N Artists)" entry at the top
 - [x] **Album pane**: shows albums for the selected artist(s), with an "All (N Albums)" entry
 - [x] **Cascading filters**: selecting an artist narrows the album list; selecting an album narrows the track list
-- [ ] **Multi-selection** in the Artist and Album panes (Ctrl/Shift-click)
+- [x] **Multi-selection** in the Artist and Album panes (Ctrl/Shift-click)
 - [x] **Track list** filtered by the current Artist/Album selection
 - [x] **Quick search box** that filters all panes as you type
 - [x] **Play / Enqueue / Add to playlist** actions on any artist, album, or track selection (double-click and context menu)
 - [x] **Sortable columns** in the track list (title, artist, album, track number, year, genre, length)
-- [ ] **Persistent** pane layout and splitter positions between sessions
+- [x] **Persistent** pane layout and splitter positions between sessions
 
 ## Download
 
