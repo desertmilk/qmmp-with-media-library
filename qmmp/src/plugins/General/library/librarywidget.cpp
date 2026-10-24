@@ -335,7 +335,7 @@ bool LibraryWidget::loadSkinChrome()
     m_skinPlaylist = QPixmap(QmmpUiSkin::filePath(u"pledit"_s));
     if(!m_skinPlaylist.isNull())
     {
-        setMinimumSize(640, 420);
+        setMinimumSize(640, m_shaded ? 20 : 420);
         setSizeIncrement(25, 29);
         if(!m_resizeWidget)
         {
