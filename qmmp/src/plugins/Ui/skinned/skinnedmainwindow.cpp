@@ -24,6 +24,7 @@
 #include <QMenu>
 #include <QScreen>
 #include <algorithm>
+#include <limits>
 #include <math.h>
 #include <qmmp/soundcore.h>
 #include <qmmp/visual.h>
@@ -309,19 +310,84 @@ void SkinnedMainWindow::writeSettings()
 
 void SkinnedMainWindow::showSettings()
 {
+    if(m_settingsDialog)
+    {
+        m_settingsDialog->raise();
+        m_settingsDialog->activateWindow();
+        return;
+    }
+
     ConfigDialog *confDialog = new ConfigDialog(this);
-    SkinnedSettings *skinnedSettings = new SkinnedSettings(this);
-    SkinnedHotkeyEditor *hotkeyEditor = new SkinnedHotkeyEditor(this);
+    m_settingsDialog = confDialog;
+    SkinnedSettings *skinnedSettings = new SkinnedSettings(confDialog);
+    SkinnedHotkeyEditor *hotkeyEditor = new SkinnedHotkeyEditor(confDialog);
     confDialog->addPage(tr("Appearance"), skinnedSettings, QIcon(u":/skinned/interface.png"_s));
     confDialog->addPage(tr("Shortcuts"), hotkeyEditor, QIcon(u":/skinned/shortcuts.png"_s));
-    if(confDialog->exec() == QDialog::Accepted)
+    confDialog->setAttribute(Qt::WA_DeleteOnClose);
+    confDialog->setModal(false);
+    confDialog->adjustSize();
+
+    QScreen *screen = QGuiApplication::screenAt(frameGeometry().center());
+    if(!screen)
+        screen = QGuiApplication::primaryScreen();
+    if(screen)
+    {
+        const QRect available = screen->availableGeometry();
+        const QRect player = frameGeometry();
+        const QSize dialogSize = confDialog->size();
+        constexpr int gap = 16;
+        int x = player.x();
+        int y = player.y();
+        bool positionedBesidePlayer = true;
+
+        if(player.right() + gap + dialogSize.width() <= available.right() + 1)
+            x = player.right() + gap + 1;
+        else if(player.left() - gap - dialogSize.width() >= available.left())
+            x = player.left() - gap - dialogSize.width();
+        else if(player.bottom() + gap + dialogSize.height() <= available.bottom() + 1)
+            y = player.bottom() + gap + 1;
+        else if(player.top() - gap - dialogSize.height() >= available.top())
+            y = player.top() - gap - dialogSize.height();
+        else
+            positionedBesidePlayer = false;
+
+        const int maxX = qMax(available.left(), available.right() - dialogSize.width() + 1);
+        const int maxY = qMax(available.top(), available.bottom() - dialogSize.height() + 1);
+        if(!positionedBesidePlayer)
+        {
+            const QList<QPoint> corners = {
+                available.topLeft(),
+                QPoint(maxX, available.top()),
+                QPoint(available.left(), maxY),
+                QPoint(maxX, maxY)
+            };
+            QPoint bestPosition = corners.first();
+            int smallestOverlap = std::numeric_limits<int>::max();
+            for(const QPoint &corner : corners)
+            {
+                const QRect overlap = QRect(corner, dialogSize).intersected(player);
+                const int overlapArea = overlap.isEmpty() ? 0 : overlap.width() * overlap.height();
+                if(overlapArea < smallestOverlap)
+                {
+                    bestPosition = corner;
+                    smallestOverlap = overlapArea;
+                }
+            }
+            x = bestPosition.x();
+            y = bestPosition.y();
+        }
+        confDialog->move(qBound(available.left(), x, maxX), qBound(available.top(), y, maxY));
+    }
+
+    connect(confDialog, &QDialog::accepted, this, [this, skinnedSettings, hotkeyEditor]
     {
         skinnedSettings->writeSettings();
         hotkeyEditor->applyShortcuts();
         updateSettings();
         SkinnedActionManager::instance()->saveActions();
-    }
-    confDialog->deleteLater();
+    });
+    connect(confDialog, &QDialog::finished, confDialog, &QObject::deleteLater);
+    confDialog->show();
 }
 
 void SkinnedMainWindow::toggleVisibility()

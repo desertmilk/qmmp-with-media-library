@@ -214,11 +214,13 @@ void SkinnedDisplay::onAudioPatametersChanged(const AudioParameters &p)
 
 void SkinnedDisplay::updateSkin()
 {
+    const QPoint position = m_mw->pos();
     setPixmap(skin()->getMain());
     m_mw->resize(size());
     setCursor(skin()->getCursor(Skin::CUR_NORMAL));
     setMinimalMode(m_shaded);
     updatePositions();
+    m_mw->move(position);
 }
 
 void SkinnedDisplay::updateMask()

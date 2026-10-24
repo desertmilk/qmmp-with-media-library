@@ -40,6 +40,7 @@ class VisualMenu;
 class UiHelper;
 class MediaPlayer;
 class QMenu;
+class QDialog;
 class QKeyEvent;
 class QmmpUiSettings;
 
@@ -106,6 +107,7 @@ private:
     UiHelper *m_uiHelper;
     QmmpUiSettings *m_ui_settings;
     MediaPlayer *m_player;
+    QPointer<QDialog> m_settingsDialog;
     MetaDataFormatter m_titleFormatter;
 };
 
