@@ -67,6 +67,7 @@ public:
     void setTrackFilter(const QStringList &artists, const QStringList &albums);
     void setViewMode(ViewMode mode);
     ViewMode viewMode() const;
+    bool hasTracks() const;
     void refresh();
     void add(const QModelIndexList &indexes);
     void addFiltered();

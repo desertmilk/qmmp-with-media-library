@@ -24,6 +24,7 @@
 #include <qmmp/qmmp.h>
 #include "library.h"
 #include "librarysettingsdialog.h"
+#include "librarysettingswidget.h"
 #include "librarywidget.h"
 #include "libraryfactory.h"
 
@@ -48,6 +49,17 @@ QObject *LibraryFactory::create(QObject *parent)
 
 QWidget *LibraryFactory::createWidget(int id, QWidget *parent)
 {
+    if(id == SETTINGS_WIDGET)
+    {
+        auto *settingsWidget = new LibrarySettingsWidget(parent);
+        if(!m_library.isNull())
+        {
+            connect(settingsWidget, &LibrarySettingsWidget::directoriesChanged,
+                    m_library, &Library::updateDirectories);
+        }
+        return settingsWidget;
+    }
+
     if(id == LIBRARY_WIDGET)
     {
         if(!m_libraryWidget.isNull() && m_libraryWidget->isWindow())
@@ -59,6 +71,8 @@ QWidget *LibraryFactory::createWidget(int id, QWidget *parent)
         m_libraryWidget = new LibraryWidget(false, parent);
         if(!m_library.isNull())
         {
+            connect(m_libraryWidget, &LibraryWidget::settingsChanged,
+                    m_library, &Library::updateDirectories);
             if(m_library->isRunning())
                 m_libraryWidget->setBusyMode(true);
 

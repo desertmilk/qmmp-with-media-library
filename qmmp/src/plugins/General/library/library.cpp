@@ -86,6 +86,9 @@ Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
         connect(core, &SoundCore::stateChanged, this, &Library::onPlaybackStateChanged);
 
     connect(this, &QThread::finished, this, [=] {
+        if(isRunning())
+            return;
+
         if(!m_libraryWidget->isNull())
         {
             m_libraryWidget->data()->setBusyMode(false);
@@ -151,6 +154,8 @@ void Library::showLibraryWindow()
         connect(m_libraryWidget->data(), &LibraryWidget::closed, m_showAction, [this] {
             m_showAction->setChecked(false);
         });
+        connect(m_libraryWidget->data(), &LibraryWidget::settingsChanged,
+                this, &Library::updateDirectories);
         attachWidgetActions();
     }
 
@@ -164,6 +169,19 @@ void Library::showLibraryWindow()
 
     if(isRunning())
         m_libraryWidget->data()->setBusyMode(true);
+}
+
+void Library::updateDirectories()
+{
+    if(isRunning())
+    {
+        m_stopped = true;
+        wait();
+    }
+
+    QSettings settings;
+    m_dirs = settings.value(u"Library/dirs"_s).toStringList();
+    startDirectoryScanning();
 }
 
 void Library::onPlaybackStateChanged(Qmmp::State state)

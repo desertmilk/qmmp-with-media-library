@@ -60,6 +60,8 @@ struct GeneralProperties
 class QMMPUI_EXPORT GeneralFactory
 {
 public:
+    static constexpr int SETTINGS_WIDGET = -1;
+
     /*!
      * Object destructor.
      */
@@ -76,6 +78,8 @@ public:
      * Creates widget provided by plugin. Default emplementation returns \b nullptr.
      * \param id Widget ID.
      * \param parent Parent Widget.
+     * Plugins may also provide a configuration page for ConfigDialog by handling
+     * SETTINGS_WIDGET.
      */
     virtual QWidget *createWidget(int id, QWidget *parent);
     /*!

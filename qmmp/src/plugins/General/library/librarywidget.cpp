@@ -25,6 +25,7 @@
 #include <QContextMenuEvent>
 #include <QIcon>
 #include <QLabel>
+#include <QPushButton>
 #include <QDateTime> 
 #include <QLocale>
 #include <QHeaderView>
@@ -212,10 +213,11 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     viewMenu->addAction(tr("Recently Played"), this, &LibraryWidget::setRecentlyPlayedView);
     viewMenu->addAction(tr("Unrated"), this, &LibraryWidget::setUnratedView);
 
-    m_filterAction = m_menu->addAction(tr("Quick Search"), m_ui->filterLineEdit, &QLineEdit::setVisible);
+    m_filterAction = m_menu->addAction(tr("Quick Search"));
     m_settingsAction = m_menu->addAction(QIcon::fromTheme(u"preferences-system"_s), tr("&Library Settings"), this, &LibraryWidget::showSettings);
     m_menu->addAction(tr("&Library Information"), this, &LibraryWidget::showLibraryInformation);
     m_filterAction->setCheckable(true);
+    connect(m_filterAction, &QAction::toggled, this, [this] { updateEmptyState(); });
 
     QMenu *columnsMenu = m_menu->addMenu(tr("Columns"));
     const QStringList columnNames = {tr("Track #"), tr("Artist"), tr("Title"),
@@ -237,6 +239,8 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_ui->filterLineEdit->setVisible(m_filterAction->isChecked());
     if(dialog)
         restoreGeometry(settings.value(u"Library/geometry"_s).toByteArray());
+    connect(m_ui->addMediaButton, &QPushButton::clicked, this, &LibraryWidget::showSettings);
+    updateEmptyState();
 
     QTimer::singleShot(0, this, [this]
     {
@@ -736,6 +740,15 @@ void LibraryWidget::refresh()
     m_ui->filterLineEdit->clear();
     m_model->refresh();
     refreshSummaryViews();
+    updateEmptyState();
+}
+
+void LibraryWidget::updateEmptyState()
+{
+    const bool hasTracks = m_model->hasTracks();
+    m_ui->contentSplitter->setVisible(hasTracks);
+    m_ui->emptyPage->setVisible(!hasTracks);
+    m_ui->filterLineEdit->setVisible(hasTracks && m_filterAction->isChecked());
 }
 
 void LibraryWidget::addMenuAction(QAction *action)
@@ -985,7 +998,8 @@ void LibraryWidget::showLibraryInformation()
 void LibraryWidget::showSettings()
 {
     LibrarySettingsDialog dialog(this);
-    dialog.exec();
+    if(dialog.exec() == QDialog::Accepted)
+        emit settingsChanged();
 }
 
 void LibraryWidget::setArtistView()

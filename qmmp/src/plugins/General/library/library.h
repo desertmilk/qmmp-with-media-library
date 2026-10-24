@@ -44,6 +44,9 @@ public:
     QAction *showAction() const;
     void attachWidgetActions();
 
+public slots:
+    void updateDirectories();
+
 private slots:
     void startDirectoryScanning();
     void showLibraryWindow();

@@ -58,6 +58,7 @@ public:
 signals:
     void closed();
     void shadedChanged(bool shaded, int delta);
+    void settingsChanged();
 
 private:
     void closeEvent(QCloseEvent *) override;
@@ -97,6 +98,7 @@ private:
     void applyPalette();
     void adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn = -1);
     void initializeSummaryColumnWidths(QTableView *tableView);
+    void updateEmptyState();
     bool loadSkinChrome();
     void toggleShade();
     void adjustColumnSpace(QAbstractItemView *view, QHeaderView *header, int excludedColumn = -1);

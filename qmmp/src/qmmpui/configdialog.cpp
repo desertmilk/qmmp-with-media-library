@@ -523,6 +523,15 @@ ConfigDialog::ConfigDialog(QWidget *parent) :
     d->portLineEdit->setValidator(new QIntValidator(0, 65535, this));
     d->readSettings();
     d->loadPluginsInfo();
+    for(GeneralFactory *factory : General::enabledFactories())
+    {
+        const GeneralProperties properties = factory->properties();
+        if(properties.shortName != u"library"_s)
+            continue;
+
+        if(QWidget *page = factory->createWidget(GeneralFactory::SETTINGS_WIDGET, this))
+            addPage(tr("Media Library"), page, QIcon::fromTheme(u"audio-x-generic"_s));
+    }
     d->loadLanguages();
     d->createMenus();
     d->updateGroupSettings();

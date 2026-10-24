@@ -412,6 +412,22 @@ LibraryModel::ViewMode LibraryModel::viewMode() const
     return m_viewMode;
 }
 
+bool LibraryModel::hasTracks() const
+{
+    QSqlDatabase db = QSqlDatabase::database(CONNECTION_NAME);
+    if(!db.isOpen())
+        return false;
+
+    QSqlQuery query(db);
+    if(!query.exec(u"SELECT EXISTS(SELECT 1 FROM track_library)"_s))
+    {
+        qCWarning(plugin, "exec error: %s", qPrintable(query.lastError().text()));
+        return false;
+    }
+
+    return query.next() && query.value(0).toBool();
+}
+
 void LibraryModel::refresh()
 {
     beginResetModel();

@@ -6,6 +6,7 @@ set(liblibrary_SRCS
     librarymodel.cpp
     librarywidget.cpp
     librarysettingsdialog.cpp
+    librarysettingswidget.cpp
     librarywidget.ui
     librarysettingsdialog.ui
     translations/translations.qrc

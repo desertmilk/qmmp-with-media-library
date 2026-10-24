@@ -7,12 +7,14 @@ QT += sql
 HEADERS += libraryfactory.h \
     library.h \
     librarysettingsdialog.h \
+    librarysettingswidget.h \
     librarywidget.h \
     librarymodel.h
 
 SOURCES += libraryfactory.cpp \
     library.cpp \
     librarysettingsdialog.cpp \
+    librarysettingswidget.cpp \
     librarywidget.cpp \
     librarymodel.cpp
 
