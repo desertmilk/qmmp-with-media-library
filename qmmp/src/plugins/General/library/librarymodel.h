@@ -70,6 +70,8 @@ public:
     void refresh();
     void add(const QModelIndexList &indexes);
     void addFiltered();
+    void addAfterCurrent(const QModelIndexList &indexes);
+    void addFilteredAfterCurrent();
     void replace(const QModelIndexList &indexes);
     void replaceFiltered(bool play = false);
     void replaceAndPlay(const QModelIndex &index);

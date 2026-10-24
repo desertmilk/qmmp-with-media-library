@@ -568,6 +568,26 @@ void LibraryModel::addFiltered()
     PlayListManager::instance()->addTracks(getFilteredTracks());
 }
 
+void LibraryModel::addAfterCurrent(const QModelIndexList &indexes)
+{
+    QList<PlayListTrack *> tracks = getTracks(indexes);
+    if(tracks.isEmpty())
+        return;
+
+    PlayListModel *playlist = PlayListManager::instance()->currentPlayList();
+    playlist->insertTracks(playlist->currentIndex() + 1, tracks);
+}
+
+void LibraryModel::addFilteredAfterCurrent()
+{
+    QList<PlayListTrack *> tracks = getFilteredTracks();
+    if(tracks.isEmpty())
+        return;
+
+    PlayListModel *playlist = PlayListManager::instance()->currentPlayList();
+    playlist->insertTracks(playlist->currentIndex() + 1, tracks);
+}
+
 void LibraryModel::replace(const QModelIndexList &indexes)
 {
     QList<PlayListTrack *> tracks = getTracks(indexes);

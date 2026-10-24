@@ -66,6 +66,7 @@ private:
 private slots:
     void on_filterLineEdit_textChanged(const QString &text);
     void addSelected();
+    void addAfterCurrent();
     void replaceSelected();
     void playSelected(const QModelIndex &index);
     void showTrackInformation();

@@ -200,6 +200,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
 
     m_menu = new QMenu(this);
     m_menu->addAction(QIcon::fromTheme(u"list-add"_s), tr("&Add to Playlist"), this, &LibraryWidget::addSelected);
+    m_menu->addAction(QIcon::fromTheme(u"list-add"_s), tr("Add after currently playing"), this, &LibraryWidget::addAfterCurrent);
     m_menu->addAction(QIcon::fromTheme(u"media-eject"_s), tr("Replace Playlist"), this, &LibraryWidget::replaceSelected);
     m_menu->addAction(QIcon::fromTheme(u"dialog-information"_s), tr("&View Track Details"), this, &LibraryWidget::showTrackInformation);
     m_menu->addSeparator();
@@ -942,6 +943,17 @@ void LibraryWidget::addSelected()
         return;
     }
     m_model->add(m_ui->treeView->selectionModel()->selectedIndexes());
+}
+
+void LibraryWidget::addAfterCurrent()
+{
+    if((m_ui->artistsTableView->isAncestorOf(m_contextSource) ||
+        m_ui->albumsTableView->isAncestorOf(m_contextSource)))
+    {
+        m_model->addFilteredAfterCurrent();
+        return;
+    }
+    m_model->addAfterCurrent(m_ui->treeView->selectionModel()->selectedIndexes());
 }
 
 void LibraryWidget::replaceSelected()
