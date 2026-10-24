@@ -205,6 +205,8 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_menu->addAction(QIcon::fromTheme(u"media-eject"_s), tr("Replace Playlist"), this, &LibraryWidget::replaceSelected);
     m_menu->addAction(QIcon::fromTheme(u"dialog-information"_s), tr("&View Track Details"), this, &LibraryWidget::showTrackInformation);
     m_menu->addSeparator();
+    m_menu->addAction(QIcon::fromTheme(u"list-add"_s), tr("Add Media to Library"),
+                      this, &LibraryWidget::showSettings);
 
     QMenu *viewMenu = m_menu->addMenu(tr("Library View"));
     viewMenu->addAction(tr("All Artists"), this, &LibraryWidget::setArtistView);

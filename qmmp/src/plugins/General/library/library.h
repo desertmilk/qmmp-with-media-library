@@ -46,6 +46,7 @@ public:
 
 public slots:
     void updateDirectories();
+    void addMediaToLibrary();
 
 private slots:
     void startDirectoryScanning();

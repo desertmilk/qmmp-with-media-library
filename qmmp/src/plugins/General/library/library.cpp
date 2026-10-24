@@ -19,6 +19,7 @@
  ***************************************************************************/
 
 #include <QSettings>
+#include <QDialog>
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -36,6 +37,7 @@
 #include <qmmp/metadatamanager.h>
 #include <qmmpui/uihelper.h>
 #include "librarymodel.h"
+#include "librarysettingsdialog.h"
 #include "librarywidget.h"
 #include "library.h"
 
@@ -79,6 +81,11 @@ Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
     m_refreshAction = new QAction(QIcon::fromTheme(u"view-refresh"_s), tr("Update library"), this);
     UiHelper::instance()->addAction(m_refreshAction, UiHelper::TOOLS_MENU);
     connect(m_refreshAction, &QAction::triggered, this, &Library::startDirectoryScanning);
+
+    QAction *addMediaAction = new QAction(QIcon::fromTheme(u"list-add"_s), tr("Add Media to Library"), this);
+    UiHelper::instance()->addAction(addMediaAction, UiHelper::TOOLS_MENU);
+    connect(addMediaAction, &QAction::triggered, this, &Library::addMediaToLibrary);
+
     attachWidgetActions(); // covers a widget that already exists (embedded, non-dialog case)
 
     SoundCore *core = SoundCore::instance();
@@ -182,6 +189,13 @@ void Library::updateDirectories()
     QSettings settings;
     m_dirs = settings.value(u"Library/dirs"_s).toStringList();
     startDirectoryScanning();
+}
+
+void Library::addMediaToLibrary()
+{
+    LibrarySettingsDialog dialog(qApp->activeWindow());
+    if(dialog.exec() == QDialog::Accepted)
+        updateDirectories();
 }
 
 void Library::onPlaybackStateChanged(Qmmp::State state)
