@@ -144,8 +144,8 @@ void SkinnedEqWidget::readSettings()
     auto it = std::find_if(screens.cbegin(), screens.cend(), [pos](QScreen *screen){ return screen->availableGeometry().contains(pos); });
     if(it != screens.cend())
         availableGeometry = (*it)->availableGeometry();
-    pos.setX(qBound(availableGeometry.left(), pos.x(), availableGeometry.right() - r * 275));
-    pos.setY(qBound(availableGeometry.top(), pos.y(), availableGeometry.bottom() - r * 116));
+    pos.setX(qBound(availableGeometry.left(), pos.x(), availableGeometry.right() - qRound(r * 275)));
+    pos.setY(qBound(availableGeometry.top(), pos.y(), availableGeometry.bottom() - qRound(r * 116)));
     move(pos); //geometry
     readEq();
     m_autoButton->setChecked(settings.value("Skinned/eq_auto"_L1, false).toBool());
