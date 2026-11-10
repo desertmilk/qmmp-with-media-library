@@ -47,7 +47,7 @@ public:
         TrackView
     };
 
-    LibraryModel(QObject *parent = nullptr);
+    explicit LibraryModel(QObject *parent = nullptr);
     ~LibraryModel();
 
     Qt::ItemFlags flags(const QModelIndex &index) const override;

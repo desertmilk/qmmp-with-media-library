@@ -24,12 +24,9 @@
 
 GmeHelper::GmeHelper()
 {
-     m_emu = nullptr;
-
-     QSettings settings;
-     m_fade_length = settings.value(u"GME/fadeout_length"_s, 7000).toInt();
-     if(settings.value(u"GME/fadeout"_s, false).toBool())
-         m_fade_length = 0;
+    QSettings settings;
+    if(settings.value(u"GME/fadeout"_s, false).toBool())
+        m_fade_length = settings.value(u"GME/fadeout_length"_s, 7000).toInt();
 }
 
 GmeHelper::~GmeHelper()
@@ -110,7 +107,7 @@ QList<TrackInfo> GmeHelper::createPlayList(TrackInfo::Parts parts)
             info.setValue(Qmmp::FORMAT_NAME, track_info->system);
         }
 
-        info.setPath(u"gme://"_s + m_path + QStringLiteral("#%1").arg(i+1));
+        info.setPath(QStringLiteral("gme://%1#%2").arg(m_path).arg(i + 1));
         info.setDuration(track_info->length);
         gme_free_info(track_info);
         list << info;
