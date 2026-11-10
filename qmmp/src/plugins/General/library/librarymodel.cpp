@@ -24,6 +24,7 @@
 #include <QSettings>
 #include <QMimeData>
 #include <QHash>
+#include <QRandomGenerator>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QWidget>
@@ -35,6 +36,7 @@
 #include <qmmpui/playlistmanager.h>
 #include <qmmpui/detailsdialog.h>
 #include <qmmpui/mediaplayer.h>
+#include <qmmpui/qmmpuisettings.h>
 #include "librarymodel.h"
 
 #define CONNECTION_NAME u"qmmp_library_view"_s
@@ -645,7 +647,9 @@ void LibraryModel::replaceFiltered(bool play)
     model->addTracks(tracks);
     if(resume)
     {
-        model->setCurrent(0);
+        const int currentIndex = QmmpUiSettings::instance()->isShuffle()
+                ? QRandomGenerator::global()->bounded(model->trackCount()) : 0;
+        model->setCurrentAndResetPlayState(currentIndex);
         manager->activateSelectedPlayList();
         MediaPlayer::instance()->play();
     }
@@ -679,7 +683,7 @@ void LibraryModel::replaceAndPlay(const QModelIndex &index)
     {
         if(tracks.at(i)->path() == clickedPath)
         {
-            model->setCurrent(i);
+            model->setCurrentAndResetPlayState(i);
             break;
         }
     }

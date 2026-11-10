@@ -759,6 +759,15 @@ bool PlayListModel::setCurrent(int index)
     return true;
 }
 
+bool PlayListModel::setCurrentAndResetPlayState(int index)
+{
+    if(!setCurrent(index))
+        return false;
+
+    d_ptr->playState->prepare();
+    return true;
+}
+
 bool PlayListModel::setCurrent(PlayListTrack *track)
 {
     return setCurrent(d_ptr->container->indexOf(track));

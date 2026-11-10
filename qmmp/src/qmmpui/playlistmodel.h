@@ -151,6 +151,11 @@ public:
      */
     bool setCurrent(int index);
     /*!
+     * Sets current track index and resets the playback state from that track.
+     * Returns \b false if the track with this index doesn't exist.
+     */
+    bool setCurrentAndResetPlayState(int index);
+    /*!
      * Sets current track to \b track.
      * Returns \b true if success, otherwise returns \b false
      */
