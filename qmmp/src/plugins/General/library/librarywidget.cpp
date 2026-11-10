@@ -125,14 +125,9 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_ui->artistsTableView->horizontalHeader()->setStretchLastSection(false);
         m_ui->artistsTableView->horizontalHeader()->setMinimumSectionSize(
             QFontMetrics(m_ui->artistsTableView->font()).horizontalAdvance(tr("Tracks")) + 16);
-        m_ui->artistsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        m_ui->artistsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         m_ui->artistsTableView->viewport()->installEventFilter(this);
-        connect(m_ui->artistsTableView->horizontalHeader(), &QHeaderView::sectionResized,
-            this, [this](int column)
-            {
-                adjustSummaryColumnSpace(m_ui->artistsTableView, column);
-            });
-            m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        m_ui->artistsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         m_albumsModel = new QStandardItemModel(this);
         m_albumsModel->setHorizontalHeaderLabels({tr("Album"), tr("Year"), tr("Tracks")});
         m_albumsProxy = new LibrarySummarySortModel(m_model, this);
@@ -142,13 +137,8 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         m_ui->albumsTableView->horizontalHeader()->setStretchLastSection(false);
         m_ui->albumsTableView->horizontalHeader()->setMinimumSectionSize(
             QFontMetrics(m_ui->albumsTableView->font()).horizontalAdvance(tr("Album")) + 16);
-        m_ui->albumsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        m_ui->albumsTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         m_ui->albumsTableView->viewport()->installEventFilter(this);
-        connect(m_ui->albumsTableView->horizontalHeader(), &QHeaderView::sectionResized,
-            this, [this](int column)
-            {
-                adjustSummaryColumnSpace(m_ui->albumsTableView, column);
-            });
         m_ui->albumsTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
         connect(m_ui->artistsTableView->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this]
         {
@@ -174,17 +164,13 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     applyPalette();
     m_ui->treeView->header()->setSectionResizeMode(QHeaderView::Interactive);
     m_ui->treeView->header()->setStretchLastSection(false);
+    m_ui->treeView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_ui->treeView->setColumnWidth(0, 60);
     m_ui->treeView->setColumnWidth(1, 180);
     m_ui->treeView->setColumnWidth(2, 180);
     m_ui->treeView->setColumnWidth(3, 240);
     m_ui->treeView->setColumnWidth(4, 60);
     m_ui->treeView->viewport()->installEventFilter(this);
-    connect(m_ui->treeView->header(), &QHeaderView::sectionResized,
-            this, [this](int column)
-    {
-        adjustColumnSpace(m_ui->treeView, m_ui->treeView->header(), column);
-    });
     if(dialog)
     {
         if(loadSkinChrome())
@@ -237,7 +223,6 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
         connect(action, &QAction::toggled, this, [this, treeHeader, column](bool visible)
         {
             treeHeader->setSectionHidden(column, !visible);
-            adjustColumnSpace(m_ui->treeView, treeHeader);
         });
     }
 
@@ -253,9 +238,6 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     {
         initializeSummaryColumnWidths(m_ui->artistsTableView);
         initializeSummaryColumnWidths(m_ui->albumsTableView);
-        adjustSummaryColumnSpace(m_ui->artistsTableView);
-        adjustSummaryColumnSpace(m_ui->albumsTableView);
-        adjustColumnSpace(m_ui->treeView, m_ui->treeView->header());
     });
 }
 
@@ -593,8 +575,7 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
     {
         QTableView *table = watched == m_ui->artistsTableView->viewport() ?
                     m_ui->artistsTableView : m_ui->albumsTableView;
-        initializeSummaryColumnWidths(table); // already returns early once initialized
-        adjustSummaryColumnSpace(table);
+        initializeSummaryColumnWidths(table);
     }
     if(watched == m_resizeWidget && event->type() == QEvent::MouseButtonPress)
     {
@@ -623,97 +604,9 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
         setCursor(Qt::ArrowCursor);
         return true;
     }
-    if(watched == m_ui->treeView->viewport() && event->type() == QEvent::Resize)
-    {
-        adjustColumnSpace(m_ui->treeView, m_ui->treeView->header());
-    }
     return QWidget::eventFilter(watched, event);
 }
 
-void LibraryWidget::adjustSummaryColumnSpace(QTableView *tableView, int excludedColumn)
-{
-    adjustColumnSpace(tableView, tableView->horizontalHeader(), excludedColumn);
-}
-
-void LibraryWidget::adjustColumnSpace(QAbstractItemView *view, QHeaderView *header,
-                                      int excludedColumn)
-{
-    if(m_distributingColumnSpace)
-        return;
-
-    const int difference = view->viewport()->width() - header->length();
-    if(difference == 0 || header->count() == 0)
-    {
-        return;
-    }
-
-    // Hidden sections are not part of header->length(), so they must never receive space.
-    auto usable = [&](int column)
-    {
-        return column != excludedColumn && !header->isSectionHidden(column);
-    };
-    auto pickTarget = [&]
-    {
-        int target = -1;
-        int largestDeficit = 0;
-        for(int column = 0; column < header->count(); ++column)
-        {
-            if(!usable(column))
-                continue;
-            const int deficit = view->sizeHintForColumn(column) - header->sectionSize(column);
-            if(deficit > largestDeficit)
-            {
-                largestDeficit = deficit;
-                target = column;
-            }
-        }
-        if(target < 0)
-        {
-            for(int column = 0; column < header->count(); ++column)
-            {
-                if(usable(column) &&
-                   (target < 0 || header->sectionSize(column) > header->sectionSize(target)))
-                    target = column;
-            }
-        }
-        return target;
-    };
-
-    m_distributingColumnSpace = true;
-    if(difference > 0)
-    {
-        const int target = pickTarget();
-        if(target >= 0)
-            header->resizeSection(target, header->sectionSize(target) + difference);
-    }
-    else
-    {
-        int remaining = -difference;
-        while(remaining > 0)
-        {
-            int widest = -1;
-            for(int column = 0; column < header->count(); ++column)
-            {
-                if(!usable(column) || header->sectionSize(column) <= header->minimumSectionSize())
-                    continue;
-                if(widest < 0 || header->sectionSize(column) > header->sectionSize(widest))
-                    widest = column;
-            }
-            if(widest < 0)
-                break;
-            const int reduction = qMin(remaining,
-                                       header->sectionSize(widest) - header->minimumSectionSize());
-            header->resizeSection(widest, header->sectionSize(widest) - reduction);
-            remaining -= reduction;
-        }
-        // Everything else is at its minimum: don't let the dragged column overflow the panel.
-        if(remaining > 0 && excludedColumn >= 0 && !header->isSectionHidden(excludedColumn))
-        {
-            header->resizeSection(excludedColumn, qMax(header->minimumSectionSize(), header->sectionSize(excludedColumn) - remaining));
-        }
-    }
-    m_distributingColumnSpace = false;
-}
 void LibraryWidget::initializeSummaryColumnWidths(QTableView *tableView)
 {
     if((tableView == m_ui->artistsTableView && m_artistsColumnsInitialized) ||
@@ -724,15 +617,12 @@ void LibraryWidget::initializeSummaryColumnWidths(QTableView *tableView)
     if(width <= 0)
         return;
 
-    m_distributingColumnSpace = true;
     QHeaderView *header = tableView->horizontalHeader();
     const int first = qMax(header->minimumSectionSize(), width * 3 / 5);
     const int second = qMax(header->minimumSectionSize(), (width - first) / 2);
     header->resizeSection(0, first);
     header->resizeSection(1, second);
     header->resizeSection(2, width - first - second);
-    m_distributingColumnSpace = false;
-
     if(tableView == m_ui->artistsTableView)
         m_artistsColumnsInitialized = true;
     else
