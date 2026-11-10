@@ -441,7 +441,19 @@ void Skin::loadPosBar()
                    << "pixelSize" << pixmap->depth()
                    << "null" << pixmap->isNull();
 
-    if(pixmap->width() > 249)
+    if(pixmap->isNull() || pixmap->width() < 307 || pixmap->height() <= 0)
+    {
+        qCInfo(plugin) << "Skin::loadPosBar using default skin asset"
+                       << "reason" << "position bar sheet is missing or too small";
+        delete pixmap;
+        pixmap = getDummyPixmap(u"posbar"_s, QString());
+        qCInfo(plugin) << "Skin::loadPosBar default asset"
+                       << "size" << pixmap->size()
+                       << "pixelSize" << pixmap->depth()
+                       << "null" << pixmap->isNull();
+    }
+
+    if(pixmap->width() >= 307)
     {
         m_buttons[BT_POSBAR_N] = pixmap->copy(248,0,29, pixmap->height());
         m_buttons[BT_POSBAR_P] = pixmap->copy(278,0,29, pixmap->height());
