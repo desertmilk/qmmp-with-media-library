@@ -69,6 +69,7 @@ private slots:
     void addSelected();
     void addAfterCurrent();
     void replaceSelected();
+    void addMediaDirectory();
     void playSelected(const QModelIndex &index);
     void showTrackInformation();
     void showLibraryInformation();

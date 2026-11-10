@@ -26,6 +26,7 @@
 #include <QIcon>
 #include <QLabel>
 #include <QPushButton>
+#include <QDir>
 #include <QDateTime> 
 #include <QLocale>
 #include <QHeaderView>
@@ -33,6 +34,7 @@
 #include <QFont>
 #include <QPainter>
 #include <QMouseEvent>
+#include <QFileInfo>
 #include <QResizeEvent>
 #include <QGuiApplication>
 #include <QScreen>
@@ -46,6 +48,7 @@
 #include <QSortFilterProxyModel>
 #include <QTimer>
 #include <qmmp/qmmp.h>
+#include <qmmpui/filedialog.h>
 #include <qmmpui/qmmpuiskin.h>
 #include <qmmpui/uihelper.h>
 #include "librarymodel.h"
@@ -207,6 +210,8 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     m_menu->addSeparator();
     m_menu->addAction(QIcon::fromTheme(u"list-add"_s), tr("Add Media to Library"),
                       this, &LibraryWidget::showSettings);
+    m_menu->addAction(QIcon::fromTheme(u"folder"_s), tr("Add Media Directory..."),
+                      this, &LibraryWidget::addMediaDirectory);
 
     QMenu *viewMenu = m_menu->addMenu(tr("Library View"));
     viewMenu->addAction(tr("All Artists"), this, &LibraryWidget::setArtistView);
@@ -1018,6 +1023,28 @@ void LibraryWidget::showSettings()
     LibrarySettingsDialog dialog(this);
     if(dialog.exec() == QDialog::Accepted)
         emit settingsChanged();
+}
+
+void LibraryWidget::addMediaDirectory()
+{
+    QSettings settings;
+    const QString lastPath = settings.value(u"Library/last_path"_s, QDir::homePath()).toString();
+    const QString path = FileDialog::getExistingDirectory(this, tr("Select Directory for Scanning"), lastPath);
+    if(path.isEmpty())
+        return;
+
+    const QString directory = QDir::cleanPath(path);
+    QStringList directories = settings.value(u"Library/dirs"_s).toStringList();
+    for(const QString &existingDirectory : directories)
+    {
+        if(QDir::cleanPath(existingDirectory) == directory)
+            return;
+    }
+
+    directories << directory;
+    settings.setValue(u"Library/dirs"_s, directories);
+    settings.setValue(u"Library/last_path"_s, QFileInfo(directory).absolutePath());
+    emit settingsChanged();
 }
 
 void LibraryWidget::setArtistView()
