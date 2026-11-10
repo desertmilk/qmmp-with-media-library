@@ -533,16 +533,18 @@ jobs:
 
           # Find and copy icon
           if [ -f ${{ github.workspace }}/AppDir/usr/share/icons/hicolor/128x128/apps/qmmp.png ]; then
-            cp ${{ github.workspace }}/AppDir/usr/share/icons/hicolor/128x128/apps/qmmp.png ${{ github.workspace }}/AppDir/qmmp.png
+            ICON=${{ github.workspace }}/AppDir/usr/share/icons/hicolor/128x128/apps/qmmp.png
           elif [ -f ${{ github.workspace }}/AppDir/usr/share/pixmaps/qmmp.png ]; then
-            cp ${{ github.workspace }}/AppDir/usr/share/pixmaps/qmmp.png ${{ github.workspace }}/AppDir/qmmp.png
+            ICON=${{ github.workspace }}/AppDir/usr/share/pixmaps/qmmp.png
           else
             # Find any qmmp icon
             ICON=$(find ${{ github.workspace }}/AppDir -name "qmmp.png" 2>/dev/null | head -1)
             test -n "$ICON"
-            cp "$ICON" ${{ github.workspace }}/AppDir/qmmp.png
           fi
+          echo "Selected AppImage icon: $ICON"
+          cp "$ICON" ${{ github.workspace }}/AppDir/qmmp.png
           test -s ${{ github.workspace }}/AppDir/qmmp.png
+          file ${{ github.workspace }}/AppDir/qmmp.png
           ln -sf qmmp.png ${{ github.workspace }}/AppDir/.DirIcon
 
           # Set QT_PLUGIN_PATH for linuxdeploy
@@ -574,6 +576,9 @@ jobs:
             -d ${{ github.workspace }}/AppDir/qmmp.desktop \
             -i ${{ github.workspace }}/AppDir/qmmp.png \
             -v2
+
+          echo "AppDir icon after linuxdeploy:"
+          file ${{ github.workspace }}/AppDir/qmmp.png
 
           test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libmpeg.so' -print -quit)"
           test -n "$(find ${{ github.workspace }}/AppDir -type f,l -name 'libvorbis.so' -print -quit)"
