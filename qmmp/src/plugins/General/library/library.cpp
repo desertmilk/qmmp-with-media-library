@@ -157,7 +157,10 @@ void Library::showLibraryWindow()
 
     if(m_libraryWidget->isNull())
     {
-        *m_libraryWidget = new LibraryWidget(true, qApp->activeWindow());
+        QWidget *parent = qApp->activeWindow();
+        while(parent && parent->parentWidget() && parent->parentWidget()->isWindow())
+            parent = parent->parentWidget();
+        *m_libraryWidget = new LibraryWidget(true, parent);
         connect(m_libraryWidget->data(), &LibraryWidget::closed, m_showAction, [this] {
             m_showAction->setChecked(false);
         });
