@@ -326,12 +326,15 @@ bool LibraryWidget::loadSkinChrome()
 {
     m_skinPlaylist = QPixmap();
     m_hasSkinBorders = false;
+    m_skinRatio = 1;
+    m_ui->verticalLayout->setContentsMargins(6, 26, 6, 6);
+    if(!QmmpUiSkin::isSkinnedUi())
+        return false;
+
     QSettings settings;
     m_skinRatio = settings.value(u"Skinned/double_size"_s, false).toBool() ? 2 : 1;
     m_ui->verticalLayout->setContentsMargins(6 * m_skinRatio, 26 * m_skinRatio,
                                              6 * m_skinRatio, 6 * m_skinRatio);
-    if(!QmmpUiSkin::isSkinnedUi())
-        return false;
 
     m_skinPlaylist = QPixmap(QmmpUiSkin::filePath(u"pledit"_s));
     if(m_skinPlaylist.isNull())
