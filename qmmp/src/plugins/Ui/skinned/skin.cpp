@@ -35,6 +35,7 @@
 #endif
 #include <qmmp/qmmp.h>
 #include <qmmpui/uihelper.h>
+#include <qmmpui/qmmpuiskin.h>
 #include "skinnedactionmanager.h"
 #include "skinreader.h"
 #include "skin.h"
@@ -267,6 +268,7 @@ void Skin::setSkin(const QString &path, bool force)
     loadRegion();
     loadCursors();
     loadColors();
+    applyFallbackPlaylistColors();
     if(m_double_size)
     {
         for(QPixmap &pixmap : m_buttons)
@@ -590,6 +592,11 @@ QPixmap *Skin::getPixmap(const QString& name, const QString &fallback)
         }
     }
     QPixmap *pixmap = getDummyPixmap(name, fallback);
+    if(QmmpUiSkin::isSkinnedUi() &&
+            (name == u"pledit"_s || name == u"eqmain"_s || name == u"eq_ex"_s))
+    {
+        colorizeFallbackPixmap(pixmap);
+    }
     if(name == u"posbar"_s)
         qCInfo(plugin) << "Skin::getPixmap loaded default posbar fallback"
                        << "requestedName" << name
@@ -597,6 +604,57 @@ QPixmap *Skin::getPixmap(const QString& name, const QString &fallback)
                        << "size" << pixmap->size()
                        << "null" << pixmap->isNull();
     return pixmap;
+}
+
+void Skin::applyFallbackPlaylistColors()
+{
+    if(m_skin_dir.exists(u"pledit.txt"_s))
+        return;
+
+    const QColor background = QmmpUiSkin::backgroundColor();
+    const QColor foreground = QmmpUiSkin::foregroundColor();
+    if(!background.isValid() || !foreground.isValid())
+        return;
+
+    const QColor selected = background.lightness() < 128
+            ? background.lighter(150) : background.darker(125);
+    m_pledit_txt["normalbg"] = background.name().toLatin1();
+    m_pledit_txt["selectedbg"] = selected.name().toLatin1();
+    m_pledit_txt["normal"] = foreground.name().toLatin1();
+    m_pledit_txt["current"] = foreground.name().toLatin1();
+    m_pledit_txt["mbbg"] = background.name().toLatin1();
+    m_pledit_txt["mbfg"] = foreground.name().toLatin1();
+}
+
+void Skin::colorizeFallbackPixmap(QPixmap *pixmap) const
+{
+    const QColor background = QmmpUiSkin::backgroundColor();
+    const QColor foreground = QmmpUiSkin::foregroundColor();
+    if(pixmap->isNull() || !background.isValid() || !foreground.isValid())
+        return;
+
+    QImage image = pixmap->toImage().convertToFormat(QImage::Format_ARGB32);
+    constexpr int darkPoint = 8;
+    constexpr int lightPoint = 96;
+    for(int y = 0; y < image.height(); ++y)
+    {
+        for(int x = 0; x < image.width(); ++x)
+        {
+            QColor source = image.pixelColor(x, y);
+            if(source.alpha() == 0)
+                continue;
+
+            const int luminance = qGray(source.rgb());
+            const int amount = qBound(0, (luminance - darkPoint) * 255 / (lightPoint - darkPoint), 255);
+            QColor result(
+                    (background.red() * (255 - amount) + foreground.red() * amount) / 255,
+                    (background.green() * (255 - amount) + foreground.green() * amount) / 255,
+                    (background.blue() * (255 - amount) + foreground.blue() * amount) / 255,
+                    source.alpha());
+            image.setPixelColor(x, y, result);
+        }
+    }
+    *pixmap = QPixmap::fromImage(image);
 }
 
 QString Skin::getPath(const QString& name)

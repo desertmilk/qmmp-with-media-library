@@ -285,6 +285,8 @@ private:
      * to load pixmap from default skin.
      */
     QPixmap *getDummyPixmap(const QString &name, const QString &fallback);
+    void applyFallbackPlaylistColors();
+    void colorizeFallbackPixmap(QPixmap *pixmap) const;
     QPixmap scalePixmap(const QPixmap &pix, int ratio = 2);
     static Skin *m_instance;
     QDir m_skin_dir;

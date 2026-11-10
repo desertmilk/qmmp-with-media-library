@@ -329,6 +329,25 @@ bool LibraryWidget::loadSkinChrome()
         return false;
 
     m_skinPlaylist = QPixmap(QmmpUiSkin::filePath(u"pledit"_s));
+    if(m_skinPlaylist.isNull())
+    {
+        const QColor background = QmmpUiSkin::backgroundColor();
+        const QColor foreground = QmmpUiSkin::foregroundColor();
+        if(!background.isValid() || !foreground.isValid())
+            return false;
+
+        const QColor titlebar = background.lightness() < 128
+                ? background.lighter(145) : background.darker(115);
+        m_skinPlaylist = QPixmap(178, 51);
+        m_skinPlaylist.fill(background);
+        QPainter painter(&m_skinPlaylist);
+        painter.fillRect(0, 0, 178, 20, titlebar);
+        painter.setPen(foreground);
+        painter.drawLine(0, 19, 177, 19);
+        painter.drawLine(158, 9, 164, 9);
+        painter.drawLine(169, 6, 175, 12);
+        painter.drawLine(175, 6, 169, 12);
+    }
     if(!m_skinPlaylist.isNull())
     {
         QSettings settings;
