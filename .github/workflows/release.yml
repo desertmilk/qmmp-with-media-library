@@ -539,10 +539,11 @@ jobs:
           else
             # Find any qmmp icon
             ICON=$(find ${{ github.workspace }}/AppDir -name "qmmp.png" 2>/dev/null | head -1)
-            if [ -n "$ICON" ]; then
-              cp "$ICON" ${{ github.workspace }}/AppDir/qmmp.png
-            fi
+            test -n "$ICON"
+            cp "$ICON" ${{ github.workspace }}/AppDir/qmmp.png
           fi
+          test -s ${{ github.workspace }}/AppDir/qmmp.png
+          ln -sf qmmp.png ${{ github.workspace }}/AppDir/.DirIcon
 
           # Set QT_PLUGIN_PATH for linuxdeploy
           export QT_PLUGIN_PATH=/usr/lib/qt6/plugins
