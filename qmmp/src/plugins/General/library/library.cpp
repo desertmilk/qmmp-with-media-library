@@ -120,7 +120,7 @@ Library::Library(QPointer<LibraryWidget> *libraryWidget, QObject *parent) :
         startDirectoryScanning();
     }
 
-    if(settings.value(u"Library/visible"_s, false).toBool())
+    if(settings.value(u"Library/visible"_s, true).toBool())
         QTimer::singleShot(0, this, &Library::showLibraryWindow);
 }
 

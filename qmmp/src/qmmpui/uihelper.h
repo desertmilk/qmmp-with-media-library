@@ -185,6 +185,7 @@ public slots:
 
 signals:
     void skinChanged();
+    void exitRequested();
     /*!
      * Emitted when some general plugin requires to toggle visibility.
      * Use it to show/hide player's window.

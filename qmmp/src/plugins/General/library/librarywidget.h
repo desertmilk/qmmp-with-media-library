@@ -125,6 +125,7 @@ private:
     bool m_artistsColumnsInitialized = false;
     bool m_albumsColumnsInitialized = false;
     bool m_refreshingSummary = false;
+    bool m_appExiting = false;
     int m_skinRatio = 1;
     int m_unshadedHeight = 0;
 };

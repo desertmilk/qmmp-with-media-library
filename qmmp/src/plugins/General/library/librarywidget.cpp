@@ -105,6 +105,9 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     QWidget(parent),
     m_ui(new Ui::LibraryWidget)
 {
+    connect(UiHelper::instance(), &UiHelper::exitRequested, this, [this] {
+        m_appExiting = true;
+    });
     if(dialog)
         setObjectName(u"MediaLibrary"_s);
     m_ui->setupUi(this);
@@ -704,7 +707,7 @@ void LibraryWidget::closeEvent(QCloseEvent *)
     {
         QSettings settings;
         settings.setValue(u"Library/geometry"_s, saveGeometry());
-        if(!qApp->closingDown())
+        if(!m_appExiting && !qApp->closingDown())
             settings.setValue(u"Library/visible"_s, false);
         emit closed();
     }

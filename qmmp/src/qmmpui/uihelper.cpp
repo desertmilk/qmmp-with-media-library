@@ -337,6 +337,7 @@ void UiHelper::showMainWindow()
 
 void UiHelper::exit()
 {
+    emit exitRequested();
     qApp->closeAllWindows();
     qApp->quit();
 }
