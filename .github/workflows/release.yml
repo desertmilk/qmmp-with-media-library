@@ -629,7 +629,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 120
     container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.11
       options: --privileged
     env:
       VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
