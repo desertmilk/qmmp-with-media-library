@@ -436,14 +436,14 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
     {
         painter.drawTiledPixmap(QRect(0, 20, 12, height() - 25),
                                 m_skinPlaylist.copy(0, 42, 12, 29));
-        painter.drawTiledPixmap(QRect(width() - 20, 20, 20, height() - 25),
+        painter.drawTiledPixmap(QRect(width - 20, 20, 20, height() - 25),
                                 m_skinPlaylist.copy(31, 42, 20, 29));
 
         const int bottom = height() - 5;
         painter.drawPixmap(0, bottom, m_skinPlaylist.copy(0, 105, 125, 5));
-        for(int x = 125; x < width() - 150; x += 25)
+        for(int x = 125; x < width - 150; x += 25)
             painter.drawPixmap(x, bottom, m_skinPlaylist.copy(179, 33, 25, 5));
-        painter.drawPixmap(width() - 150, bottom, m_skinPlaylist.copy(126, 105, 150, 5));
+        painter.drawPixmap(width - 150, bottom, m_skinPlaylist.copy(126, 105, 150, 5));
     }
 }
 
