@@ -442,7 +442,7 @@ bool SkinnedAnalyzer::process(float *l)
 
 void SkinnedAnalyzer::draw (QPainter *p)
 {
-    int r = m_skin->ratio();
+    const qreal r = m_skin->ratio();
     if(m_lines)
         for(int j = 0; j < 75; ++j)
         {

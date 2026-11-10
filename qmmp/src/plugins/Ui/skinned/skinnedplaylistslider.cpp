@@ -66,8 +66,9 @@ void SkinnedPlayListSlider::mousePressEvent(QMouseEvent *e)
     }
     else
     {
-        int value = convert(qMax(qMin(height() - 18 * m_skin->ratio(), qRound(e->position().y()) - 9 * m_skin->ratio()), 0));
-        m_press_pos = 9 * m_skin->ratio();
+        int value = convert(qMax(qMin(height() - qRound(18 * m_skin->ratio()),
+                                      qRound(e->position().y()) - qRound(9 * m_skin->ratio())), 0));
+        m_press_pos = qRound(9 * m_skin->ratio());
         if(m_value != value)
         {
             emit sliderMoveRequest(value);

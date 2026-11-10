@@ -51,8 +51,9 @@ void SkinnedVolumeBar::mousePressEvent(QMouseEvent *e)
     }
     else
     {
-        m_value = convert(qMax(qMin(width() - 18 * skin()->ratio(), qRound(e->position().x()) - 6 * skin()->ratio()), 0));
-        press_pos = 6*skin()->ratio();
+        m_value = convert(qMax(qMin(width() - qRound(18 * skin()->ratio()),
+                                    qRound(e->position().x()) - qRound(6 * skin()->ratio())), 0));
+        press_pos = qRound(6 * skin()->ratio());
         emit sliderPressed();
         if(m_value != m_old)
             emit sliderMoved(m_value);

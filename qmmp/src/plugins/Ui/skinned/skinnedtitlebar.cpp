@@ -70,7 +70,7 @@ SkinnedTitleBar::~SkinnedTitleBar()
 
 void SkinnedTitleBar::updatePositions()
 {
-    int r = skin()->ratio();
+    const qreal r = skin()->ratio();
     m_menu->move(r * 6, r * 3);
     m_minimize->move(r * 244, r * 3);
     m_shade->move(r * 254, r*3);
@@ -150,7 +150,7 @@ void SkinnedTitleBar::showMainMenu()
 void SkinnedTitleBar::shade()
 {
     m_shaded = !m_shaded;
-    int r = skin()->ratio();
+    const qreal r = skin()->ratio();
     if(m_shaded)
     {
         setPixmap(skin()->getTitleBar(Skin::TITLEBAR_SHADED_A));

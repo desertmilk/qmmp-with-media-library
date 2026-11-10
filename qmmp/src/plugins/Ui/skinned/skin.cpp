@@ -48,10 +48,12 @@ Skin::Skin(QObject *parent) : QObject(parent)
     m_instance = this;
     QSettings settings;
     QString path = settings.value("Skinned/skin_path"_L1, SkinReader::defaultSkinPath()).toString();
-    m_double_size = settings.value("Skinned/double_size"_L1, false).toBool();
+    const int legacyScale = settings.value("Skinned/double_size"_L1, false).toBool() ? 8 : 4;
+    m_ratio = qBound(4, settings.value("Skinned/scale"_L1, legacyScale).toInt(), 8) / 4.0;
     m_antialiasing = settings.value("Skinned/antialiasing"_L1, false).toBool();
-    ACTION(SkinnedActionManager::WM_DOUBLE_SIZE)->setChecked(m_double_size);
+    ACTION(SkinnedActionManager::WM_DOUBLE_SIZE)->setChecked(m_ratio == 2.0);
     ACTION(SkinnedActionManager::WM_ANTIALIASING)->setChecked(m_antialiasing);
+    ACTION(SkinnedActionManager::WM_ANTIALIASING)->setEnabled(m_ratio > 1.0);
     /* skin directories */
     QDir::root().mkpath(Qmmp::userDataPath() + u"/skins"_s);
     QDir::root().mkpath(Qmmp::configDir() + u"/skins"_s);
@@ -87,9 +89,9 @@ Skin *Skin::instance()
     return m_instance;
 }
 
-int Skin::ratio() const
+qreal Skin::ratio() const
 {
-    return m_double_size ? 2 : 1;
+    return m_ratio;
 }
 
 QPixmap Skin::getMain() const
@@ -196,7 +198,9 @@ void Skin::setSkin(const QString &path, bool force)
 {
     QSettings settings;
     m_use_cursors = settings.value("Skinned/skin_cursors"_L1, false).toBool();
-    m_double_size = ACTION(SkinnedActionManager::WM_DOUBLE_SIZE)->isChecked();
+    const int legacyScale = settings.value("Skinned/double_size"_L1, false).toBool() ? 8 : 4;
+    m_ratio = qBound(4, settings.value("Skinned/scale"_L1, legacyScale).toInt(), 8) / 4.0;
+    ACTION(SkinnedActionManager::WM_ANTIALIASING)->setEnabled(m_ratio > 1.0);
     m_antialiasing = ACTION(SkinnedActionManager::WM_ANTIALIASING)->isChecked();
 #ifdef Q_OS_WIN
     if(Qmmp::isPortable() && path.startsWith(QApplication::applicationDirPath()))
@@ -269,36 +273,36 @@ void Skin::setSkin(const QString &path, bool force)
     loadCursors();
     loadColors();
     applyFallbackPlaylistColors();
-    if(m_double_size)
+    if(m_ratio > 1.0)
     {
         for(QPixmap &pixmap : m_buttons)
-            pixmap = scalePixmap(pixmap);
+            pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_titlebar)
-             pixmap = scalePixmap(pixmap);
+             pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_pl_parts)
-             pixmap = scalePixmap(pixmap);
+             pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_eq_parts)
-             pixmap = scalePixmap(pixmap);
+             pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_ms_parts)
-             pixmap = scalePixmap(pixmap);
+             pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_parts)
-             pixmap = scalePixmap(pixmap);
+             pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_letters)
-             pixmap = scalePixmap(pixmap);
+             pixmap = scalePixmap(pixmap, m_ratio);
 
-        m_main = scalePixmap(m_main);
-        m_posbar = scalePixmap(m_posbar);
+        m_main = scalePixmap(m_main, m_ratio);
+        m_posbar = scalePixmap(m_posbar, m_ratio);
 
         for(QPixmap &pixmap : m_numbers)
-            pixmap = scalePixmap(pixmap);
+            pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_eq_bar)
-            pixmap = scalePixmap(pixmap);
+            pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_eq_spline)
-           pixmap = scalePixmap(pixmap);
+           pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_volume)
-            pixmap = scalePixmap(pixmap);
+            pixmap = scalePixmap(pixmap, m_ratio);
         for(QPixmap &pixmap : m_balance)
-            pixmap = scalePixmap(pixmap);
+            pixmap = scalePixmap(pixmap, m_ratio);
     }
     emit skinChanged();
     if(UiHelper *uiHelper = UiHelper::instance())
@@ -1048,7 +1052,7 @@ QRegion Skin::createRegion(const QString &path, const QString &group) const
         numbers << str.split(QChar::Space, Qt::SkipEmptyParts);
 
     QStringList::const_iterator n = numbers.constBegin();
-    int r = m_double_size ? 2 : 1;
+    const qreal r = m_ratio;
     for(int i = 0; i < numPoints.size(); ++i)
     {
         QList<int> lp;
@@ -1061,7 +1065,7 @@ QRegion Skin::createRegion(const QString &path, const QString &group) const
 
         for(int l = 0; l < lp.size(); l += 2)
         {
-            points << QPoint(lp.at(l) * r, lp.at(l + 1) * r);
+            points << QPoint(qRound(lp.at(l) * r), qRound(lp.at(l + 1) * r));
         }
         region = region.united(QRegion(QPolygon(points)));
     }
@@ -1107,9 +1111,9 @@ QPixmap *Skin::getDummyPixmap(const QString &name, const QString &fallback)
     return nullptr;
 }
 
-QPixmap Skin::scalePixmap(const QPixmap &pix, int ratio)
+QPixmap Skin::scalePixmap(const QPixmap &pix, qreal ratio)
 {
-    return pix.scaled(pix.width() * ratio, pix.height() * ratio,
+    return pix.scaled(qRound(pix.width() * ratio), qRound(pix.height() * ratio),
                       Qt::KeepAspectRatio,
                       m_antialiasing ? Qt::SmoothTransformation : Qt::FastTransformation);
 }

@@ -47,8 +47,9 @@ void SkinnedEqSlider::mousePressEvent(QMouseEvent *e)
     }
     else
     {
-        m_value = convert(qMax(qMin(height() - 12 * skin()->ratio(), qRound(e->position().y()) - 6 * skin()->ratio()), 0));
-        press_pos = 6 * skin()->ratio();
+        m_value = convert(qMax(qMin(height() - qRound(12 * skin()->ratio()),
+                                    qRound(e->position().y()) - qRound(6 * skin()->ratio())), 0));
+        press_pos = qRound(6 * skin()->ratio());
         if(m_value != m_old)
         {
             emit sliderMoved(m_value);

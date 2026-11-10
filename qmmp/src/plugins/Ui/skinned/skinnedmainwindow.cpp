@@ -22,6 +22,11 @@
 #include <QDir>
 #include <QAction>
 #include <QMenu>
+#include <QWidgetAction>
+#include <QSlider>
+#include <QLabel>
+#include <QHBoxLayout>
+#include <QSignalBlocker>
 #include <QScreen>
 #include <algorithm>
 #include <limits>
@@ -85,7 +90,7 @@ SkinnedMainWindow::SkinnedMainWindow(QWidget *parent) : QMainWindow(parent)
 
     //user interface
     m_skin = new Skin(this);
-    setFixedSize(275 * m_skin->ratio(), 116 * m_skin->ratio());
+    setFixedSize(qRound(275 * m_skin->ratio()), qRound(116 * m_skin->ratio()));
 
     Dock *dock = new Dock(this);
     dock->setMainWidget(this);
@@ -235,13 +240,15 @@ void SkinnedMainWindow::readSettings()
         QScreen *primaryScreen = QGuiApplication::primaryScreen();
         QRect availableGeometry = primaryScreen->availableGeometry();
         QPoint pos = settings.value("mw_pos"_L1, QPoint(100, 100)).toPoint();
-        int r = m_skin->ratio();
+        const qreal r = m_skin->ratio();
         const QList<QScreen *> screens = QGuiApplication::screens();
         auto it = std::find_if(screens.cbegin(), screens.cend(), [pos](QScreen *screen){ return screen->availableGeometry().contains(pos); });
         if(it != screens.cend())
             availableGeometry = (*it)->availableGeometry();
-        pos.setX(qBound(availableGeometry.left(), pos.x(), availableGeometry.right() - r*275));
-        pos.setY(qBound(availableGeometry.top(), pos.y(), availableGeometry.bottom() - r*116));
+        pos.setX(qBound(availableGeometry.left(), pos.x(),
+                        availableGeometry.right() - qRound(r * 275)));
+        pos.setY(qBound(availableGeometry.top(), pos.y(),
+                        availableGeometry.bottom() - qRound(r * 116)));
         move(pos); //geometry
         m_startHidden = settings.value("start_hidden"_L1, false).toBool();
         if(settings.value("always_on_top"_L1, false).toBool())
@@ -303,6 +310,7 @@ void SkinnedMainWindow::writeSettings()
     settings.setValue("mw_pos"_L1, this->pos());
     //look & feel
     settings.setValue("double_size"_L1, ACTION(SkinnedActionManager::WM_DOUBLE_SIZE)->isChecked());
+    settings.setValue("scale"_L1, qRound(m_skin->ratio() * 4));
     settings.setValue("always_on_top"_L1, ACTION(SkinnedActionManager::WM_ALLWAYS_ON_TOP)->isChecked());
     settings.setValue("show_on_all_desktops"_L1, ACTION(SkinnedActionManager::WM_STICKY)->isChecked());
     settings.setValue("antialiasing"_L1, ACTION(SkinnedActionManager::WM_ANTIALIASING)->isChecked());
@@ -538,7 +546,52 @@ void SkinnedMainWindow::createActions()
     viewMenu->addSeparator();
     viewMenu->addAction(SET_ACTION(SkinnedActionManager::WM_ALLWAYS_ON_TOP, this, &SkinnedMainWindow::updateSettings));
     viewMenu->addAction(SET_ACTION(SkinnedActionManager::WM_STICKY, this, &SkinnedMainWindow::updateSettings));
-    viewMenu->addAction(SET_ACTION(SkinnedActionManager::WM_DOUBLE_SIZE, this, &SkinnedMainWindow::updateSettings));
+    auto *scaleWidgetAction = new QWidgetAction(viewMenu);
+    auto *scaleWidget = new QWidget(viewMenu);
+    auto *scaleLayout = new QHBoxLayout(scaleWidget);
+    scaleLayout->setContentsMargins(8, 4, 8, 4);
+    auto *scaleLabel = new QLabel(tr("Scale: 1.00x"), scaleWidget);
+    auto *scaleSlider = new QSlider(Qt::Horizontal, scaleWidget);
+    scaleSlider->setRange(4, 8);
+    scaleSlider->setTickPosition(QSlider::TicksBelow);
+    scaleSlider->setTickInterval(1);
+    scaleSlider->setFixedWidth(140);
+    scaleLayout->addWidget(scaleLabel);
+    scaleLayout->addWidget(scaleSlider);
+    scaleWidgetAction->setDefaultWidget(scaleWidget);
+    viewMenu->addAction(scaleWidgetAction);
+    auto updateScaleLabel = [this, scaleLabel](int scale)
+    {
+        scaleLabel->setText(tr("Scale: %1x").arg(QString::number(scale / 4.0, 'f', 2)));
+    };
+    const int initialScale = qRound(m_skin->ratio() * 4);
+    scaleSlider->setValue(initialScale);
+    updateScaleLabel(initialScale);
+    connect(scaleSlider, &QSlider::valueChanged, this, [this, scaleLabel, updateScaleLabel](int scale)
+    {
+        QSettings settings;
+        settings.setValue("Skinned/scale"_L1, scale);
+        settings.setValue("Skinned/double_size"_L1, scale == 8);
+        {
+            const QSignalBlocker blocker(ACTION(SkinnedActionManager::WM_DOUBLE_SIZE));
+            ACTION(SkinnedActionManager::WM_DOUBLE_SIZE)->setChecked(scale == 8);
+        }
+        updateScaleLabel(scale);
+        updateSettings();
+    });
+    connect(ACTION(SkinnedActionManager::WM_DOUBLE_SIZE), &QAction::toggled, this,
+            [this, scaleSlider, updateScaleLabel](bool doubled)
+    {
+        const int scale = doubled ? 8 : 4;
+        QSettings settings;
+        settings.setValue("Skinned/scale"_L1, scale);
+        {
+            const QSignalBlocker blocker(scaleSlider);
+            scaleSlider->setValue(scale);
+        }
+        updateScaleLabel(scale);
+        updateSettings();
+    });
     viewMenu->addAction(SET_ACTION(SkinnedActionManager::WM_ANTIALIASING, this, &SkinnedMainWindow::updateSettings));
 
     QMenu *plMenu = m_mainMenu->addMenu(tr("Playlist"));

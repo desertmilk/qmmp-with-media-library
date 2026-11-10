@@ -56,7 +56,7 @@ SkinnedEqTitleBar::~SkinnedEqTitleBar()
 
 void SkinnedEqTitleBar::updatePositions()
 {
-     int r = skin()->ratio();
+     const qreal r = skin()->ratio();
      m_close->move(r * 264, r * 3);
      m_shade->move(r * 254, r * 3);
      if(m_volumeBar)
@@ -122,7 +122,7 @@ void SkinnedEqTitleBar::mouseDoubleClickEvent(QMouseEvent *)
 void SkinnedEqTitleBar::shade()
 {
     m_shaded = !m_shaded;
-    int r = skin()->ratio();
+    const qreal r = skin()->ratio();
 
     if(m_shaded)
     {

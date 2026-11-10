@@ -105,7 +105,6 @@ SkinnedActionManager::SkinnedActionManager(QObject *parent) :
     delete m_settings;
     m_settings = nullptr;
     m_actions[ABOUT]->setIcon(qApp->windowIcon());
-    connect(m_actions[WM_DOUBLE_SIZE], &QAction::toggled, m_actions[WM_ANTIALIASING], &QAction::setEnabled);
     m_actions[WM_ANTIALIASING]->setEnabled(false);
 }
 

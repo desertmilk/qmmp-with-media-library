@@ -123,7 +123,7 @@ void SkinnedTimeIndicator::modelChanged()
     m_pixmap.fill(Qt::transparent);
 
     if(m_model->visible()) {
-        int r = skin()->ratio();
+        const qreal r = skin()->ratio();
         QPainter paint(&m_pixmap);
 
         if(!m_model->elapsed())

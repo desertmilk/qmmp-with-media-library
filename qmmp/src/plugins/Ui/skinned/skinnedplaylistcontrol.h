@@ -49,7 +49,7 @@ private slots:
 
 private:
     void mouseReleaseEvent(QMouseEvent*) override;
-    int m_ratio;
+    qreal m_ratio;
 };
 
 #endif 

@@ -118,7 +118,8 @@ int SkinnedHorizontalSlider::convert(int p) const
 int SkinnedHorizontalSlider::sliderSize() const
 {
     if(m_max > m_min)
-        return qMax(width() - abs(m_max - m_min), MIN_SLIDER_SIZE * m_skin->ratio());
+        return qMax(width() - abs(m_max - m_min),
+                    qRound(MIN_SLIDER_SIZE * m_skin->ratio()));
 
     return MIN_SLIDER_SIZE;
 }

@@ -68,8 +68,9 @@ void SkinnedPositionBar::mousePressEvent(QMouseEvent *e)
     }
     else
     {
-        m_value = convert(qMax(qMin(width() - 30 * skin()->ratio(), qRound(e->position().x()) - 15 * skin()->ratio()), 0));
-        press_pos = 15 * skin()->ratio();
+        m_value = convert(qMax(qMin(width() - qRound(30 * skin()->ratio()),
+                                    qRound(e->position().x()) - qRound(15 * skin()->ratio())), 0));
+        press_pos = qRound(15 * skin()->ratio());
         emit sliderPressed();
         if(m_value != m_old)
         {

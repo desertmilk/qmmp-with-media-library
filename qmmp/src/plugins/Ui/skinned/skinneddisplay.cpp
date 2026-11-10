@@ -164,7 +164,7 @@ SkinnedDisplay::~SkinnedDisplay()
 
 void SkinnedDisplay::updatePositions()
 {
-    int r = skin()->ratio();
+    const qreal r = skin()->ratio();
     m_previous->move(r * 16, r * 88);
     m_play->move(r * 39, r * 88);
     m_pause->move(r * 62,  r * 88);
@@ -259,7 +259,7 @@ void SkinnedDisplay::updateMask()
 void SkinnedDisplay::setMinimalMode(bool b)
 {
     m_shaded = b;
-    int r = skin()->ratio();
+    const qreal r = skin()->ratio();
 
     if(m_shaded)
          m_mw->setFixedSize(r * 275,r*14);

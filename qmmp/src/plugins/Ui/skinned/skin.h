@@ -39,7 +39,7 @@ public:
     ~Skin();
 
     static Skin *instance();
-    int ratio() const;
+    qreal ratio() const;
     QPixmap getMain() const;
     QPixmap getButton(uint bt) const;
     QCursor getCursor(uint cu) const;
@@ -287,7 +287,7 @@ private:
     QPixmap *getDummyPixmap(const QString &name, const QString &fallback);
     void applyFallbackPlaylistColors();
     void colorizeFallbackPixmap(QPixmap *pixmap) const;
-    QPixmap scalePixmap(const QPixmap &pix, int ratio = 2);
+    QPixmap scalePixmap(const QPixmap &pix, qreal ratio);
     static Skin *m_instance;
     QDir m_skin_dir;
     QHash<uint, QPixmap> m_buttons;
@@ -310,7 +310,7 @@ private:
     QList<QColor> m_vis_colors;
     QHash<uint, QColor> m_main_colors;
     bool m_use_cursors;
-    bool m_double_size;
+    qreal m_ratio = 1.0;
     bool m_antialiasing;
 
     void loadMain();

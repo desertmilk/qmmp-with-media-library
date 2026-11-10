@@ -468,8 +468,10 @@ void SkinnedPlayList::readSettings()
         auto it = std::find_if(screens.cbegin(), screens.cend(), [pos](QScreen *screen){ return screen->availableGeometry().contains(pos); });
         if(it != screens.cend())
             availableGeometry = (*it)->availableGeometry();
-        pos.setX(qBound(availableGeometry.left(), pos.x(), availableGeometry.right() - m_ratio * 275));
-        pos.setY(qBound(availableGeometry.top(), pos.y(), availableGeometry.bottom() - m_ratio * 116));
+        pos.setX(qBound(availableGeometry.left(), pos.x(),
+                        availableGeometry.right() - qRound(m_ratio * 275)));
+        pos.setY(qBound(availableGeometry.top(), pos.y(),
+                        availableGeometry.bottom() - qRound(m_ratio * 116)));
         move(pos); //position
         m_update = true;
     }
@@ -680,11 +682,12 @@ void SkinnedPlayList::setMinimalMode(bool b)
         if(m_shaded)
         {
             m_height = height();
-            setFixedSize(qMax(width(), 275 * m_ratio), 14 * m_ratio);
+            setFixedSize(qMax(width(), qRound(275 * m_ratio)), qRound(14 * m_ratio));
         }
         else
         {
-            setFixedSize(qMax(width(), 275 * m_ratio), qMax(m_height, 116 * m_ratio));
+            setFixedSize(qMax(width(), qRound(275 * m_ratio)),
+                         qMax(m_height, qRound(116 * m_ratio)));
         }
     }
     else

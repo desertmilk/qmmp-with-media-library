@@ -86,7 +86,7 @@ SkinnedEqWidget::SkinnedEqWidget (QWidget *parent)
 
 void SkinnedEqWidget::updatePositions()
 {
-    int r = skin()->ratio();
+    const qreal r = skin()->ratio();
     m_preamp->move(21 * r, 38 * r);
     m_on->move(14 * r, 18 * r);
     m_autoButton->move(39 * r, 18 * r);
@@ -122,7 +122,7 @@ void SkinnedEqWidget::updateSkin()
 void SkinnedEqWidget::setMimimalMode(bool b)
 {
     m_shaded = b;
-    int r = skin()->ratio();
+    const qreal r = skin()->ratio();
 
     if(m_shaded)
         setFixedSize(r * 275, r * 14);
@@ -138,7 +138,7 @@ void SkinnedEqWidget::readSettings()
     QScreen *primaryScreen = QGuiApplication::primaryScreen();
     QRect availableGeometry = primaryScreen->availableGeometry();
     QPoint pos = settings.value("Skinned/eq_pos"_L1, QPoint(100, 216)).toPoint();
-    int r = skin()->ratio();
+    const qreal r = skin()->ratio();
     //TODO QGuiApplication::screenAt
     const QList<QScreen *> screens = QGuiApplication::screens();
     auto it = std::find_if(screens.cbegin(), screens.cend(), [pos](QScreen *screen){ return screen->availableGeometry().contains(pos); });
@@ -466,4 +466,3 @@ void SkinnedEqWidget::setPreset(const EqSettings &preset)
     m_preamp->setValue(preset.preamp());
     writeEq();
 }
-

@@ -332,9 +332,10 @@ bool LibraryWidget::loadSkinChrome()
         return false;
 
     QSettings settings;
-    m_skinRatio = settings.value(u"Skinned/double_size"_s, false).toBool() ? 2 : 1;
-    m_ui->verticalLayout->setContentsMargins(6 * m_skinRatio, 26 * m_skinRatio,
-                                             6 * m_skinRatio, 6 * m_skinRatio);
+    const int legacyScale = settings.value(u"Skinned/double_size"_s, false).toBool() ? 8 : 4;
+    m_skinRatio = qBound(4, settings.value(u"Skinned/scale"_s, legacyScale).toInt(), 8) / 4.0;
+    m_ui->verticalLayout->setContentsMargins(qRound(6 * m_skinRatio), qRound(26 * m_skinRatio),
+                                             qRound(6 * m_skinRatio), qRound(6 * m_skinRatio));
 
     m_skinPlaylist = QPixmap(QmmpUiSkin::filePath(u"pledit"_s));
     if(m_skinPlaylist.isNull())
@@ -360,20 +361,24 @@ bool LibraryWidget::loadSkinChrome()
     {
         m_hasSkinBorders = m_skinPlaylist.width() >= 276 && m_skinPlaylist.height() >= 110;
         if(m_hasSkinBorders)
-            m_ui->verticalLayout->setContentsMargins(12 * m_skinRatio, 26 * m_skinRatio,
-                                                     20 * m_skinRatio, 6 * m_skinRatio);
+            m_ui->verticalLayout->setContentsMargins(qRound(12 * m_skinRatio),
+                                                     qRound(26 * m_skinRatio),
+                                                     qRound(20 * m_skinRatio),
+                                                     qRound(6 * m_skinRatio));
 
-        const int widthIncrement = 25 * m_skinRatio;
-        const int minimumWidth = ((640 + widthIncrement - 1) / widthIncrement) * widthIncrement;
-        setMinimumSize(minimumWidth, m_shaded ? 20 : 420);
-        setSizeIncrement(widthIncrement, 29 * m_skinRatio);
+        const int widthIncrement = qRound(25 * m_skinRatio);
+        const int scaledMinimumWidth = qRound(640 * m_skinRatio);
+        const int minimumWidth = ((scaledMinimumWidth + widthIncrement - 1) / widthIncrement) *
+                widthIncrement;
+        setMinimumSize(minimumWidth, qRound((m_shaded ? 20 : 420) * m_skinRatio));
+        setSizeIncrement(widthIncrement, qRound(29 * m_skinRatio));
         if(!m_resizeWidget)
         {
             m_resizeWidget = new QWidget(this);
             m_resizeWidget->setCursor(Qt::SizeFDiagCursor);
             m_resizeWidget->installEventFilter(this);
         }
-        m_resizeWidget->resize(25 * m_skinRatio, 29 * m_skinRatio);
+        m_resizeWidget->resize(qRound(25 * m_skinRatio), qRound(29 * m_skinRatio));
         m_resizeWidget->move(width() - m_resizeWidget->width(), height() - m_resizeWidget->height());
     }
     return !m_skinPlaylist.isNull();
@@ -384,13 +389,23 @@ void LibraryWidget::reloadSkin()
     applyPalette();
     if(isWindow())
     {
+        const qreal previousRatio = m_skinRatio;
+        const QSize previousSize = size();
         const bool wasVisible = isVisible();
         const bool hasChrome = loadSkinChrome();
         const Qt::WindowFlags flags = hasChrome ? (Qt::Tool | Qt::FramelessWindowHint) : Qt::Dialog;
         if(windowFlags() != flags)
             setWindowFlags(flags);
 
-        if(!hasChrome)
+        if(hasChrome && !qFuzzyCompare(previousRatio, m_skinRatio))
+        {
+            const qreal scale = m_skinRatio / previousRatio;
+            m_unshadedHeight = qRound(m_unshadedHeight * scale);
+            if(m_shaded)
+                setFixedHeight(qRound(20 * m_skinRatio));
+            resize(qRound(previousSize.width() * scale), qRound(previousSize.height() * scale));
+        }
+        else if(!hasChrome)
         {
             if(m_shaded)
             {
@@ -421,8 +436,8 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
 
     QPainter painter(this);
     painter.scale(m_skinRatio, m_skinRatio);
-    const int width = qMax(275, this->width() / m_skinRatio);
-    const int height = this->height() / m_skinRatio;
+    const int width = qMax(275, qRound(this->width() / m_skinRatio));
+    const int height = qRound(this->height() / m_skinRatio);
     painter.drawTiledPixmap(0, 0, width, 20, m_skinPlaylist.copy(127, 0, 25, 20));
     painter.drawPixmap(0, 0, m_skinPlaylist.copy(0, 0, 25, 20));
     painter.drawPixmap(width - 25, 0, m_skinPlaylist.copy(153, 0, 25, 20));
@@ -574,8 +589,8 @@ void LibraryWidget::mouseMoveEvent(QMouseEvent *event)
     else if(m_resizing)
     {
         const QPoint delta = event->globalPosition().toPoint() - frameGeometry().topLeft();
-        const int widthIncrement = 25 * m_skinRatio;
-        const int heightIncrement = 29 * m_skinRatio;
+        const int widthIncrement = qRound(25 * m_skinRatio);
+        const int heightIncrement = qRound(29 * m_skinRatio);
         const int width = qMax(minimumWidth(),
                        ((delta.x() - minimumWidth() + widthIncrement / 2) / widthIncrement) *
                            widthIncrement + minimumWidth());
@@ -643,8 +658,8 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
     {
         const QMouseEvent *mouseEvent = static_cast<const QMouseEvent *>(event);
         const QPoint delta = mouseEvent->globalPosition().toPoint() - frameGeometry().topLeft();
-        const int widthIncrement = 25 * m_skinRatio;
-        const int heightIncrement = 29 * m_skinRatio;
+        const int widthIncrement = qRound(25 * m_skinRatio);
+        const int heightIncrement = qRound(29 * m_skinRatio);
         const int width = qMax(minimumWidth(),
                        ((delta.x() - minimumWidth() + widthIncrement / 2) / widthIncrement) *
                            widthIncrement + minimumWidth());
@@ -690,14 +705,14 @@ void LibraryWidget::toggleShade()
     const int oldHeight = height();
     if(m_shaded)
     {
-        setMinimumHeight(420);
+        setMinimumHeight(qRound(420 * m_skinRatio));
         setMaximumHeight(QWIDGETSIZE_MAX);
         resize(width(), m_unshadedHeight);
     }
     else
     {
         m_unshadedHeight = oldHeight;
-        setFixedHeight(20);
+        setFixedHeight(qRound(20 * m_skinRatio));
     }
     m_shaded = !m_shaded;
     emit shadedChanged(m_shaded, height() - oldHeight);
