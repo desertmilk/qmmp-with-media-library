@@ -5,7 +5,7 @@ Fork of [Qmmp](https://qmmp.ylsoftware.com/), a Qt-based multimedia player that 
 <img width="743" height="889" alt="Qmmp with media library" src="https://github.com/user-attachments/assets/53ce869b-a76a-4467-97e2-4519be000f64" />
 
 
-> **Status:** work in progress. This fork tracks upstream Qmmp and should only change the code as needed to bring the Media Library plugin in line with the features I'd like. Everything else (decoders, output plugins, UI, effects) is untouched.
+This fork tracks upstream Qmmp and should only modifies the code to bring the Media Library plugin in line with the features I'd like and to package the app up nicely. Everything else in the core player (decoders, output plugins, UI, effects) is untouched.
 
 ---
 
@@ -23,7 +23,7 @@ Fork of [Qmmp](https://qmmp.ylsoftware.com/), a Qt-based multimedia player that 
 
 ## Download
 
-Visit the [Releases](https://github.com/desertmilk/qmmp-with-media-library/releases) tab to download pre-built binaries for Linux (binary or AppImage), Windows, or MacOS.
+Visit the [Releases](https://github.com/desertmilk/qmmp-with-media-library/releases) tab to download pre-built binaries for Linux (binary or AppImage) and Windows. A MacOS build is performed as an exercise/sanity check, but I have no MacOS machine and no means to sign the package, so I cannot guarantee how or that it works.
 
 ## Building
 
