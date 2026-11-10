@@ -29,9 +29,22 @@
 
 SkinnedPositionBar::SkinnedPositionBar(QWidget *parent) : PixmapWidget(parent)
 {
-    setPixmap(skin()->getPosBar());
+    const QPixmap posBar = skin()->getPosBar();
+    qCInfo(plugin) << "SkinnedPositionBar constructing"
+                   << "parent" << static_cast<const void *>(parent)
+                   << "pixmapSize" << posBar.size()
+                   << "pixmapNull" << posBar.isNull()
+                   << "pixelSize" << posBar.depth();
+    setPixmap(posBar);
     draw(false);
     setCursor(skin()->getCursor(Skin::CUR_POSBAR));
+    qCInfo(plugin) << "SkinnedPositionBar constructed"
+                   << "parent" << static_cast<const void *>(parentWidget())
+                   << "geometry" << geometry()
+                   << "visible" << isVisible()
+                   << "enabled" << isEnabled()
+                   << "transparentForMouseEvents"
+                   << testAttribute(Qt::WA_TransparentForMouseEvents);
 }
 
 void SkinnedPositionBar::mousePressEvent(QMouseEvent *e)
@@ -134,9 +147,18 @@ void SkinnedPositionBar::setMaximum(qint64 max)
 
 void SkinnedPositionBar::updateSkin()
 {
-    resize(skin()->getPosBar().size());
+    const QPixmap posBar = skin()->getPosBar();
+    qCInfo(plugin) << "SkinnedPositionBar skin update"
+                   << "pixmapSize" << posBar.size()
+                   << "pixmapNull" << posBar.isNull()
+                   << "oldGeometry" << geometry();
+    resize(posBar.size());
     draw(false);
     setCursor(skin()->getCursor(Skin::CUR_POSBAR));
+    qCInfo(plugin) << "SkinnedPositionBar skin updated"
+                   << "geometry" << geometry()
+                   << "visible" << isVisible()
+                   << "enabled" << isEnabled();
 }
 
 void SkinnedPositionBar::draw(bool pressed)

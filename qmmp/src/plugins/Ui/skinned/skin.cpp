@@ -232,6 +232,10 @@ void Skin::setSkin(const QString &path, bool force)
 
     if(!m_skin_dir.exists() || m_skin_dir.count() <= 4)
         m_skin_dir = QDir(SkinReader::defaultSkinPath());
+    qCInfo(plugin) << "Skin::setSkin resolved"
+                   << "requestedPath" << path
+                   << "skinDirectory" << m_skin_dir.absolutePath()
+                   << "fileCount" << m_skin_dir.count();
 
     //clear old values
     m_pledit_txt.clear();
@@ -432,6 +436,10 @@ void Skin::loadTitleBar()
 void Skin::loadPosBar()
 {
     QPixmap *pixmap = getPixmap(u"posbar"_s);
+    qCInfo(plugin) << "Skin::loadPosBar source"
+                   << "size" << pixmap->size()
+                   << "pixelSize" << pixmap->depth()
+                   << "null" << pixmap->isNull();
 
     if(pixmap->width() > 249)
     {
@@ -446,6 +454,10 @@ void Skin::loadPosBar()
         m_buttons[BT_POSBAR_P] = dummy;
     }
     m_posbar = pixmap->copy(0,0,248, qMin(pixmap->height(), 10));
+    qCInfo(plugin) << "Skin::loadPosBar extracted"
+                   << "track" << m_posbar.size()
+                   << "normalThumb" << m_buttons[BT_POSBAR_N].size()
+                   << "pressedThumb" << m_buttons[BT_POSBAR_P].size();
     delete pixmap;
 }
 
@@ -536,7 +548,15 @@ QPixmap *Skin::getPixmap(const QString& name, const QString &fallback)
     for(const QFileInfo &info : m_skin_dir.entryInfoList({ name + u".*"_s }))
     {
         if(info.suffix().toLower() != "cur"_L1 && info.suffix().toLower() != "txt"_L1)
-            return new QPixmap (info.filePath());
+        {
+            QPixmap *pixmap = new QPixmap(info.filePath());
+            if(name == u"posbar"_s)
+                qCInfo(plugin) << "Skin::getPixmap loaded posbar"
+                               << "source" << info.filePath()
+                               << "size" << pixmap->size()
+                               << "null" << pixmap->isNull();
+            return pixmap;
+        }
     }
 
     if(!fallback.isEmpty())
@@ -544,10 +564,27 @@ QPixmap *Skin::getPixmap(const QString& name, const QString &fallback)
         for(const QFileInfo &info : m_skin_dir.entryInfoList({ fallback + u".*"_s }))
         {
             if(info.suffix().toLower() != "cur"_L1 && info.suffix().toLower() != "txt"_L1)
-                return new QPixmap (info.filePath());
+            {
+                QPixmap *pixmap = new QPixmap(info.filePath());
+                if(name == u"posbar"_s)
+                    qCInfo(plugin) << "Skin::getPixmap loaded posbar fallback"
+                                   << "requestedName" << name
+                                   << "fallbackName" << fallback
+                                   << "source" << info.filePath()
+                                   << "size" << pixmap->size()
+                                   << "null" << pixmap->isNull();
+                return pixmap;
+            }
         }
     }
-    return getDummyPixmap(name, fallback);
+    QPixmap *pixmap = getDummyPixmap(name, fallback);
+    if(name == u"posbar"_s)
+        qCInfo(plugin) << "Skin::getPixmap loaded default posbar fallback"
+                       << "requestedName" << name
+                       << "fallbackName" << fallback
+                       << "size" << pixmap->size()
+                       << "null" << pixmap->isNull();
+    return pixmap;
 }
 
 QString Skin::getPath(const QString& name)

@@ -114,6 +114,14 @@ SkinnedDisplay::SkinnedDisplay(SkinnedMainWindow *parent) : PixmapWidget (parent
     connect(m_balanceBar, &SkinnedBalanceBar::sliderReleased, m_text, &SkinnedTextScroller::clear);
 
     m_posbar = new SkinnedPositionBar(this);
+    qCInfo(plugin) << "SkinnedDisplay created position bar"
+                   << "widget" << static_cast<const void *>(m_posbar)
+                   << "parent" << static_cast<const void *>(m_posbar->parentWidget())
+                   << "pixmapSize" << m_posbar->size()
+                   << "visible" << m_posbar->isVisible()
+                   << "enabled" << m_posbar->isEnabled()
+                   << "transparentForMouseEvents"
+                   << m_posbar->testAttribute(Qt::WA_TransparentForMouseEvents);
     connect(m_posbar, &SkinnedPositionBar::sliderPressed, this, &SkinnedDisplay::showPosition);
     connect(m_posbar, &SkinnedPositionBar::sliderMoved, this, &SkinnedDisplay::showPosition);
     connect(m_posbar, &SkinnedPositionBar::sliderReleased, this, &SkinnedDisplay::updatePosition);
@@ -136,6 +144,14 @@ SkinnedDisplay::SkinnedDisplay(SkinnedMainWindow *parent) : PixmapWidget (parent
     connect(ui_settings, &QmmpUiSettings::repeatableListChanged, m_repeatButton, &SkinnedToggleButton::setChecked);
     connect(ui_settings, &QmmpUiSettings::shuffleChanged, m_shuffleButton, &SkinnedToggleButton::setChecked);
     updatePositions();
+    qCInfo(plugin) << "SkinnedDisplay initial layout"
+                   << "size" << size()
+                   << "positionBar" << m_posbar->geometry()
+                   << "parent" << static_cast<const void *>(m_posbar->parentWidget())
+                   << "visible" << m_posbar->isVisible()
+                   << "enabled" << m_posbar->isEnabled()
+                   << "pixmapSize" << m_posbar->size()
+                   << "children" << children().size();
     updateMask();
 }
 
@@ -171,6 +187,13 @@ void SkinnedDisplay::updatePositions()
     m_balanceBar->move(r * 177, r * 57);
     m_timeIndicator->move(r * 34, r * 26);
     m_aboutWidget->setGeometry(r * 247, r * 83, r * 20, r * 25);
+    qCInfo(plugin) << "SkinnedDisplay positioned controls"
+                   << "ratio" << r
+                   << "displaySize" << size()
+                   << "positionBar" << m_posbar->geometry()
+                   << "play" << m_play->geometry()
+                   << "pause" << m_pause->geometry()
+                   << "stop" << m_stop->geometry();
 }
 
 void SkinnedDisplay::setTime (qint64 t)
@@ -358,7 +381,32 @@ void SkinnedDisplay::mousePressEvent(QMouseEvent *e)
                    << "position" << e->position()
                    << "globalPosition" << e->globalPosition()
                    << "childAt" << (target ? target->metaObject()->className() : "none")
-                   << "childGeometry" << (target ? target->geometry() : QRect());
+                   << "childGeometry" << (target ? target->geometry() : QRect())
+                   << "displaySize" << size()
+                   << "windowMaskEmpty" << m_mw->mask().isEmpty()
+                   << "windowMaskContainsPoint"
+                   << m_mw->mask().contains(mapTo(m_mw, e->position().toPoint()))
+                   << "play" << m_play->geometry() << m_play->isVisible()
+                   << "pause" << m_pause->geometry() << m_pause->isVisible()
+                   << "stop" << m_stop->geometry() << m_stop->isVisible()
+                   << "positionBar" << m_posbar->geometry() << m_posbar->isVisible()
+                   << "volumeBar" << m_volumeBar->geometry() << m_volumeBar->isVisible()
+                   << "balanceBar" << m_balanceBar->geometry() << m_balanceBar->isVisible();
+    for(QWidget *child : findChildren<QWidget *>(QString(), Qt::FindDirectChildrenOnly))
+    {
+        const QRect childGeometry = child->geometry();
+        if(childGeometry.contains(e->position().toPoint()))
+        {
+            qCInfo(plugin) << "SkinnedDisplay click intersects child"
+                           << child->metaObject()->className()
+                           << "widget" << static_cast<const void *>(child)
+                           << "geometry" << childGeometry
+                           << "visible" << child->isVisible()
+                           << "enabled" << child->isEnabled()
+                           << "transparentForMouseEvents"
+                           << child->testAttribute(Qt::WA_TransparentForMouseEvents);
+        }
+    }
     if(e->button() == Qt::RightButton)
         m_mw->menu()->exec(e->globalPosition().toPoint());
     else if(e->button() == Qt::LeftButton && m_aboutWidget->underMouse())
