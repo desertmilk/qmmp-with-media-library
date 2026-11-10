@@ -126,6 +126,7 @@ private:
     bool m_albumsColumnsInitialized = false;
     bool m_refreshingSummary = false;
     bool m_appExiting = false;
+    bool m_hasSkinBorders = false;
     int m_skinRatio = 1;
     int m_unshadedHeight = 0;
 };

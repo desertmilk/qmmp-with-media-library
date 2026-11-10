@@ -325,6 +325,8 @@ void LibraryWidget::applyPalette()
 bool LibraryWidget::loadSkinChrome()
 {
     m_skinPlaylist = QPixmap();
+    m_hasSkinBorders = false;
+    m_ui->verticalLayout->setContentsMargins(6, 26, 6, 6);
     if(!QmmpUiSkin::isSkinnedUi())
         return false;
 
@@ -350,6 +352,10 @@ bool LibraryWidget::loadSkinChrome()
     }
     if(!m_skinPlaylist.isNull())
     {
+        m_hasSkinBorders = m_skinPlaylist.width() >= 276 && m_skinPlaylist.height() >= 110;
+        if(m_hasSkinBorders)
+            m_ui->verticalLayout->setContentsMargins(12, 26, 20, 6);
+
         QSettings settings;
         m_skinRatio = settings.value(u"Skinned/double_size"_s, false).toBool() ? 2 : 1;
         const int widthIncrement = 25 * m_skinRatio;
@@ -424,6 +430,20 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
     {
         painter.drawPixmap(x, 7, QmmpUiSkin::letter(character));
         x += 5;
+    }
+
+    if(m_hasSkinBorders && height() > 25)
+    {
+        painter.drawTiledPixmap(QRect(0, 20, 12, height() - 25),
+                                m_skinPlaylist.copy(0, 42, 12, 29));
+        painter.drawTiledPixmap(QRect(width() - 20, 20, 20, height() - 25),
+                                m_skinPlaylist.copy(31, 42, 20, 29));
+
+        const int bottom = height() - 5;
+        painter.drawPixmap(0, bottom, m_skinPlaylist.copy(0, 105, 125, 5));
+        for(int x = 125; x < width() - 150; x += 25)
+            painter.drawPixmap(x, bottom, m_skinPlaylist.copy(179, 33, 25, 5));
+        painter.drawPixmap(width() - 150, bottom, m_skinPlaylist.copy(126, 105, 150, 5));
     }
 }
 

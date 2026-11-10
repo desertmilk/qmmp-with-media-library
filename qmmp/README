@@ -54,7 +54,7 @@ Other features:
 - alternative user interface based on standard widgets set
 - 10-band equalizer
 - MP3, Vorbis, AAC, AAC+ streams support
-- MPRIS
+- MPRIS 2.0 integration with desktop media controls
 - removable device detection (via UDisks)
 - lyrics
 - cover art support

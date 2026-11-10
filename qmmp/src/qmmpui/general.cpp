@@ -49,13 +49,20 @@ public:
             }
             generalCache->append(item);
         }
-        enabledNames = settings.value(u"General/enabled_plugins"_s).toStringList();
+        const QString enabledPluginsKey = u"General/enabled_plugins"_s;
+        const bool hasEnabledPlugins = settings.contains(enabledPluginsKey);
+        enabledNames = settings.value(enabledPluginsKey).toStringList();
         bool updated = false;
         for(QmmpUiPluginCache *item : std::as_const(*generalCache))
         {
             if(item->shortName() == u"library"_s && !enabledNames.contains(u"library"_s))
             {
                 enabledNames << u"library"_s;
+                updated = true;
+            }
+            else if(!hasEnabledPlugins && item->shortName() == u"mpris"_s)
+            {
+                enabledNames << u"mpris"_s;
                 updated = true;
             }
         }
