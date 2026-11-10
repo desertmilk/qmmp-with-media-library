@@ -1,4 +1,4 @@
-app-id: org.qmmp.Qmmp
+app-id: io.github.desertmilk.qmmp-with-media-library
 runtime: org.kde.Platform
 runtime-version: '6.8'
 sdk: org.kde.Sdk
@@ -77,11 +77,11 @@ modules:
       - |
         for metainfo in \
           /app/share/metainfo/com.ylsoftware.qmmp.metainfo.xml \
-          /app/share/metainfo/org.qmmp.Qmmp.metainfo.xml; do
+          /app/share/metainfo/io.github.desertmilk.qmmp-with-media-library.metainfo.xml; do
           if [ -f "$metainfo" ]; then
             sed -i \
-              -e 's/com\.ylsoftware\.qmmp/org.qmmp.Qmmp/g' \
-              -e 's/qmmp\.desktop/org.qmmp.Qmmp.desktop/g' \
+              -e 's/com\.ylsoftware\.qmmp/io.github.desertmilk.qmmp-with-media-library/g' \
+              -e 's/qmmp\.desktop/io.github.desertmilk.qmmp-with-media-library.desktop/g' \
               "$metainfo"
           fi
         done

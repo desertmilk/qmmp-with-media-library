@@ -645,7 +645,7 @@ jobs:
         uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
         with:
           bundle: qmmp-${{ env.VERSION }}-linux-x86_64.flatpak
-          manifest-path: qmmp-src/qmmp/packaging/flatpak/org.qmmp.Qmmp.yml
+          manifest-path: qmmp-src/qmmp/packaging/flatpak/io.github.desertmilk.qmmp-with-media-library.yml
           cache-key: flatpak-builder-${{ github.sha }}
           artifact-name: qmmp-flatpak
           arch: x86_64
