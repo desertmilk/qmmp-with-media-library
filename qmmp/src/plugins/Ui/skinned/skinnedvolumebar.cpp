@@ -21,6 +21,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <math.h>
+#include <qmmp/qmmp.h>
 #include "skin.h"
 #include "skinnedbutton.h"
 #include "skinnedmainwindow.h"
@@ -35,6 +36,12 @@ SkinnedVolumeBar::SkinnedVolumeBar(QWidget *parent) : PixmapWidget(parent)
 
 void SkinnedVolumeBar::mousePressEvent(QMouseEvent *e)
 {
+    qCInfo(plugin) << "SkinnedVolumeBar press"
+                   << "button" << e->button()
+                   << "position" << e->position()
+                   << "geometry" << geometry()
+                   << "value" << m_value;
+    e->accept();
     m_moving = true;
     press_pos = e->position().x();
     if(m_pos < e->position().x() && e->position().x() < m_pos + 11 * skin()->ratio())
@@ -51,10 +58,12 @@ void SkinnedVolumeBar::mousePressEvent(QMouseEvent *e)
             emit sliderMoved(m_value);
     }
     draw();
+    qCInfo(plugin) << "SkinnedVolumeBar pressed" << "value" << m_value;
 }
 
 void SkinnedVolumeBar::mouseMoveEvent (QMouseEvent *e)
 {
+    e->accept();
     if(m_moving)
     {
         int po = e->position().x();
@@ -64,16 +73,22 @@ void SkinnedVolumeBar::mouseMoveEvent (QMouseEvent *e)
         {
             m_value = convert(po);
             draw();
+            qCInfo(plugin) << "SkinnedVolumeBar moved" << "value" << m_value;
             emit sliderMoved(m_value);
         }
     }
 }
 
-void SkinnedVolumeBar::mouseReleaseEvent(QMouseEvent*)
+void SkinnedVolumeBar::mouseReleaseEvent(QMouseEvent *e)
 {
+    qCInfo(plugin) << "SkinnedVolumeBar release"
+                   << "position" << e->position()
+                   << "value" << m_value;
+    e->accept();
     m_moving = false;
     draw(false);
     m_old = m_value;
+    qCInfo(plugin) << "SkinnedVolumeBar released" << "value" << m_value;
     emit sliderReleased();
 }
 

@@ -22,6 +22,7 @@
 #include <QSettings>
 #include <QMenu>
 #include <QTimer>
+#include <qmmp/qmmp.h>
 #include <qmmp/soundcore.h>
 #include <qmmp/qmmpsettings.h>
 #include <qmmpui/mediaplayer.h>
@@ -317,6 +318,8 @@ void SkinnedDisplay::showPosition()
 void SkinnedDisplay::updatePosition()
 {
     m_text->clear();
+    qCInfo(plugin) << "SkinnedDisplay seek" << m_posbar->value()
+                   << "maximum" << m_posbar->maximum();
     m_core->seek(m_posbar->value());
 }
 
@@ -349,6 +352,13 @@ void SkinnedDisplay::setIsShuffle(bool yes)
 
 void SkinnedDisplay::mousePressEvent(QMouseEvent *e)
 {
+    QWidget *target = childAt(e->position().toPoint());
+    qCInfo(plugin) << "SkinnedDisplay press"
+                   << "button" << e->button()
+                   << "position" << e->position()
+                   << "globalPosition" << e->globalPosition()
+                   << "childAt" << (target ? target->metaObject()->className() : "none")
+                   << "childGeometry" << (target ? target->geometry() : QRect());
     if(e->button() == Qt::RightButton)
         m_mw->menu()->exec(e->globalPosition().toPoint());
     else if(e->button() == Qt::LeftButton && m_aboutWidget->underMouse())

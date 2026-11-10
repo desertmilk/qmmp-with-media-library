@@ -24,6 +24,7 @@
 #include "skin.h"
 #include "skinnedtogglebutton.h"
 #include <QMouseEvent>
+#include <qmmp/qmmp.h>
 
 SkinnedToggleButton::SkinnedToggleButton(QWidget *parent,uint on_n,uint on_p,uint off_n,uint off_p) : PixmapWidget(parent),
     m_on_n(on_n),
@@ -53,8 +54,13 @@ void SkinnedToggleButton::setChecked(bool on)
    else
       setPixmap(skin()->getButton(m_off_n));
 }
-void SkinnedToggleButton::mousePressEvent(QMouseEvent*)
+void SkinnedToggleButton::mousePressEvent(QMouseEvent *e)
 {
+   qCInfo(plugin) << "SkinnedToggleButton press"
+                  << "button" << e->button()
+                  << "position" << e->position()
+                  << "geometry" << geometry();
+   e->accept();
    m_cursorin = true;
    m_old_on = m_on;
    if(m_on)
@@ -63,11 +69,18 @@ void SkinnedToggleButton::mousePressEvent(QMouseEvent*)
       setPixmap(skin()->getButton(m_on_p));
 }
 
-void SkinnedToggleButton::mouseReleaseEvent(QMouseEvent*)
+void SkinnedToggleButton::mouseReleaseEvent(QMouseEvent *e)
 {
+   qCInfo(plugin) << "SkinnedToggleButton release"
+                  << "button" << e->button()
+                  << "position" << e->position()
+                  << "inside" << rect().contains(e->position().toPoint())
+                  << "pressedInside" << m_cursorin;
+   e->accept();
    if(m_cursorin) {
        m_on = !m_old_on;
        setChecked(m_on);
+       qCInfo(plugin) << "SkinnedToggleButton clicked" << m_on;
        emit clicked( m_on);
    } else {
        m_on = m_old_on;

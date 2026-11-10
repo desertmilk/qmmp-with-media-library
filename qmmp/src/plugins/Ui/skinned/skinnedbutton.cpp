@@ -24,6 +24,7 @@
 #include "skinnedbutton.h"
 #include "skin.h"
 #include <QMouseEvent>
+#include <qmmp/qmmp.h>
 
 SkinnedButton::SkinnedButton(QWidget *parent, uint normal, uint pressed, uint cursor)
         : PixmapWidget(parent),
@@ -50,6 +51,12 @@ void SkinnedButton::setON(bool on)
 }
 void SkinnedButton::mousePressEvent(QMouseEvent *e)
 {
+    qCInfo(plugin) << "SkinnedButton press"
+                   << "sprite" << m_name_normal
+                   << "button" << e->button()
+                   << "position" << e->position()
+                   << "globalPosition" << e->globalPosition()
+                   << "geometry" << geometry();
     if(e->button() != Qt::LeftButton)
         return;
 
@@ -60,6 +67,12 @@ void SkinnedButton::mousePressEvent(QMouseEvent *e)
 
 void SkinnedButton::mouseReleaseEvent(QMouseEvent *e)
 {
+    qCInfo(plugin) << "SkinnedButton release"
+                   << "sprite" << m_name_normal
+                   << "button" << e->button()
+                   << "position" << e->position()
+                   << "pressed" << m_pressed
+                   << "inside" << rect().contains(e->position().toPoint());
     if(!m_pressed)
         return;
 
@@ -67,6 +80,7 @@ void SkinnedButton::mouseReleaseEvent(QMouseEvent *e)
     if(rect().contains(e->pos()))
     {
         setON(false);
+        qCInfo(plugin) << "SkinnedButton clicked" << "sprite" << m_name_normal;
         emit clicked();
     }
 }

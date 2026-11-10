@@ -21,6 +21,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <cmath>
+#include <qmmp/qmmp.h>
 #include "skin.h"
 #include "skinnedbutton.h"
 #include "skinnedmainwindow.h"
@@ -43,6 +44,12 @@ int SkinnedBalanceBar::value() const
 
 void SkinnedBalanceBar::mousePressEvent(QMouseEvent *e)
 {
+    qCInfo(plugin) << "SkinnedBalanceBar press"
+                   << "button" << e->button()
+                   << "position" << e->position()
+                   << "geometry" << geometry()
+                   << "value" << m_value;
+    e->accept();
     m_moving = true;
     press_pos = e->position().x();
     if(e->button() == Qt::MiddleButton)
@@ -67,10 +74,12 @@ void SkinnedBalanceBar::mousePressEvent(QMouseEvent *e)
         }
     }
     draw();
+    qCInfo(plugin) << "SkinnedBalanceBar pressed" << "value" << m_value;
 }
 
 void SkinnedBalanceBar::mouseMoveEvent(QMouseEvent *e)
 {
+    e->accept();
     if(m_moving)
     {
         int po = e->position().x();
@@ -80,16 +89,22 @@ void SkinnedBalanceBar::mouseMoveEvent(QMouseEvent *e)
         {
             m_value = convert(po);
             draw();
+            qCInfo(plugin) << "SkinnedBalanceBar moved" << "value" << m_value;
             emit sliderMoved(m_value);
         }
     }
 }
 
-void SkinnedBalanceBar::mouseReleaseEvent(QMouseEvent*)
+void SkinnedBalanceBar::mouseReleaseEvent(QMouseEvent *e)
 {
+    qCInfo(plugin) << "SkinnedBalanceBar release"
+                   << "position" << e->position()
+                   << "value" << m_value;
+    e->accept();
     m_moving = false;
     draw(false);
     m_old = m_value;
+    qCInfo(plugin) << "SkinnedBalanceBar released" << "value" << m_value;
     emit sliderReleased();
 }
 

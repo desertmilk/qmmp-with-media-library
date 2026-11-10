@@ -22,6 +22,7 @@
 #include <QPainter>
 #include <QTimer>
 #include <math.h>
+#include <qmmp/qmmp.h>
 #include "skin.h"
 #include "skinnedbutton.h"
 #include "skinnedpositionbar.h"
@@ -35,6 +36,14 @@ SkinnedPositionBar::SkinnedPositionBar(QWidget *parent) : PixmapWidget(parent)
 
 void SkinnedPositionBar::mousePressEvent(QMouseEvent *e)
 {
+    qCInfo(plugin) << "SkinnedPositionBar press"
+                   << "button" << e->button()
+                   << "position" << e->position()
+                   << "globalPosition" << e->globalPosition()
+                   << "geometry" << geometry()
+                   << "value" << m_value
+                   << "maximum" << m_max;
+    e->accept();
     if(m_max <= 0)
         return;
     m_moving = true;
@@ -60,6 +69,7 @@ void SkinnedPositionBar::mousePressEvent(QMouseEvent *e)
 
 void SkinnedPositionBar::mouseMoveEvent(QMouseEvent *e)
 {
+    e->accept();
     if(m_moving)
     {
         qint64 po = e->position().x();
@@ -69,6 +79,7 @@ void SkinnedPositionBar::mouseMoveEvent(QMouseEvent *e)
         {
             m_value = convert(po);
             draw();
+            qCInfo(plugin) << "SkinnedPositionBar moved" << "value" << m_value;
             emit sliderMoved(m_value);
         }
     }
@@ -90,8 +101,14 @@ void SkinnedPositionBar::wheelEvent(QWheelEvent *e)
     emit sliderReleased();
 }
 
-void SkinnedPositionBar::mouseReleaseEvent(QMouseEvent*)
+void SkinnedPositionBar::mouseReleaseEvent(QMouseEvent *e)
 {
+    qCInfo(plugin) << "SkinnedPositionBar release"
+                   << "position" << e->position()
+                   << "moving" << m_moving
+                   << "value" << m_value
+                   << "maximum" << m_max;
+    e->accept();
     draw(false);
     if(m_value != m_old && m_max > 0)
         m_old = m_value;
@@ -111,6 +128,7 @@ void SkinnedPositionBar::setValue(qint64 v)
 void SkinnedPositionBar::setMaximum(qint64 max)
 {
     m_max = max;
+    qCInfo(plugin) << "SkinnedPositionBar maximum changed" << m_max;
     draw(false);
 }
 
