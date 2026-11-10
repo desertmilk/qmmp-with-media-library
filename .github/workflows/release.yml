@@ -654,6 +654,7 @@ jobs:
   build-macos:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
+    continue-on-error: true
     runs-on: macos-latest
     timeout-minutes: 120
     env:
@@ -1397,6 +1398,8 @@ jobs:
           | **Flatpak** | `qmmp-*-linux-x86_64.flatpak` | Sandboxed bundle; install with `flatpak install --user --bundle <file>` |
 
           ### 🍎 macOS
+
+          The macOS package is available if its build succeeds, but you probably will have a hard time running it. I do not possess a Mac, so I cannot test it. It is ad-hoc signed but **not notarized**, so Gatekeeper blocks it on first launch if it was downloaded with a browser. Find instructions to bypass Gatekeeper.
 
           | Architecture | File |
           |--------------|------|
