@@ -621,7 +621,36 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
-  # Job 5: Build on macOS
+  # Job 5: Build on Linux (Ubuntu) - Flatpak
+
+  build-flatpak:
+    needs: check-for-updates
+    if: needs.check-for-updates.outputs.should_build == 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:kde-6.8
+      options: --privileged
+    env:
+      VERSION: ${{ needs.check-for-updates.outputs.build_date }}-${{ needs.check-for-updates.outputs.short_sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ needs.check-for-updates.outputs.commit_sha }}
+          fetch-depth: 1
+          path: qmmp-src
+
+      - name: Build Flatpak
+        uses: flatpak/flatpak-github-actions/flatpak-builder@79327416609af08178ad73b352877e51450790b3 # v6.8
+        with:
+          bundle: qmmp-${{ env.VERSION }}-linux-x86_64.flatpak
+          manifest-path: qmmp-src/qmmp/packaging/flatpak/org.qmmp.Qmmp.yml
+          cache-key: flatpak-builder-${{ github.sha }}
+          artifact-name: qmmp-flatpak
+          arch: x86_64
+
+  # Job 6: Build on macOS
   build-macos:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -1012,7 +1041,7 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
-  # Job 6: Build on Windows (MSYS2/UCRT64)
+  # Job 7: Build on Windows (MSYS2/UCRT64)
   build-windows:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -1214,13 +1243,14 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
-  # Job 7: Create GitHub Release with all artifacts
+  # Job 8: Create GitHub Release with all artifacts
 
   create-release:
     needs:
       - check-for-updates
       - build-linux-binary
       - build-linux-appimage
+      - build-flatpak
       - build-macos
       - build-windows
     if: needs.check-for-updates.outputs.should_build == 'true'
@@ -1244,7 +1274,7 @@ jobs:
       - name: List downloaded artifacts
         run: |
           echo "=== Downloaded Artifacts ==="
-          find artifacts -type f \( -name "*.tar.gz" -o -name "*.7z" -o -name "*.AppImage" -o -name "*.dmg" -o -name "*.app.zip" \) | sort
+          find artifacts -type f \( -name "*.tar.gz" -o -name "*.7z" -o -name "*.AppImage" -o -name "*.flatpak" -o -name "*.dmg" -o -name "*.app.zip" \) | sort
           echo "============================"
 
       - name: Get recent changes
@@ -1281,7 +1311,7 @@ jobs:
           ARCHIVES=()
           shopt -s nullglob
           for artifact_dir in artifacts/*/; do
-            for file in "${artifact_dir}"*.tar.gz "${artifact_dir}"*.7z "${artifact_dir}"*.AppImage "${artifact_dir}"*.dmg "${artifact_dir}"*.app.zip; do
+            for file in "${artifact_dir}"*.tar.gz "${artifact_dir}"*.7z "${artifact_dir}"*.AppImage "${artifact_dir}"*.flatpak "${artifact_dir}"*.dmg "${artifact_dir}"*.app.zip; do
               [ -f "$file" ] && ARCHIVES+=("$file")
             done
           done
@@ -1305,7 +1335,7 @@ jobs:
           ARCHIVES=()
           shopt -s nullglob
           for artifact_dir in artifacts/*/; do
-            for file in "${artifact_dir}"*.tar.gz "${artifact_dir}"*.7z "${artifact_dir}"*.AppImage "${artifact_dir}"*.dmg "${artifact_dir}"*.app.zip; do
+            for file in "${artifact_dir}"*.tar.gz "${artifact_dir}"*.7z "${artifact_dir}"*.AppImage "${artifact_dir}"*.flatpak "${artifact_dir}"*.dmg "${artifact_dir}"*.app.zip; do
               if [ -f "$file" ]; then
                 ARCHIVES+=("$file")
               fi
@@ -1364,6 +1394,7 @@ jobs:
           |--------|------|-------------|
           | **Binary** | `qmmp-*-linux-x86_64-binary.tar.gz` | Pre-built binaries for installation to `/usr` |
           | **AppImage** | `qmmp-*-linux-x86_64.AppImage` | Portable, no installation required |
+          | **Flatpak** | `qmmp-*-linux-x86_64.flatpak` | Sandboxed bundle; install with `flatpak install --user --bundle <file>` |
 
           ### 🍎 macOS
 
