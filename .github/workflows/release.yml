@@ -654,7 +654,7 @@ jobs:
   build-macos:
     needs: check-for-updates
     if: needs.check-for-updates.outputs.should_build == 'true'
-    runs-on: macos-26
+    runs-on: macos-latest
     timeout-minutes: 120
     env:
       HOMEBREW_NO_AUTO_UPDATE: '1'
