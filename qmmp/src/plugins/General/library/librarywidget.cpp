@@ -186,7 +186,7 @@ LibraryWidget::LibraryWidget(bool dialog, QWidget *parent) :
     {
         if(loadSkinChrome())
         {
-            setWindowFlags(Qt::Dialog | Qt::FramelessWindowHint);
+            setWindowFlags(Qt::Tool | Qt::FramelessWindowHint);
             m_ui->buttonBox->hide();
         }
         else
@@ -341,8 +341,12 @@ bool LibraryWidget::loadSkinChrome()
     m_skinPlaylist = QPixmap(QmmpUiSkin::filePath(u"pledit"_s));
     if(!m_skinPlaylist.isNull())
     {
-        setMinimumSize(640, m_shaded ? 20 : 420);
-        setSizeIncrement(25, 29);
+        QSettings settings;
+        m_skinRatio = settings.value(u"Skinned/double_size"_s, false).toBool() ? 2 : 1;
+        const int widthIncrement = 25 * m_skinRatio;
+        const int minimumWidth = ((640 + widthIncrement - 1) / widthIncrement) * widthIncrement;
+        setMinimumSize(minimumWidth, m_shaded ? 20 : 420);
+        setSizeIncrement(widthIncrement, 29 * m_skinRatio);
         if(!m_resizeWidget)
         {
             m_resizeWidget = new QWidget(this);
@@ -362,7 +366,7 @@ void LibraryWidget::reloadSkin()
     {
         const bool wasVisible = isVisible();
         const bool hasChrome = loadSkinChrome();
-        const Qt::WindowFlags flags = hasChrome ? Qt::Dialog | Qt::FramelessWindowHint : Qt::Dialog;
+        const Qt::WindowFlags flags = hasChrome ? (Qt::Tool | Qt::FramelessWindowHint) : Qt::Dialog;
         if(windowFlags() != flags)
             setWindowFlags(flags);
 
@@ -530,8 +534,14 @@ void LibraryWidget::mouseMoveEvent(QMouseEvent *event)
     else if(m_resizing)
     {
         const QPoint delta = event->globalPosition().toPoint() - frameGeometry().topLeft();
-        const int width = qMax(minimumWidth(), ((delta.x() - minimumWidth() + 12) / 25) * 25 + minimumWidth());
-        const int height = qMax(minimumHeight(), ((delta.y() - minimumHeight() + 14) / 29) * 29 + minimumHeight());
+        const int widthIncrement = 25 * m_skinRatio;
+        const int heightIncrement = 29 * m_skinRatio;
+        const int width = qMax(minimumWidth(),
+                       ((delta.x() - minimumWidth() + widthIncrement / 2) / widthIncrement) *
+                           widthIncrement + minimumWidth());
+        const int height = qMax(minimumHeight(),
+                    ((delta.y() - minimumHeight() + heightIncrement / 2) / heightIncrement) *
+                        heightIncrement + minimumHeight());
         resize(width, height);
         event->accept();
     }
@@ -591,8 +601,14 @@ bool LibraryWidget::eventFilter(QObject *watched, QEvent *event)
     {
         const QMouseEvent *mouseEvent = static_cast<const QMouseEvent *>(event);
         const QPoint delta = mouseEvent->globalPosition().toPoint() - frameGeometry().topLeft();
-        const int width = qMax(minimumWidth(), ((delta.x() - minimumWidth() + 12) / 25) * 25 + minimumWidth());
-        const int height = qMax(minimumHeight(), ((delta.y() - minimumHeight() + 14) / 29) * 29 + minimumHeight());
+        const int widthIncrement = 25 * m_skinRatio;
+        const int heightIncrement = 29 * m_skinRatio;
+        const int width = qMax(minimumWidth(),
+                       ((delta.x() - minimumWidth() + widthIncrement / 2) / widthIncrement) *
+                           widthIncrement + minimumWidth());
+        const int height = qMax(minimumHeight(),
+                    ((delta.y() - minimumHeight() + heightIncrement / 2) / heightIncrement) *
+                        heightIncrement + minimumHeight());
         resize(width, height);
         return true;
     }
