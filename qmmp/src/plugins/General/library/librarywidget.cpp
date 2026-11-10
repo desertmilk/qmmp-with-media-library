@@ -326,7 +326,10 @@ bool LibraryWidget::loadSkinChrome()
 {
     m_skinPlaylist = QPixmap();
     m_hasSkinBorders = false;
-    m_ui->verticalLayout->setContentsMargins(6, 26, 6, 6);
+    QSettings settings;
+    m_skinRatio = settings.value(u"Skinned/double_size"_s, false).toBool() ? 2 : 1;
+    m_ui->verticalLayout->setContentsMargins(6 * m_skinRatio, 26 * m_skinRatio,
+                                             6 * m_skinRatio, 6 * m_skinRatio);
     if(!QmmpUiSkin::isSkinnedUi())
         return false;
 
@@ -354,10 +357,9 @@ bool LibraryWidget::loadSkinChrome()
     {
         m_hasSkinBorders = m_skinPlaylist.width() >= 276 && m_skinPlaylist.height() >= 110;
         if(m_hasSkinBorders)
-            m_ui->verticalLayout->setContentsMargins(12, 26, 20, 6);
+            m_ui->verticalLayout->setContentsMargins(12 * m_skinRatio, 26 * m_skinRatio,
+                                                     20 * m_skinRatio, 6 * m_skinRatio);
 
-        QSettings settings;
-        m_skinRatio = settings.value(u"Skinned/double_size"_s, false).toBool() ? 2 : 1;
         const int widthIncrement = 25 * m_skinRatio;
         const int minimumWidth = ((640 + widthIncrement - 1) / widthIncrement) * widthIncrement;
         setMinimumSize(minimumWidth, m_shaded ? 20 : 420);
@@ -365,10 +367,10 @@ bool LibraryWidget::loadSkinChrome()
         if(!m_resizeWidget)
         {
             m_resizeWidget = new QWidget(this);
-            m_resizeWidget->resize(25, 29);
             m_resizeWidget->setCursor(Qt::SizeFDiagCursor);
             m_resizeWidget->installEventFilter(this);
         }
+        m_resizeWidget->resize(25 * m_skinRatio, 29 * m_skinRatio);
         m_resizeWidget->move(width() - m_resizeWidget->width(), height() - m_resizeWidget->height());
     }
     return !m_skinPlaylist.isNull();
@@ -415,7 +417,9 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
         return;
 
     QPainter painter(this);
-    const int width = qMax(275, this->width());
+    painter.scale(m_skinRatio, m_skinRatio);
+    const int width = qMax(275, this->width() / m_skinRatio);
+    const int height = this->height() / m_skinRatio;
     painter.drawTiledPixmap(0, 0, width, 20, m_skinPlaylist.copy(127, 0, 25, 20));
     painter.drawPixmap(0, 0, m_skinPlaylist.copy(0, 0, 25, 20));
     painter.drawPixmap(width - 25, 0, m_skinPlaylist.copy(153, 0, 25, 20));
@@ -432,14 +436,14 @@ void LibraryWidget::paintEvent(QPaintEvent *event)
         x += 5;
     }
 
-    if(m_hasSkinBorders && height() > 25)
+    if(m_hasSkinBorders && height > 25)
     {
-        painter.drawTiledPixmap(QRect(0, 20, 12, height() - 25),
+        painter.drawTiledPixmap(QRect(0, 20, 12, height - 25),
                                 m_skinPlaylist.copy(0, 42, 12, 29));
-        painter.drawTiledPixmap(QRect(width - 20, 20, 20, height() - 25),
+        painter.drawTiledPixmap(QRect(width - 20, 20, 20, height - 25),
                                 m_skinPlaylist.copy(31, 42, 20, 29));
 
-        const int bottom = height() - 5;
+        const int bottom = height - 5;
         painter.drawPixmap(0, bottom, m_skinPlaylist.copy(0, 105, 125, 5));
         for(int x = 125; x < width - 150; x += 25)
             painter.drawPixmap(x, bottom, m_skinPlaylist.copy(179, 33, 25, 5));
@@ -462,15 +466,16 @@ void LibraryWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
 
-    if(event->position().y() < 20)
+    const QPointF position = event->position() / m_skinRatio;
+    if(position.y() < 20)
     {
-        if(event->position().x() >= width() - 20)
+        if(position.x() >= width() / m_skinRatio - 20)
         {
             m_closePressed = true;
             update();
             return;
         }
-        if(event->position().x() >= width() - 29)
+        if(position.x() >= width() / m_skinRatio - 29)
         {
             m_shadePressed = true;
             update();
@@ -480,7 +485,8 @@ void LibraryWidget::mousePressEvent(QMouseEvent *event)
         m_dragOffset = event->globalPosition().toPoint() - frameGeometry().topLeft();
         event->accept();
     }
-    else if(event->position().x() >= width() - 12 && event->position().y() >= height() - 12)
+    else if(position.x() >= width() / m_skinRatio - 12 &&
+            position.y() >= height() / m_skinRatio - 12)
     {
         m_resizing = true;
         event->accept();
@@ -495,11 +501,13 @@ void LibraryWidget::mouseMoveEvent(QMouseEvent *event)
 {
     if(m_closePressed || m_shadePressed)
     {
-        const bool closeHovered = event->position().y() < 20 &&
-                event->position().x() >= width() - 20;
-        const bool shadeHovered = event->position().y() < 20 &&
-                event->position().x() >= width() - 29 &&
-                event->position().x() < width() - 20;
+        const QPointF position = event->position() / m_skinRatio;
+        const qreal logicalWidth = width() / m_skinRatio;
+        const bool closeHovered = position.y() < 20 &&
+                position.x() >= logicalWidth - 20;
+        const bool shadeHovered = position.y() < 20 &&
+                position.x() >= logicalWidth - 29 &&
+                position.x() < logicalWidth - 20;
         m_closePressed = closeHovered;
         m_shadePressed = shadeHovered;
         update();
@@ -582,10 +590,12 @@ void LibraryWidget::mouseMoveEvent(QMouseEvent *event)
 
 void LibraryWidget::mouseReleaseEvent(QMouseEvent *event)
 {
-    const bool close = m_closePressed && event->position().y() < 20 &&
-            event->position().x() >= width() - 20;
-    const bool shade = m_shadePressed && event->position().y() < 20 &&
-            event->position().x() >= width() - 29 && event->position().x() < width() - 20;
+    const QPointF position = event->position() / m_skinRatio;
+    const qreal logicalWidth = width() / m_skinRatio;
+    const bool close = m_closePressed && position.y() < 20 &&
+            position.x() >= logicalWidth - 20;
+    const bool shade = m_shadePressed && position.y() < 20 &&
+            position.x() >= logicalWidth - 29 && position.x() < logicalWidth - 20;
     m_closePressed = false;
     m_shadePressed = false;
     m_dragging = false;
@@ -600,8 +610,9 @@ void LibraryWidget::mouseReleaseEvent(QMouseEvent *event)
 
 void LibraryWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
+    const QPointF position = event->position() / m_skinRatio;
     if(!m_skinPlaylist.isNull() && event->button() == Qt::LeftButton &&
-            event->position().y() < 20 && event->position().x() < width() - 29)
+            position.y() < 20 && position.x() < width() / m_skinRatio - 29)
     {
         toggleShade();
         event->accept();
