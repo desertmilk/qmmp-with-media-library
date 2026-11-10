@@ -290,6 +290,7 @@ void SkinnedMainWindow::readSettings()
     m_hideOnClose = settings.value("hide_on_close"_L1, false).toBool();
     settings.endGroup();
 
+    setMediaLibraryAlwaysOnTop(ACTION(SkinnedActionManager::WM_ALLWAYS_ON_TOP)->isChecked());
     Dock::instance()->addActions(m_uiHelper->actions(UiHelper::PLAYLIST_MENU));
     Dock::instance()->addActions(m_uiHelper->actions(UiHelper::TOOLS_MENU));
 }
@@ -446,6 +447,26 @@ void SkinnedMainWindow::shadeMediaLibrary(bool, int delta)
         Dock::instance()->align(widget, delta);
 }
 
+void SkinnedMainWindow::setMediaLibraryAlwaysOnTop(bool enabled)
+{
+    for(QWidget *widget : qApp->topLevelWidgets())
+    {
+        if(widget->objectName() != u"MediaLibrary"_s || !widget->isWindow())
+            continue;
+
+        const Qt::WindowFlags flags = widget->windowFlags();
+        const Qt::WindowFlags updatedFlags = enabled ? flags | Qt::WindowStaysOnTopHint :
+                                                       flags & ~Qt::WindowStaysOnTopHint;
+        if(flags == updatedFlags)
+            continue;
+
+        const bool wasHidden = widget->isHidden();
+        widget->setWindowFlags(updatedFlags);
+        if(!wasHidden)
+            widget->show();
+    }
+}
+
 void SkinnedMainWindow::createActions()
 {
     SET_ACTION(SkinnedActionManager::PL_ADD_FILE, this, &SkinnedMainWindow::addFile);
@@ -492,6 +513,8 @@ void SkinnedMainWindow::createActions()
             {
                 if(widget->objectName() == u"MediaLibrary"_s && widget->isWindow())
                 {
+                    setMediaLibraryAlwaysOnTop(
+                        ACTION(SkinnedActionManager::WM_ALLWAYS_ON_TOP)->isChecked());
                     Dock::instance()->addWidget(widget);
                     if(!widget->property("mediaLibraryDockSignals").toBool())
                     {

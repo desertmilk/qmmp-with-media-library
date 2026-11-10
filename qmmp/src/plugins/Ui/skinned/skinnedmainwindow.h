@@ -93,6 +93,7 @@ private:
     void readSettings();
     void writeSettings();
     void createActions();
+    void setMediaLibraryAlwaysOnTop(bool enabled);
     SoundCore *m_core;
     QMenu *m_mainMenu;
     SkinnedDisplay *m_display;
